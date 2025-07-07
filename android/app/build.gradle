@@ -116,4 +116,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Exclude support-compat to fix duplicate class errors
+    configurations.all {
+        exclude group: 'com.android.support', module: 'support-compat'
+    }
 }
