@@ -59,67 +59,57 @@ const hideLoading = () => {
 // Setup axios interceptors
 export const setupAxiosInterceptors = () => {
   // Request interceptor
-  axios.interceptors.request.use(
-    requestConfig => {
-      console.log(
-        `🚀 API Request: ${requestConfig.method?.toUpperCase()} ${
-          requestConfig.url
-        }`,
-      );
-
-      //   if (!isGlobalLoadingVisible) showLoading(requestConfig.url);
-
-      return requestConfig;
-    },
-    error => {
-      console.error('❌ Request Setup Error:', error);
-      hideLoading();
-      return Promise.reject(error);
-    },
-  );
-
-  // Response interceptor
-  axios.interceptors.response.use(
-    response => {
-      const startTime = response.config.startTime;
-      const duration = startTime ? Date.now() - startTime : 0;
-
-      console.log(
-        `✅ API Success: ${response.config.method?.toUpperCase()} ${
-          response.config.url
-        } (${duration}ms)`,
-      );
-
-      hideLoading();
-
-      return response;
-    },
-    error => {
-      const startTime = error.config?.startTime;
-      const duration = startTime ? Date.now() - startTime : 0;
-
-      // Determine error type
-      let errorType = 'Unknown Error';
-      if (error.code === 'ECONNABORTED') {
-        errorType = 'Timeout';
-      } else if (error.response) {
-        errorType = `HTTP ${error.response.status}`;
-      } else if (error.request) {
-        errorType = 'Network Error';
-      }
-
-      console.error(
-        `❌ API Error: ${error.config?.method?.toUpperCase()} ${
-          error.config?.url
-        } (${duration}ms) - ${errorType}`,
-        error.message,
-      );
-
-      hideLoading();
-
-      return Promise.reject(error);
-    },
-  );
+  // axios.interceptors.request.use(
+  //   requestConfig => {
+  //     console.log(
+  //       `🚀 API Request: ${requestConfig.method?.toUpperCase()} ${
+  //         requestConfig.url
+  //       }`,
+  //     );
+  //     //   if (!isGlobalLoadingVisible) showLoading(requestConfig.url);
+  //     return requestConfig;
+  //   },
+  //   error => {
+  //     console.error('❌ Request Setup Error:', error);
+  //     hideLoading();
+  //     return Promise.reject(error);
+  //   },
+  // );
+  // // Response interceptor
+  // axios.interceptors.response.use(
+  //   response => {
+  //     const startTime = response.config.startTime;
+  //     const duration = startTime ? Date.now() - startTime : 0;
+  //     console.log(
+  //       `✅ API Success: ${response.config.method?.toUpperCase()} ${
+  //         response.config.url
+  //       } (${duration}ms)`,
+  //     );
+  //     hideLoading();
+  //     return response;
+  //   },
+  //   error => {
+  //     const startTime = error.config?.startTime;
+  //     const duration = startTime ? Date.now() - startTime : 0;
+  //     // Determine error type
+  //     let errorType = 'Unknown Error';
+  //     if (error.code === 'ECONNABORTED') {
+  //       errorType = 'Timeout';
+  //     } else if (error.response) {
+  //       errorType = `HTTP ${error.response.status}`;
+  //     } else if (error.request) {
+  //       errorType = 'Network Error';
+  //     }
+  //     console.error(
+  //       `❌ API Error: ${error.config?.method?.toUpperCase()} ${
+  //         error.config?.url
+  //       } (${duration}ms) - ${errorType}`,
+  //       error.message,
+  //     );
+  //     hideLoading();
+  //     return Promise.reject(error);
+  //   },
+  // );
 };
 
 // Remove all interceptors

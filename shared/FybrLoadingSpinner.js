@@ -51,7 +51,7 @@ const FybrLoadingSpinner = ({isVisible = false, size = 'small'}) => {
   }
 
   const spinnerSize = size === 'small' ? 20 : size === 'medium' ? 30 : 40;
-  const textSize = size === 'small' ? 8 : size === 'medium' ? 10 : 12;
+  const textSize = size === 'small' ? 18 : size === 'medium' ? 18 : 22;
 
   return (
     <Animated.View
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     fontFamily: 'RedHatDisplay-SemiBold',
     marginTop: 3,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });
 

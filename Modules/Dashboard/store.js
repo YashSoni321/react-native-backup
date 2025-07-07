@@ -41,8 +41,11 @@ import {
 } from 'react-native-firebase-push-notifications';
 import Normalize from '../Size/size';
 import NoResults from './NoResults';
+import ErrorMessage from '../../shared/ErrorMessage';
+import {useLoading} from '../../shared/LoadingContext';
 
 const Store = ({navigation}) => {
+  const {showLoading, hideLoading, isLoading} = useLoading();
   const [state, setState] = useState({
     categories1: [
       {
@@ -240,6 +243,7 @@ const Store = ({navigation}) => {
   // Fetch data function
   const fetchData = async () => {
     try {
+      showLoading('fetching_data', 'Fetching store list.');
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
@@ -337,6 +341,7 @@ const Store = ({navigation}) => {
           Distance: distance.toFixed(1), // Distance in km
         };
       });
+      hideLoading('fetching_data');
 
       setState(prevState => ({
         ...prevState,

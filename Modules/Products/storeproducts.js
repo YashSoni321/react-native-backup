@@ -36,6 +36,15 @@ var time = moment().format('hh:mm A');
 import ImagePicker from 'react-native-image-crop-picker';
 import {CustomPicker} from 'react-native-custom-picker';
 import {API_KEY, URL_key} from '../Api/api';
+import apiService, {
+  getProductListByStore,
+  getProductCartList,
+  getCategoryList,
+  getSubCategoryList,
+  getCustomerAddress,
+  getStateDDL,
+  testConnection,
+} from '../Api/api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
 import GetLocation from 'react-native-get-location';
@@ -192,20 +201,8 @@ const StoreProducts = ({navigation, route}) => {
       }));
 
       // Fetch subcategories for the selected category
-      const response = await axios.get(
-        URL_key +
-          'api/CategoryApi/gSubCategoryList?CategoryID=' +
-          item.CategoryID,
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
-      console.log(
-        'Fetch subcategories for the selected category',
-        response.data,
-      );
+      const response = await apiService.getSubCategoryList(item.CategoryID);
+      console.log('Fetch subcategories for the selected category', response);
       console.log('this.state.ProductList', state.ProductList);
       // Filter products by the selected category
       const filteredProducts =
@@ -217,7 +214,7 @@ const StoreProducts = ({navigation, route}) => {
 
       setState(prevState => ({
         ...prevState,
-        subcategory: response.data,
+        subcategory: response,
         CategoryName: item.CategoryName,
         showcategory: true,
         ProductList1: filteredProducts,
@@ -252,7 +249,7 @@ const StoreProducts = ({navigation, route}) => {
       navigation.push('ProductDetails', {
         data: {
           ProductID: item.ProductID,
-          Pagename: 'storeproducts',
+          Pagename: 'StoreProducts',
         },
       });
     } catch (error) {
@@ -272,84 +269,102 @@ const StoreProducts = ({navigation, route}) => {
   // Fetch data function
   const fetchData = async () => {
     try {
+      console.log('🔄 Starting fetchData with API service...');
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+      console.log('👤 UserProfileID:', UserProfileID);
+
+      if (!UserProfileID) {
+        console.error('❌ UserProfileID not found in AsyncStorage');
+        setState(prevState => ({
+          ...prevState,
+          isLoading: false,
+          error: 'User not logged in. Please login again.',
+        }));
+        return;
+      }
+
+      // Test API connection first
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        console.warn('⚠️ API connection test failed, but continuing...');
+      }
 
       // Check if user has items in cart from a different store
-      const cartResponse = await axios.get(
-        `${URL_key}api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
-        {headers: {'content-type': 'application/json'}},
-      );
+      try {
+        console.log('🛒 Checking cart items...');
+        const cartResponse = await apiService.getProductCartList(UserProfileID);
+        console.log('🛒 Cart response:', cartResponse);
 
-      const cartItems = cartResponse.data.CartItems || [];
-      if (cartItems.length > 0) {
-        const existingStoreId = cartItems[0].StoreID;
-        if (existingStoreId !== state.StoreID) {
-          Alert.alert(
-            'Different Store',
-            'You have items in your cart from a different store. You can browse products but will need to clear your cart before adding items from this store.',
-            [{text: 'OK', style: 'default'}],
-          );
+        if (cartResponse && cartResponse.CartItems) {
+          const cartItems = cartResponse.CartItems || [];
+          if (cartItems.length > 0) {
+            const existingStoreId = cartItems[0].StoreID;
+            console.log(
+              '🛒 Existing store in cart:',
+              existingStoreId,
+              'Current store:',
+              state.StoreID,
+            );
+            if (existingStoreId !== state.StoreID) {
+              Alert.alert(
+                'Different Store',
+                'You have items in your cart from a different store. You can browse products but will need to clear your cart before adding items from this store.',
+                [{text: 'OK', style: 'default'}],
+              );
+            }
+          }
         }
+      } catch (cartError) {
+        console.warn('⚠️ Cart check failed:', cartError.message);
+        // Continue with the main flow even if cart check fails
       }
 
       // Fetch categories
-      const categoriesResponse = await axios.get(
-        URL_key + 'api/CategoryApi/gCategoryList',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      console.log('📂 Fetching categories...');
+      const categoriesResponse = await apiService.getCategoryList();
+      console.log('📂 Categories response:', categoriesResponse);
 
       // Fetch products by store
-      const productsResponse = await axios.get(
-        URL_key + 'api/ProductApi/gProductListByStore?StoreID=' + state.StoreID,
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
+      console.log('🏪 StoreID for products API:', state.StoreID);
+      const productsResponse = await apiService.getProductListByStore(
+        state.StoreID || 1,
       );
+      console.log('📦 Products response:', productsResponse);
 
       // Fetch address data
-      const addressResponse = await axios.get(
-        URL_key +
-          'api/AddressApi/gCustomerAddress?UserProfileID=' +
-          UserProfileID,
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
+      console.log('📍 Fetching address data...');
+      const addressResponse = await apiService.getCustomerAddress(
+        UserProfileID,
       );
+      console.log('📍 Address response:', addressResponse);
 
-      const stateResponse = await axios.get(
-        URL_key + 'api/AddressApi/gStateDDL',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      // Fetch state data
+      console.log('🏛️ Fetching state data...');
+      const stateResponse = await apiService.getStateDDL();
+      console.log('🏛️ State response:', stateResponse);
 
-      const stateData = stateResponse.data.filter(
-        data => data.StateID === addressResponse.data[0]?.StateID,
-      );
+      const stateData =
+        stateResponse?.filter(
+          data => data.StateID === addressResponse[0]?.StateID,
+        ) || [];
+
+      console.log('✅ All data fetched successfully');
+      console.log('📦 Final products count:', productsResponse?.length || 0);
 
       setState(prevState => ({
         ...prevState,
-        categories1: categoriesResponse.data,
-        ProductList: productsResponse.data,
-        ProductList1: productsResponse.data,
-        StreetName: addressResponse.data[0]?.StreetName || '',
-        Pincode: addressResponse.data[0]?.AddressCategory || '',
+        categories1: categoriesResponse || [],
+        ProductList: productsResponse || [],
+        ProductList1: productsResponse || [],
+        StreetName: addressResponse[0]?.StreetName || '',
+        Pincode: addressResponse[0]?.AddressCategory || '',
         isLoading: false,
         error: null,
       }));
     } catch (error) {
+      console.error('❌ fetchData error:', error);
       handleError(error, 'Fetching data');
     }
   };
@@ -359,16 +374,16 @@ const StoreProducts = ({navigation, route}) => {
   }, []);
 
   // Error alert
-  useEffect(() => {
-    if (state.error) {
-      Alert.alert('Error', state.error, [
-        {
-          text: 'OK',
-          onPress: () => setState(prevState => ({...prevState, error: null})),
-        },
-      ]);
-    }
-  }, [state.error]);
+  // useEffect(() => {
+  //   if (state.error) {
+  //     Alert.alert('Error', state.error, [
+  //       {
+  //         text: 'OK',
+  //         onPress: () => setState(prevState => ({...prevState, error: null})),
+  //       },
+  //     ]);
+  //   }
+  // }, [state.error]);
 
   return (
     <SafeAreaView>
@@ -805,8 +820,6 @@ const StoreProducts = ({navigation, route}) => {
     </SafeAreaView>
   );
 };
-
-const Separator = () => <View style={styles.separator} />;
 
 const styles = StyleSheet.create({
   separator: {

@@ -1,22 +1,33 @@
 import React from 'react';
-import {View, StyleSheet, Modal, Dimensions} from 'react-native';
+import {View, StyleSheet, Modal, Dimensions, Text} from 'react-native';
 import FybrLoadingSpinner from './FybrLoadingSpinner';
 import {useLoading} from './LoadingContext';
 
 const {width, height} = Dimensions.get('window');
 
 const GlobalLoadingOverlay = () => {
-  const {globalLoading} = useLoading();
+  const {globalLoading, loadingStates, getLoadingMessage} = useLoading();
+
+  // Check if any loading state is active (global or specific keys)
+  const hasAnyLoading = globalLoading || Object.keys(loadingStates).length > 0;
+
+  // Get the first loading message if available
+  const loadingMessage = globalLoading
+    ? 'Loading...'
+    : Object.values(loadingStates)[0]?.message || 'Loading...';
 
   return (
     <Modal
-      visible={globalLoading}
+      visible={hasAnyLoading}
       transparent={true}
       animationType="fade"
       statusBarTranslucent={true}>
       <View style={styles.overlay}>
         <View style={styles.spinnerContainer}>
           <FybrLoadingSpinner isVisible={true} size="large" />
+          {loadingMessage && (
+            <Text style={styles.loadingText}>{loadingMessage}</Text>
+          )}
         </View>
       </View>
     </Modal>
@@ -44,6 +55,15 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    alignItems: 'center',
+    minWidth: 150,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+    fontFamily: 'Poppins-Medium',
   },
 });
 
