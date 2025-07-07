@@ -22,13 +22,13 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Switch } from 'react-native-switch';
+import {Switch} from 'react-native-switch';
 import axios from 'axios';
-import { NavigationEvents } from 'react-navigation';
+import {useFocusEffect} from '@react-navigation/native';
 import ToggleSwitch from 'toggle-switch-react-native';
-import { Dialog } from 'react-native-simple-dialogs';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
+import {Dialog} from 'react-native-simple-dialogs';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from './api';
 import ImagePicker from 'react-native-image-crop-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
@@ -57,7 +57,7 @@ class StoreDetails extends React.Component {
           Icon: 'woman',
           nav: 'protab',
         },
-        { name: 'Shoes', Icon: 'file-tray-sharp', nav: 'payments' },
+        {name: 'Shoes', Icon: 'file-tray-sharp', nav: 'payments'},
         // {name: 'Leads', Icon: 'ios-magnet-outline', nav: 'leads'},
 
         {
@@ -87,7 +87,7 @@ class StoreDetails extends React.Component {
           Icon: 'woman',
           nav: 'protab',
         },
-        { name: '32', Icon: 'file-tray-sharp', nav: 'payments' },
+        {name: '32', Icon: 'file-tray-sharp', nav: 'payments'},
         // {name: 'Leads', Icon: 'ios-magnet-outline', nav: 'leads'},
 
         {
@@ -117,13 +117,10 @@ class StoreDetails extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <NavigationEvents
-          onWillFocus={this._onFocus}
-          onWillBlur={this._onBlurr}
-        />
+        {/* NavigationEvents removed - not used in this component */}
         <ScrollView>
           <ImageBackground
-            style={{ width: wp('100%') }}
+            style={{width: wp('100%')}}
             activeOpacity={0.5}
             source={require('../assets/output-onlinepngtools.png')}
             resizeMode="cover">
@@ -148,7 +145,16 @@ class StoreDetails extends React.Component {
             />
             <Icon
               onPress={() => {
-                this.props.navigation.navigate('tabs');
+                try {
+                  console.log('🔄 Navigating back to Tabs screen...');
+                  this.props.navigation.navigate('Tabs');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
               }}
               name={'chevron-back'}
               color="#333"
@@ -187,7 +193,7 @@ class StoreDetails extends React.Component {
               ZUDIO
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+          <View style={{flexDirection: 'row', justifyContent: 'center'}}>
             <View
               style={{
                 // justifyContent: 'center',
@@ -285,7 +291,7 @@ class StoreDetails extends React.Component {
             <FlatList
               data={this.state.categories11}
               // horizontal={true}
-              renderItem={({ item, index }) => {
+              renderItem={({item, index}) => {
                 return (
                   <>
                     <View
@@ -364,7 +370,7 @@ class StoreDetails extends React.Component {
             <FlatList
               data={this.state.categories11}
               // horizontal={true}
-              renderItem={({ item, index }) => {
+              renderItem={({item, index}) => {
                 return (
                   <>
                     <View
@@ -398,7 +404,7 @@ class StoreDetails extends React.Component {
                           // borderWidth: 0.7,
                         },
                       ]}>
-                      <View style={{ flexDirection: 'row' }}>
+                      <View style={{flexDirection: 'row'}}>
                         <View>
                           <Image
                             style={{
@@ -552,7 +558,7 @@ class StoreDetails extends React.Component {
               },
             }}>
             <ScrollView>
-              <View style={{ backgroundColor: '#00afb5' }}>
+              <View style={{backgroundColor: '#00afb5'}}>
                 <TouchableOpacity
                   activeOpacity={0.5}
                   // style={{position: 'absolute'}}
@@ -590,7 +596,7 @@ class StoreDetails extends React.Component {
                   <FlatList
                     data={this.state.categories1}
                     // horizontal={true}
-                    renderItem={({ item, index }) => {
+                    renderItem={({item, index}) => {
                       return (
                         <>
                           <View

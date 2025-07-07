@@ -20,7 +20,7 @@ import {
   DeviceEventEmitter,
   FlatList,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
+import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,23 +29,23 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { NavigationEvents } from 'react-navigation';
-import { SwiperFlatList } from 'react-native-swiper-flatlist';
+import {NavigationEvents} from 'react-navigation';
+import {SwiperFlatList} from 'react-native-swiper-flatlist';
 var date = moment().format('YYYY/MM/DD ');
 var time = moment().format('hh:mm A');
 import ImagePicker from 'react-native-image-crop-picker';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from './api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
 import GetLocation from 'react-native-get-location';
 import LinearGradient from 'react-native-linear-gradient';
 import MenuDrawer from 'react-native-side-drawer';
 import RNFetchBlob from 'rn-fetch-blob';
-import { image } from './image';
-import { marginBottom } from 'styled-system';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
-import { Marker } from 'react-native-maps';
+import {image} from './image';
+import {marginBottom} from 'styled-system';
+import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+import {Marker} from 'react-native-maps';
 class ShippAddress extends React.Component {
   constructor(props) {
     super(props);
@@ -82,12 +82,12 @@ class ShippAddress extends React.Component {
         });
       })
       .catch(error => {
-        const { code, message } = error;
+        const {code, message} = error;
         console.warn(code, message);
       });
   }
   handleInputChange = (inputName, inputValue) => {
-    this.setState(state => ({ ...state, [inputName]: inputValue }));
+    this.setState(state => ({...state, [inputName]: inputValue}));
     // if (inputName == 'UserName') {
     //   this.setState({EmailError: true});
     // } else if (inputName == 'Password') {
@@ -126,7 +126,7 @@ class ShippAddress extends React.Component {
             />
             <Icon
               onPress={() => {
-                this.props.navigation.navigate('tabc');
+                this.props.navigation.navigate('Tabc');
               }}
               name={'chevron-back'}
               color="#333"
@@ -138,7 +138,7 @@ class ShippAddress extends React.Component {
               }}
             />
           </View>
-          <View style={{ backgroundColor: '#00afb5' }}>
+          <View style={{backgroundColor: '#00afb5'}}>
             <View
               style={{
                 backgroundColor: '#ffff',
@@ -207,7 +207,7 @@ class ShippAddress extends React.Component {
                 name="at-circle-outline"
                 color={'#00afb5'}
                 size={25}
-                style={{ marginTop: hp('0.7%'), marginLeft: wp('3%') }}
+                style={{marginTop: hp('0.7%'), marginLeft: wp('3%')}}
               />
               <TextInput
                 placeholder="Enter Flat , House no..."
@@ -269,7 +269,7 @@ class ShippAddress extends React.Component {
                 name="shield-checkmark-outline"
                 color={'#00afb5'}
                 size={25}
-                style={{ marginTop: hp('0.7%'), marginLeft: wp('3%') }}
+                style={{marginTop: hp('0.7%'), marginLeft: wp('3%')}}
               />
               <TextInput
                 placeholder="Enter Area, Street, Sector..."
@@ -331,7 +331,7 @@ class ShippAddress extends React.Component {
                 name="male-outline"
                 color={'#00afb5'}
                 size={25}
-                style={{ marginTop: hp('0.7%'), marginLeft: wp('3%') }}
+                style={{marginTop: hp('0.7%'), marginLeft: wp('3%')}}
               />
               <TextInput
                 placeholder="Enter Town/City"
@@ -393,7 +393,7 @@ class ShippAddress extends React.Component {
                 name="sync-circle-outline"
                 color={'#00afb5'}
                 size={25}
-                style={{ marginTop: hp('0.7%'), marginLeft: wp('3%') }}
+                style={{marginTop: hp('0.7%'), marginLeft: wp('3%')}}
               />
               <TextInput
                 placeholder="Enter State"
@@ -455,7 +455,7 @@ class ShippAddress extends React.Component {
                 name="location-outline"
                 color={'#00afb5'}
                 size={25}
-                style={{ marginTop: hp('0.7%'), marginLeft: wp('3%') }}
+                style={{marginTop: hp('0.7%'), marginLeft: wp('3%')}}
               />
               <TextInput
                 placeholder="Enter Pincode"
@@ -523,10 +523,10 @@ class ShippAddress extends React.Component {
                 console.log(e.nativeEvent.coordinate);
               }}
 
-            // onRegionChange={(e) => {
-            //     this.setState({latitude:e.latitude,longitude:e.longitude,latitudeDelta:e.latitudeDelta,longitudeDelta:e.longitudeDelta})
-            //     console.log(e)
-            // }}
+              // onRegionChange={(e) => {
+              //     this.setState({latitude:e.latitude,longitude:e.longitude,latitudeDelta:e.latitudeDelta,longitudeDelta:e.longitudeDelta})
+              //     console.log(e)
+              // }}
             >
               <Marker
                 draggable
@@ -535,14 +535,14 @@ class ShippAddress extends React.Component {
                   longitude: this.state.longitude,
                 }}
                 onDrag={e => console.log(e)}
-              //   image={{uri: 'custom_pin'}}
+                //   image={{uri: 'custom_pin'}}
               />
             </MapView>
             <TouchableOpacity
               activeOpacity={0.5}
               onPress={() => {
                 // this.setState({currentPosition: 1});
-                this.props.navigation.push('tabc');
+                this.props.navigation.push('Tabc');
                 // this.check();
               }}>
               <LinearGradient

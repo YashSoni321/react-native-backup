@@ -22,13 +22,13 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Switch } from 'react-native-switch';
+import {Switch} from 'react-native-switch';
 import axios from 'axios';
-import { NavigationEvents } from 'react-navigation';
+import {useFocusEffect} from '@react-navigation/native';
 import ToggleSwitch from 'toggle-switch-react-native';
-import { Dialog } from 'react-native-simple-dialogs';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from '../Api/api';
+import {Dialog} from 'react-native-simple-dialogs';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from '../Api/api';
 import ImagePicker from 'react-native-image-crop-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
@@ -50,7 +50,10 @@ class Profile extends React.Component {
       RoleTypeID: null,
       AGENTCODE: null,
       amenitieslist: null,
-      defaultcom: false, MobileNumber: null, EmailID: null, FullName: null
+      defaultcom: false,
+      MobileNumber: null,
+      EmailID: null,
+      FullName: null,
     };
     this.handleBackButtonClick = this.handleBackButtonClick.bind(this);
   }
@@ -61,11 +64,11 @@ class Profile extends React.Component {
     this.setState({
       EmailID: EmailID,
       FullName: FullName,
-      MobileNumber: MobileNumber
-    })
+      MobileNumber: MobileNumber,
+    });
   }
   renderOption(settings) {
-    const { item, getLabel } = settings;
+    const {item, getLabel} = settings;
     // console.log(item)
     return (
       <View style={styles.optionContainer}>
@@ -86,10 +89,10 @@ class Profile extends React.Component {
     );
   }
   handleInputChange = (inputName, inputValue) => {
-    this.setState(state => ({ ...state, [inputName]: inputValue }));
+    this.setState(state => ({...state, [inputName]: inputValue}));
   };
   renderField(settings) {
-    const { selectedItem, defaultText, getLabel, clear } = settings;
+    const {selectedItem, defaultText, getLabel, clear} = settings;
     return (
       <View style={styles.container1}>
         <View>
@@ -168,7 +171,7 @@ class Profile extends React.Component {
         //     var videoUri = this.state.base64;
         //     videoUri.push(i.data);
         //     // console.log(videoUri);
-        this.setState({ base64: files.data, dialogVisible: true });
+        this.setState({base64: files.data, dialogVisible: true});
         //     return {
         //       uri: i.path,
         //       width: i.width,
@@ -194,7 +197,7 @@ class Profile extends React.Component {
     })
       .then(files => {
         // console.log(files);
-        this.setState({ base64: files.data, dialogVisible: true });
+        this.setState({base64: files.data, dialogVisible: true});
         // console.log(files);
         // var videoUri = this.state.base64;
         // videoUri.push(files.data);
@@ -232,13 +235,10 @@ class Profile extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <NavigationEvents
-          onWillFocus={this._onFocus}
-          onWillBlur={this._onBlurr}
-        />
+        {/* NavigationEvents removed - not used in this component */}
         <ScrollView>
           <ImageBackground
-            style={{ width: wp('100%'), }}
+            style={{width: wp('100%')}}
             activeOpacity={0.5}
             source={require('../Images/output-onlinepngtools.png')}
             resizeMode="cover">
@@ -259,21 +259,21 @@ class Profile extends React.Component {
           </ImageBackground>
           <View
             style={{
-
-
               // marginTop: hp('10%'),
               borderTopLeftRadius: wp('8%'),
               borderTopEndRadius: wp('8%'),
             }}>
-            <View style={{ flexDirection: "row", marginLeft: wp('5%') }}>
-
+            <View style={{flexDirection: 'row', marginLeft: wp('5%')}}>
               <View>
-
-
                 {this.state.ProfileImage == null ? (
                   <>
                     <View style={styles.header}></View>
-                    <Icon name="person-circle" color={"#00afb5"} size={hp('12%')} style={{ marginTop: hp('1%'), marginLeft: wp('5%') }} />
+                    <Icon
+                      name="person-circle"
+                      color={'#00afb5'}
+                      size={hp('12%')}
+                      style={{marginTop: hp('1%'), marginLeft: wp('5%')}}
+                    />
                   </>
                 ) : (
                   <>
@@ -282,13 +282,14 @@ class Profile extends React.Component {
                     <Image
                       style={styles.avatar}
                       source={{
-                        uri: 'data:image/jpeg;base64,' + this.state.ProfileImage,
+                        uri:
+                          'data:image/jpeg;base64,' + this.state.ProfileImage,
                       }}
                     />
                   </>
                 )}
               </View>
-              <View style={{ marginLeft: wp('5%') }}>
+              <View style={{marginLeft: wp('5%')}}>
                 <Text
                   style={{
                     fontSize: 14,
@@ -296,7 +297,8 @@ class Profile extends React.Component {
                     //   justifyContent: 'center',
                     color: '#333',
                     fontFamily: 'Poppins-Medium',
-                    marginTop: hp('3.5%'), marginRight: wp('43%'),
+                    marginTop: hp('3.5%'),
+                    marginRight: wp('43%'),
                     // marginBottom: hp('2%'),
                     // marginLeft: wp('10%'),
                     // marginRight: wp('1%'),
@@ -310,7 +312,8 @@ class Profile extends React.Component {
                     //   justifyContent: 'center',
                     color: '#333',
                     fontFamily: 'Poppins-Light',
-                    marginTop: hp('0.5%'), marginRight: wp('43%'),
+                    marginTop: hp('0.5%'),
+                    marginRight: wp('43%'),
                     // marginBottom: hp('2%'),
                     // marginLeft: wp('10%'),
                     // marginRight: wp('1%'),
@@ -337,7 +340,16 @@ class Profile extends React.Component {
             <TouchableOpacity
               activeOpacity={0.5}
               onPress={async () => {
-                this.props.navigation.push('Orders');
+                try {
+                  console.log('🔄 Navigating to Orders screen...');
+                  this.props.navigation.push('Orders');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
               }}>
               <View
                 style={{
@@ -347,10 +359,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -361,7 +374,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Orders
                 </Text>
@@ -369,13 +382,24 @@ class Profile extends React.Component {
                   name="reader"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              this.props.navigation.push('Wishlist');
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to Wishlist screen...');
+                  this.props.navigation.push('Wishlist');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -384,10 +408,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -398,7 +423,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Wishlist
                 </Text>
@@ -406,13 +431,24 @@ class Profile extends React.Component {
                   name="heart"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              this.props.navigation.push('Notification');
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to Notification screen...');
+                  this.props.navigation.push('Notification');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -421,10 +457,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -435,7 +472,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Notification
                 </Text>
@@ -443,11 +480,11 @@ class Profile extends React.Component {
                   name="notifications"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => { }}>
+            <TouchableOpacity activeOpacity={0.5} onPress={async () => {}}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -456,10 +493,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -470,7 +508,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Saved Payment Methods
                 </Text>
@@ -478,14 +516,24 @@ class Profile extends React.Component {
                   name="wallet"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              this.props.navigation.push('AddressList');
-
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to AddressList screen...');
+                  this.props.navigation.push('AddressList');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -494,10 +542,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -508,7 +557,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Saved Addresses
                 </Text>
@@ -516,13 +565,24 @@ class Profile extends React.Component {
                   name="location"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              this.props.navigation.push('Invite');
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to Invite screen...');
+                  this.props.navigation.push('Invite');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -531,10 +591,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -545,7 +606,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Referrals
                 </Text>
@@ -553,13 +614,24 @@ class Profile extends React.Component {
                   name="card"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              this.props.navigation.push('FAQ');
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to FAQ screen...');
+                  this.props.navigation.push('FAQ');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -568,10 +640,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5"
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -582,7 +655,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   FAQ's
                 </Text>
@@ -590,11 +663,24 @@ class Profile extends React.Component {
                   name="help-circle-sharp"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => { this.props.navigation.push('Contactsupport'); }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                try {
+                  console.log('🔄 Navigating to Contactsupport screen...');
+                  this.props.navigation.push('Contactsupport');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                  Alert.alert(
+                    'Navigation Error',
+                    'Unable to navigate. Please try again.',
+                  );
+                }
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -603,10 +689,11 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5",
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -617,7 +704,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Contact Support
                 </Text>
@@ -625,22 +712,24 @@ class Profile extends React.Component {
                   name="call"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.5} onPress={async () => {
-              await AsyncStorage.removeItem('LoginUserProfileID');
-              await AsyncStorage.removeItem('isLogin1');
-              await AsyncStorage.removeItem('isLogin');
-              await AsyncStorage.removeItem('MobileNumber');
-              await AsyncStorage.removeItem('EmailID');
-              await AsyncStorage.removeItem('FullName');
-              await AsyncStorage.removeItem('CartID');
-              await AsyncStorage.removeItem('Notifi');
-              await AsyncStorage.removeItem('loca');
-              this.props.navigation.push('Login');
-            }}>
+            <TouchableOpacity
+              activeOpacity={0.5}
+              onPress={async () => {
+                await AsyncStorage.removeItem('LoginUserProfileID');
+                await AsyncStorage.removeItem('isLogin1');
+                await AsyncStorage.removeItem('isLogin');
+                await AsyncStorage.removeItem('MobileNumber');
+                await AsyncStorage.removeItem('EmailID');
+                await AsyncStorage.removeItem('FullName');
+                await AsyncStorage.removeItem('CartID');
+                await AsyncStorage.removeItem('Notifi');
+                await AsyncStorage.removeItem('loca');
+                this.props.navigation.push('Login');
+              }}>
               <View
                 style={{
                   backgroundColor: 'white',
@@ -649,10 +738,12 @@ class Profile extends React.Component {
                   alignSelf: 'center',
                   marginTop: hp('2%'),
                   borderRadius: wp('2%'),
-                  flexDirection: 'row', alignItems: "center",
-                  borderWidth: 1, borderColor: "#00afb5", marginBottom: hp('5%')
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
+                  marginBottom: hp('5%'),
                 }}>
-
                 <Text
                   style={{
                     fontSize: 10,
@@ -663,7 +754,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     // textAlign: 'center',
                     // alignSelf: 'center',
-                    width: wp('55%')
+                    width: wp('55%'),
                   }}>
                   Logout
                 </Text>
@@ -671,11 +762,10 @@ class Profile extends React.Component {
                   name="log-out"
                   size={22}
                   color="#00afb5"
-                  style={{ alignSelf: 'center', marginLeft: wp('7%') }}
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
                 />
               </View>
             </TouchableOpacity>
-
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -729,7 +819,6 @@ const styles = StyleSheet.create({
     borderRadius: wp('3%'),
   },
   header: {
-
     // backgroundColor: '#7e84c0',
     // height: hp('12%'),
   },

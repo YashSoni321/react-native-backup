@@ -18,7 +18,8 @@ const TabNavigator = () => {
     <Tab.Navigator
       initialRouteName="profile"
       screenOptions={{
-        tabBarShowLabel: true,
+        headerShown: false, // Hide the default header
+        tabBarShowLabel: true, // Show the tab labels
         tabBarActiveTintColor: '#00afb5',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: {

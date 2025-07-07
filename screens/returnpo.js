@@ -20,7 +20,7 @@ import {
   DeviceEventEmitter,
   FlatList,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
+import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,13 +29,13 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { NavigationEvents } from 'react-navigation';
-import { SwiperFlatList } from 'react-native-swiper-flatlist';
+import {NavigationEvents} from 'react-navigation';
+import {SwiperFlatList} from 'react-native-swiper-flatlist';
 var date = moment().format('YYYY/MM/DD ');
 var time = moment().format('hh:mm A');
 import ImagePicker from 'react-native-image-crop-picker';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from './api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
 import XLSX from 'xlsx';
@@ -44,8 +44,8 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 import MenuDrawer from 'react-native-side-drawer';
 import RNFetchBlob from 'rn-fetch-blob';
-import { image } from './image';
-import { marginBottom } from 'styled-system';
+import {image} from './image';
+import {marginBottom} from 'styled-system';
 import StepIndicator from 'react-native-step-indicator';
 import CheckBox from 'react-native-check-box';
 class ReturnPo extends React.Component {
@@ -81,7 +81,7 @@ class ReturnPo extends React.Component {
               source={require('../assets/FYBR-Logo.jpg')}
             />
             <Icon
-              onPress={() => [this.props.navigation.push('tabp')]}
+              onPress={() => [this.props.navigation.push('TabP')]}
               name={'chevron-back'}
               color="#333"
               size={35}
@@ -92,7 +92,7 @@ class ReturnPo extends React.Component {
               }}
             />
           </View>
-          <View style={{ backgroundColor: '#00afb5' }}>
+          <View style={{backgroundColor: '#00afb5'}}>
             <View
               style={{
                 backgroundColor: '#ffff',
@@ -315,7 +315,7 @@ class ReturnPo extends React.Component {
               activeOpacity={0.5}
               onPress={() => {
                 // this.RBSheet.close();
-                this.props.navigation.push('tabp');
+                this.props.navigation.push('TabP');
                 // this.check();
               }}>
               <LinearGradient

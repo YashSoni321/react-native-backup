@@ -490,7 +490,7 @@ class Home extends React.Component {
   async componentDidMount() {
     try {
       console.log('🏠 Home component mounting...');
-      
+
       var banner = await AsyncStorage.getItem('banner');
       this.setState({banner: banner});
 
@@ -499,11 +499,14 @@ class Home extends React.Component {
 
       // Fetch categories first (non-critical)
       try {
-        const categoriesResponse = await axios.get(URL_key + 'api/CategoryApi/gCategoryList', {
-          headers: {
-            'content-type': `application/json`,
+        const categoriesResponse = await axios.get(
+          URL_key + 'api/CategoryApi/gCategoryList',
+          {
+            headers: {
+              'content-type': `application/json`,
+            },
           },
-        });
+        );
         this.setState({categories1: categoriesResponse.data});
         console.log('✅ Categories loaded successfully');
       } catch (err) {
@@ -514,14 +517,16 @@ class Home extends React.Component {
       // Fetch user address (non-critical)
       try {
         const addressResponse = await axios.get(
-          URL_key + 'api/AddressApi/gCustomerAddress?UserProfileID=' + UserProfileID,
+          URL_key +
+            'api/AddressApi/gCustomerAddress?UserProfileID=' +
+            UserProfileID,
           {
             headers: {
               'content-type': `application/json`,
             },
           },
         );
-        
+
         this.setState({
           StreetName: addressResponse.data[0]?.StreetName || '',
           Pincode: addressResponse.data[0]?.AddressCategory || '',
@@ -535,7 +540,7 @@ class Home extends React.Component {
       // Try to get location (optional - don't block the app)
       // For now, let's skip location entirely to prevent crashes
       console.log('📍 Skipping location functionality to prevent crashes');
-      
+
       // Uncomment the following code when location issues are resolved:
       /*
       try {
@@ -1101,7 +1106,16 @@ class Home extends React.Component {
                   </Text>
                   <Text
                     onPress={() => {
-                      this.props.navigation.push('Tabs');
+                      try {
+                        console.log('🔄 Navigating to Tabs screen...');
+                        this.props.navigation.push('Tabs');
+                      } catch (error) {
+                        console.error('❌ Navigation error:', error);
+                        Alert.alert(
+                          'Navigation Error',
+                          'Unable to navigate. Please try again.',
+                        );
+                      }
                     }}
                     style={{
                       fontSize: 9,
@@ -1365,7 +1379,18 @@ class Home extends React.Component {
                           </Text>
                           <TouchableOpacity
                             onPress={() => {
-                              this.props.navigation.push('Tabs');
+                              try {
+                                console.log(
+                                  '🔄 Navigating to Tabs screen from Browse All Stores...',
+                                );
+                                this.props.navigation.push('Tabs');
+                              } catch (error) {
+                                console.error('❌ Navigation error:', error);
+                                Alert.alert(
+                                  'Navigation Error',
+                                  'Unable to navigate. Please try again.',
+                                );
+                              }
                             }}
                             style={{
                               backgroundColor: '#00afb5',
@@ -1390,7 +1415,18 @@ class Home extends React.Component {
 
                   <Text
                     onPress={() => {
-                      this.props.navigation.push('Tabs');
+                      try {
+                        console.log(
+                          '🔄 Navigating to Tabs screen from Browse more stores...',
+                        );
+                        this.props.navigation.push('Tabs');
+                      } catch (error) {
+                        console.error('❌ Navigation error:', error);
+                        Alert.alert(
+                          'Navigation Error',
+                          'Unable to navigate. Please try again.',
+                        );
+                      }
                     }}
                     style={{
                       fontSize: 9,

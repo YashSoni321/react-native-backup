@@ -18,12 +18,13 @@ const TabNavigator = () => {
     <Tab.Navigator
       initialRouteName="cart"
       screenOptions={{
-        tabBarShowLabel: true,
+        headerShown: false, // Hide the default header
+        tabBarShowLabel: true, // Show the tab labels
         tabBarActiveTintColor: '#00afb5',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: {
           fontSize: 10.5,
-          fontFamily: 'Poppins-Light',
+          // fontFamily: 'Poppins-Light',
         },
         tabBarStyle: {
           paddingTop: hp('0.5%'),

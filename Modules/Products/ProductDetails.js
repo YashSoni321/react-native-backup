@@ -24,7 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {Switch} from 'react-native-switch';
 import axios from 'axios';
-import {NavigationEvents} from 'react-navigation';
+import {useFocusEffect} from '@react-navigation/native';
 import ToggleSwitch from 'toggle-switch-react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import {CustomPicker} from 'react-native-custom-picker';
@@ -53,8 +53,8 @@ const ProductDetails = ({navigation, route}) => {
       },
     ],
     ProductsDetails: null,
-    ProductID: navigation.getParam('data').ProductID,
-    Pagename: navigation.getParam('data').Pagename,
+    ProductID: route?.params?.data?.ProductID || null,
+    Pagename: route?.params?.data?.Pagename || null,
     ProductItemID: null,
     StoreID: null,
     UnitPrice: null,
@@ -66,10 +66,26 @@ const ProductDetails = ({navigation, route}) => {
     Pincode: '',
   });
 
+  // Update state when route params change
   useEffect(() => {
-    fetchUserAddress();
-    fetchProductDetails();
-  }, []);
+    if (route?.params?.data) {
+      setState(prevState => ({
+        ...prevState,
+        ProductID: route.params.data.ProductID || null,
+        Pagename: route.params.data.Pagename || null,
+      }));
+    }
+  }, [route?.params?.data]);
+
+  useEffect(() => {
+    // Only fetch data if ProductID is available
+    if (state.ProductID) {
+      fetchUserAddress();
+      fetchProductDetails();
+    } else {
+      console.error('❌ ProductID is not available');
+    }
+  }, [state.ProductID]);
 
   const fetchUserAddress = async () => {
     try {
@@ -331,7 +347,7 @@ const ProductDetails = ({navigation, route}) => {
 
         if (res.data.Result === 'UPDATED') {
           await AsyncStorage.setItem('CartID', res.data.CartID.toString());
-          navigation.push('tabc');
+          navigation.push('TabC');
         } else {
           setState(prev => ({...prev, fail: true}));
         }
@@ -375,7 +391,7 @@ const ProductDetails = ({navigation, route}) => {
 
         if (response.data.Result === 'INSERTED') {
           await AsyncStorage.setItem('CartID', response.data.CartID.toString());
-          navigation.push('tabc');
+          navigation.push('TabC');
         } else {
           setState(prev => ({...prev, fail: true}));
         }
@@ -424,7 +440,7 @@ const ProductDetails = ({navigation, route}) => {
 
   return (
     <SafeAreaView>
-      <NavigationEvents onWillFocus={() => {}} onWillBlur={() => {}} />
+      {/* NavigationEvents removed - using useFocusEffect instead */}
       <Dialog
         visible={state.fail}
         dialogStyle={{

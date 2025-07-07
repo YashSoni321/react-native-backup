@@ -58,7 +58,7 @@ const date = moment().format('YYYY/MM/DD ');
 const time = moment().format('hh:mm A');
 const reg2 = /^[0-9]+$/;
 
-const Checkout = ({navigation}) => {
+const Checkout = ({navigation, route}) => {
   // State management
   const [state, setState] = useState({
     PaymentMethodList: [],
@@ -68,7 +68,7 @@ const Checkout = ({navigation}) => {
     AddressID: null,
     TipAmountErrior: false,
     PaymentMethodIDerror: false,
-                TotalUnitPrice: route?.params?.data?.TotalUnitPrice || null,
+    TotalUnitPrice: route?.params?.data?.TotalUnitPrice || null,
     Latitude: 10.8062818,
     Longitude: 78.6949227,
     loading: false,

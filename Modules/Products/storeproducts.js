@@ -44,7 +44,7 @@ import MenuDrawer from 'react-native-side-drawer';
 
 import NoProducts from './NoProducts';
 
-const StoreProducts = ({navigation}) => {
+const StoreProducts = ({navigation, route}) => {
   const [state, setState] = useState({
     categories1: [
       {
@@ -96,12 +96,12 @@ const StoreProducts = ({navigation}) => {
     coup: true,
     ischeck: false,
     disc: 0,
-                StoreID: route?.params?.data?.StoreID || null,
-            StoreName: route?.params?.data?.StoreName || null,
-            StoreImage: route?.params?.data?.StoreImage || null,
-            StoreLocation: route?.params?.data?.StoreLocation || null,
-            Timing: route?.params?.data?.Timing || null,
-            DeliveryCharges: route?.params?.data?.DeliveryCharges || null,
+    StoreID: route?.params?.data?.StoreID || null,
+    StoreName: route?.params?.data?.StoreName || null,
+    StoreImage: route?.params?.data?.StoreImage || null,
+    StoreLocation: route?.params?.data?.StoreLocation || null,
+    Timing: route?.params?.data?.Timing || null,
+    DeliveryCharges: route?.params?.data?.DeliveryCharges || null,
     ProductList: null,
     ProductList1: null,
     StreetName: '',
@@ -263,7 +263,7 @@ const StoreProducts = ({navigation}) => {
   // Handle go back to stores
   const handleGoBack = () => {
     try {
-      navigation.push('tabs');
+      navigation.push('Tabs');
     } catch (error) {
       handleError(error, 'Navigation');
     }
@@ -423,7 +423,7 @@ const StoreProducts = ({navigation}) => {
 
           <Icon
             onPress={() => {
-              navigation.push('tabs');
+              navigation.push('Tabs');
             }}
             name="chevron-back"
             color={'#00afb5'}
