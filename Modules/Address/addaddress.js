@@ -332,7 +332,7 @@ class AddAddress extends React.Component {
               activeOpacity={0.5}
               onPress={() => {
                 this.setState({fail: false}, () => {
-                  // this.props.navigation.push('signup');
+                  this.props.navigation.push('Signup');
                 });
               }}>
               <Text

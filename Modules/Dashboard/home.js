@@ -546,14 +546,18 @@ class Home extends React.Component {
       try {
         const hasPermission = await this.requestLocationPermission();
         if (hasPermission) {
-          console.log('📍 Location permission granted, getting current position...');
-          
+          console.log(
+            '📍 Location permission granted, getting current position...',
+          );
+
           // Add timeout to prevent hanging
           const locationTimeout = setTimeout(() => {
-            console.log('📍 Location request timed out, continuing without location');
+            console.log(
+              '📍 Location request timed out, continuing without location',
+            );
             this.setState({isLoadingStores: false});
           }, 10000); // 10 second timeout
-          
+
           try {
             Geolocation.getCurrentPosition(
               async position => {
@@ -585,17 +589,22 @@ class Home extends React.Component {
             );
           } catch (geolocationError) {
             clearTimeout(locationTimeout);
-            console.error('📍 Geolocation.getCurrentPosition error:', geolocationError);
+            console.error(
+              '📍 Geolocation.getCurrentPosition error:',
+              geolocationError,
+            );
             // Continue without location
           }
         } else {
-          console.log('⚠️ Location permission not granted, skipping location-based features');
+          console.log(
+            '⚠️ Location permission not granted, skipping location-based features',
+          );
         }
       } catch (locationPermissionError) {
         console.error('📍 Location permission error:', locationPermissionError);
         // Don't block the app for location permission issues
       }
-      */
+      
 
       console.log('✅ Home component mounted successfully');
     } catch (error) {

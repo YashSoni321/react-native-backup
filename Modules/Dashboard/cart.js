@@ -220,9 +220,9 @@ const Cart = ({navigation}) => {
       additionalFee = Math.ceil(extraDistance) * charges.AdditionDistanceFee;
     }
 
-    const totalDeliveryFee = baseFee + additionalFee;
-    const convenienceFee = charges.ConvenienceFee;
-    const packagingFee = charges.PackagingFee;
+    const totalDeliveryFee = Math.max(baseFee + additionalFee, 20); // Minimum delivery fee
+    const convenienceFee = Math.max(charges.ConvenienceFee || 0, 5); // Minimum convenience fee
+    const packagingFee = Math.max(charges.PackagingFee || 0, 3); // Minimum packaging fee
 
     return {
       deliveryFee: totalDeliveryFee,
@@ -444,12 +444,16 @@ const Cart = ({navigation}) => {
           0,
         )
         .toFixed(2);
-      const totalDiscountPrice = enrichedCartItems
-        .reduce(
-          (sum, product) => sum + (parseFloat(product.DiscountedPrice) || 0),
-          0,
-        )
-        .toFixed(2);
+      const rawDiscountPrice = enrichedCartItems.reduce(
+        (sum, product) => sum + (parseFloat(product.DiscountedPrice) || 0),
+        0,
+      );
+
+      // Validate discounted price - ensure it's not greater than original price
+      const totalDiscountPrice = Math.min(
+        rawDiscountPrice,
+        parseFloat(totalUnitPrice),
+      ).toFixed(2);
 
       const currentUserLocation = state.userLocation;
       const currentCharges = state.deliveryCharges;
@@ -470,6 +474,20 @@ const Cart = ({navigation}) => {
           currentCharges,
         );
       }
+
+      // Ensure minimum fees are applied
+      deliveryFeeData.totalDeliveryFee = Math.max(
+        deliveryFeeData.totalDeliveryFee,
+        20,
+      );
+      deliveryFeeData.totalConvenienceFee = Math.max(
+        deliveryFeeData.totalConvenienceFee,
+        5,
+      );
+      deliveryFeeData.totalPackagingFee = Math.max(
+        deliveryFeeData.totalPackagingFee,
+        3,
+      );
 
       console.log('Final state update data:', {
         StreetName: addressResponse.data[0]?.StreetName || '',
@@ -625,22 +643,35 @@ const Cart = ({navigation}) => {
 
   const handleCheckout = () => {
     try {
+      // Calculate total amount with all fees
       const totalAmount =
-        state.TotalUnitPrice -
-        state.TotalDiscountPrice +
-        state.totalDeliveryFee +
-        state.totalConvenienceFee +
-        state.totalPackagingFee;
+        (state.TotalUnitPrice || 0) -
+        (state.TotalDiscountPrice || 0) +
+        (state.totalDeliveryFee || 0) +
+        (state.totalConvenienceFee || 0) +
+        (state.totalPackagingFee || 0);
+
+      // Validate that we have a valid total
+      if (totalAmount <= 0) {
+        Alert.alert('Error', 'Invalid order total. Please check your cart.');
+        return;
+      }
+
+      // Pass complete data to checkout
       navigation.push('Checkout', {
         data: {
           TotalUnitPrice: totalAmount,
-          DeliveryFee: state.totalDeliveryFee,
-          ConvenienceFee: state.totalConvenienceFee,
-          PackagingFee: state.totalPackagingFee,
+          Subtotal: state.TotalUnitPrice || 0,
+          DiscountedPrice: state.TotalDiscountPrice || 0,
+          DeliveryFee: state.totalDeliveryFee || 0,
+          ConvenienceFee: state.totalConvenienceFee || 0,
+          PackagingFee: state.totalPackagingFee || 0,
+          CartItems: state.Nearbystores1 || [],
         },
       });
     } catch (error) {
-      handleError(error, 'Checkout process');
+      console.error('Checkout error:', error);
+      Alert.alert('Error', 'Failed to proceed to checkout. Please try again.');
     }
   };
 
@@ -767,6 +798,54 @@ const Cart = ({navigation}) => {
             }}>
             fybr
           </Text>
+
+          {/* Display Total Amount */}
+          <Text
+            style={{
+              fontSize: 18,
+              textAlign: 'right',
+              color: '#333',
+              fontFamily: 'Poppins-SemiBold',
+              marginTop: hp('-2%'),
+              marginRight: wp('7%'),
+            }}>
+            ₹{' '}
+            {(
+              state.TotalUnitPrice -
+              state.TotalDiscountPrice +
+              state.totalDeliveryFee +
+              state.totalConvenienceFee +
+              state.totalPackagingFee
+            ).toFixed(2)}
+          </Text>
+
+          {/* Display Discounted Price if available */}
+          {state.TotalDiscountPrice > 0 && (
+            <View
+              style={{
+                alignItems: 'flex-end',
+                marginRight: wp('7%'),
+                marginTop: hp('0.5%'),
+              }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: '#666',
+                  fontFamily: 'Poppins-Light',
+                  textDecorationLine: 'line-through',
+                }}>
+                ₹ {state.TotalUnitPrice.toFixed(2)}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: '#e74c3c',
+                  fontFamily: 'Poppins-Medium',
+                }}>
+                Save ₹ {state.TotalDiscountPrice.toFixed(2)}
+              </Text>
+            </View>
+          )}
           <Icon
             onPress={() => {
               navigation.push('Tab');
@@ -1085,10 +1164,11 @@ const Cart = ({navigation}) => {
                   <Text
                     style={{
                       fontSize: 10,
-                      color: '#333',
+                      color: state.totalDeliveryFee > 0 ? '#333' : '#e74c3c',
                       fontFamily: 'Poppins-Light',
                     }}>
                     ₹ {state.totalDeliveryFee.toFixed(2)}
+                    {state.totalDeliveryFee === 0 && ' (Free)'}
                   </Text>
                 </View>
 
@@ -1133,10 +1213,11 @@ const Cart = ({navigation}) => {
                   <Text
                     style={{
                       fontSize: 10,
-                      color: '#333',
+                      color: state.totalConvenienceFee > 0 ? '#333' : '#e74c3c',
                       fontFamily: 'Poppins-Light',
                     }}>
                     ₹ {state.totalConvenienceFee.toFixed(2)}
+                    {state.totalConvenienceFee === 0 && ' (Free)'}
                   </Text>
                 </View>
 
@@ -1157,10 +1238,11 @@ const Cart = ({navigation}) => {
                   <Text
                     style={{
                       fontSize: 10,
-                      color: '#333',
+                      color: state.totalPackagingFee > 0 ? '#333' : '#e74c3c',
                       fontFamily: 'Poppins-Light',
                     }}>
                     ₹ {state.totalPackagingFee.toFixed(2)}
+                    {state.totalPackagingFee === 0 && ' (Free)'}
                   </Text>
                 </View>
 

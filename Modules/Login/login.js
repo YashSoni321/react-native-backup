@@ -667,87 +667,55 @@ const Login = ({navigation}) => {
                 </View>
               </TouchableOpacity>
 
-              <Text
+              <View
                 style={{
-                  fontSize: 6,
-                  textAlign: 'center',
-                  color: '#333',
-                  fontFamily: 'Poppins-Light',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
                   marginBottom: hp('9%'),
+                  paddingHorizontal: wp('8%'),
                 }}>
                 <Text
                   style={{
                     fontSize: 6,
-                    textAlign: 'justify',
+                    textAlign: 'center',
                     color: '#333',
                     fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
                   }}>
                   By registering you agree to our{' '}
-                </Text>
-
-                <Text
-                  onPress={() => {
-                    navigation.push('Terms', {
-                      data: {
-                        Data: 'login',
-                        otp: '102111',
-                      },
-                    });
-                  }}
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                    textDecorationLine: 'underline',
-                  }}>
-                  Terms
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                  }}>
-                  {' '}
+                  <Text
+                    onPress={() => {
+                      navigation.push('Terms', {
+                        data: {
+                          Data: 'Login',
+                          otp: '102111',
+                        },
+                      });
+                    }}
+                    style={{
+                      textDecorationLine: 'underline',
+                      color: '#333',
+                    }}>
+                    Terms
+                  </Text>{' '}
                   and{' '}
+                  <Text
+                    onPress={() => {
+                      navigation.push('Terms', {
+                        data: {
+                          Data: 'Login',
+                          otp: '102111',
+                        },
+                      });
+                    }}
+                    style={{
+                      textDecorationLine: 'underline',
+                      color: '#333',
+                    }}>
+                    Privacy Policy
+                  </Text>
                 </Text>
-                <Text
-                  onPress={() => {
-                    navigation.push('Terms', {
-                      data: {
-                        Data: 'login',
-                        otp: '102111',
-                      },
-                    });
-                  }}
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                    textDecorationLine: 'underline',
-                  }}>
-                  Privacy Policy
-                </Text>
-              </Text>
+              </View>
             </View>
           </SafeAreaView>
         </ScrollView>

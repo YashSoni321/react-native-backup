@@ -17,9 +17,10 @@ import {
   BackHandler,
   ActivityIndicator,
   TouchableHighlight,
-  DeviceEventEmitter, KeyboardAvoidingView
+  DeviceEventEmitter,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
+import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,10 +30,10 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import axios from 'axios';
-navigator.geolocation = require('@react-native-community/geolocation');
-import { useFocusEffect } from '@react-navigation/native';
-import { API_KEY, URL_key } from '../Api/api';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+// navigator.geolocation = require('@react-native-community/geolocation');
+import {useFocusEffect} from '@react-navigation/native';
+import {API_KEY, URL_key} from '../Api/api';
+import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 class Signup extends React.Component {
   constructor(props) {
     super(props);
@@ -62,7 +63,7 @@ class Signup extends React.Component {
   }
 
   handleInputChange = (inputName, inputValue) => {
-    this.setState(state => ({ ...state, [inputName]: inputValue }));
+    this.setState(state => ({...state, [inputName]: inputValue}));
     // if (inputName == 'UserName') {
     //   this.setState({EmailError: true});
     // } else if (inputName == 'Password') {
@@ -73,7 +74,7 @@ class Signup extends React.Component {
     // }
   };
   setPasswordVisibility = () => {
-    this.setState({ hidePassword: !this.state.hidePassword });
+    this.setState({hidePassword: !this.state.hidePassword});
   };
   check() {
     const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -94,11 +95,12 @@ class Signup extends React.Component {
       regp2: false,
     });
     if (this.state.FullName == null) {
-      this.setState({ Nameerror: true });
-    } if (this.state.EmailID == null) {
-      this.setState({ EmailError: true });
+      this.setState({Nameerror: true});
+    }
+    if (this.state.EmailID == null) {
+      this.setState({EmailError: true});
     } else if (reg.test(this.state.EmailID) != true) {
-      this.setState({ reg: true });
+      this.setState({reg: true});
     } else {
       this.setState({
         Nameerror: false,
@@ -130,6 +132,10 @@ class Signup extends React.Component {
           console.log(response.data);
           console.log(response.status);
           if (response.data.LoginStatus == 'INSERTED') {
+            console.log('inserted check', {
+              stateData: this.state,
+              responseData: response.data,
+            });
             AsyncStorage.setItem(
               'MobileNumber',
               this.state.MobileNumber.toString(),
@@ -143,14 +149,14 @@ class Signup extends React.Component {
             AsyncStorage.setItem('isLogin', 'true');
             this.props.navigation.push('AddAddress');
           } else if (response.data.LoginStatus == 'USER ALREADY EXISTS') {
-            this.setState({ notexist: true });
+            this.setState({notexist: true});
           } else {
-            this.setState({ fail: true });
+            this.setState({fail: true});
           }
         })
         .catch(err => {
           console.log(err);
-          this.setState({ fail: true });
+          this.setState({fail: true});
         });
     }
   }
@@ -159,18 +165,18 @@ class Signup extends React.Component {
     var curHr = today.getHours();
 
     if (curHr < 12) {
-      this.setState({ wishes: 'Good Morning' });
+      this.setState({wishes: 'Good Morning'});
       // console.log('good morning')
     } else if (curHr < 18) {
-      this.setState({ wishes: 'Good Afternoon' });
+      this.setState({wishes: 'Good Afternoon'});
       // console.log('good afternoon')
     } else {
-      this.setState({ wishes: 'Good Evening' });
+      this.setState({wishes: 'Good Evening'});
       // console.log('good evening')
     }
     var MobileNumber = await AsyncStorage.getItem('MobileNumber');
     // console.log(MobileNumber);
-    this.setState({ MobileNumber: MobileNumber });
+    this.setState({MobileNumber: MobileNumber});
     // const token = await notifications.getToken();
     // console.log(token)
   }
@@ -197,17 +203,15 @@ class Signup extends React.Component {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
+        style={{flex: 1}}>
         <KeyboardAwareScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{flexGrow: 1}}
           enableOnAndroid={true}
           extraScrollHeight={Platform.OS === 'ios' ? 80 : 100}
-          keyboardShouldPersistTaps="handled"
-        >
+          keyboardShouldPersistTaps="handled">
           <ScrollView>
             <SafeAreaView>
-                              {/* NavigationEvents replaced with useFocusEffect in functional components */}
+              {/* NavigationEvents replaced with useFocusEffect in functional components */}
               <Dialog
                 visible={this.state.fail}
                 dialogStyle={{
@@ -254,7 +258,7 @@ class Signup extends React.Component {
                   style={styles.SubmitButtonStyledd}
                   activeOpacity={0.5}
                   onPress={() => {
-                    this.setState({ fail: false }, () => {
+                    this.setState({fail: false}, () => {
                       // this.props.navigation.push('signup');
                     });
                   }}>
@@ -271,17 +275,15 @@ class Signup extends React.Component {
                 </TouchableOpacity>
               </Dialog>
               <Icon
-                style={
-                  {
-                    // width: wp('10%'),
-                    // marginRight: hp('2%'),
-                    marginTop: hp('5%'),
-                    marginLeft: wp('5%'),
-                    // paddingLeft: wp('-4%'),
-                  }
-                }
+                style={{
+                  // width: wp('10%'),
+                  // marginRight: hp('2%'),
+                  marginTop: hp('5%'),
+                  marginLeft: wp('5%'),
+                  // paddingLeft: wp('-4%'),
+                }}
                 onPress={() => {
-                  this.props.navigation.push("Landing")
+                  this.props.navigation.push('Landing');
                 }}
                 activeOpacity={0.5}
                 name="chevron-back"
@@ -297,7 +299,8 @@ class Signup extends React.Component {
                   // textAlign: 'center',
                   marginTop: hp('5%'),
                   marginBottom: hp('1%'),
-                  marginLeft: wp('8%'), marginRight: wp('3%'),
+                  marginLeft: wp('8%'),
+                  marginRight: wp('3%'),
                 }}>
                 What's your name & email?
               </Text>
@@ -335,9 +338,8 @@ class Signup extends React.Component {
                   marginLeft: wp('10%'),
                   // backgroundColor: '#52c4ff',
                 }}>
-
                 <TextInput
-                  placeholder="Enter your Fullname"
+                  placeholder="Enter your Full name"
                   fontFamily={'Poppins-Light'}
                   placeholderTextColor={'#666'}
                   color={'#333'}
@@ -396,7 +398,6 @@ class Signup extends React.Component {
                   marginLeft: wp('10%'),
                   // backgroundColor: '#52c4ff',
                 }}>
-
                 <TextInput
                   placeholder="Enter your email"
                   fontFamily={'Poppins-Light'}
@@ -419,9 +420,7 @@ class Signup extends React.Component {
                 />
               </View>
               {this.state.EmailError == true ? (
-                <Text style={styles.errorMessage}>
-                  * Please enter email.
-                </Text>
+                <Text style={styles.errorMessage}>* Please enter email.</Text>
               ) : null}
               {this.state.reg == true ? (
                 <Text style={styles.errorMessage}>
@@ -429,14 +428,12 @@ class Signup extends React.Component {
                 </Text>
               ) : null}
               {this.state.notexist == true ? (
-                <Text style={styles.errorMessage}>
-                  * User Already Exists.
-                </Text>
+                <Text style={styles.errorMessage}>* User Already Exists.</Text>
               ) : null}
               <TouchableOpacity
                 activeOpacity={0.5}
                 onPress={() => {
-                  this.check()
+                  this.check();
                   // this.props.navigation.push("tab")
                 }}>
                 <View

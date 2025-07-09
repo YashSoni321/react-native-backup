@@ -130,7 +130,7 @@ const Otp = ({navigation, route}) => {
         ) {
           AsyncStorage.removeItem('banner');
           clearInterval(timerRef.current);
-          navigation.push('signup');
+          navigation.push('Signup');
         } else if (response.OTPStatus == 'NOTVALID') {
           updateState({invalid: true});
         } else {

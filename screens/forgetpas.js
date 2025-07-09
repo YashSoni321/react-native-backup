@@ -19,7 +19,7 @@ import {
   TouchableHighlight,
   DeviceEventEmitter,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
+import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -38,10 +38,10 @@ import {
 var date = moment().format('YYYY/MM/DD ');
 var time = moment().format('hh:mm A');
 import ImagePicker from 'react-native-image-crop-picker';
-import { CustomPicker } from 'react-native-custom-picker';
+import {CustomPicker} from 'react-native-custom-picker';
 
 import MapView from 'react-native-maps';
-import { Marker } from 'react-native-maps';
+import {Marker} from 'react-native-maps';
 import axios from 'axios';
 import GetLocation from 'react-native-get-location';
 import publicIP from 'react-native-public-ip';
@@ -50,12 +50,12 @@ import * as geolib from 'geolib';
 import LinearGradient from 'react-native-linear-gradient';
 navigator.geolocation = require('@react-native-community/geolocation');
 import DeviceInfo from 'react-native-device-info';
-import { NavigationEvents } from 'react-navigation';
+import {NavigationEvents} from 'react-navigation';
 // import messaging from '@react-native-firebase/messaging';
 // import auth from '@react-native-firebase/auth';
 // import firestore from '@react-native-firebase/firestore';
 // import firebase from '../screens/firebase';
-import { API_KEY, URL_key } from './api';
+import {API_KEY, URL_key} from './api';
 class ForgetPas extends React.Component {
   constructor(props) {
     super(props);
@@ -89,7 +89,7 @@ class ForgetPas extends React.Component {
   }
 
   handleInputChange = (inputName, inputValue) => {
-    this.setState(state => ({ ...state, [inputName]: inputValue }));
+    this.setState(state => ({...state, [inputName]: inputValue}));
     // if (inputName == 'UserName') {
     //   this.setState({EmailError: true});
     // } else if (inputName == 'Password') {
@@ -100,7 +100,7 @@ class ForgetPas extends React.Component {
     // }
   };
   setPasswordVisibility = () => {
-    this.setState({ hidePassword: !this.state.hidePassword });
+    this.setState({hidePassword: !this.state.hidePassword});
   };
   check() {
     const reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -122,23 +122,23 @@ class ForgetPas extends React.Component {
       verie: false,
     });
     if (this.state.MobileNumber == null) {
-      this.setState({ MobileNumbererror: true });
+      this.setState({MobileNumbererror: true});
     } else if (this.state.MobileNumber.length != 10) {
-      this.setState({ mreg: true });
+      this.setState({mreg: true});
     } else if (reg2.test(this.state.MobileNumber) != true) {
-      this.setState({ mreg: true });
+      this.setState({mreg: true});
     } else if (this.state.verified == false) {
-      this.setState({ verie: true });
+      this.setState({verie: true});
     } else if (this.state.Password == null) {
-      this.setState({ PasswordError: true });
+      this.setState({PasswordError: true});
     } else if (reg1.test(this.state.Password) != true) {
-      this.setState({ regp1: true });
+      this.setState({regp1: true});
     } else if (this.state.ConfirmPassword == null) {
-      this.setState({ ConfirmPasswordError: true });
+      this.setState({ConfirmPasswordError: true});
     } else if (reg1.test(this.state.ConfirmPassword) != true) {
-      this.setState({ regp2: true });
+      this.setState({regp2: true});
     } else if (this.state.ConfirmPassword != this.state.Password) {
-      this.setState({ matcerror: true });
+      this.setState({matcerror: true});
     } else {
       this.setState({
         Nameerror: false,
@@ -184,7 +184,7 @@ class ForgetPas extends React.Component {
               'MobileNumber',
               this.state.MobileNumber.toString(),
             );
-            this.setState({ success: true });
+            this.setState({success: true});
           } else {
             this.setState({
               fail: true,
@@ -196,7 +196,7 @@ class ForgetPas extends React.Component {
         })
         .catch(err => {
           console.log(err);
-          this.setState({ fail: true });
+          this.setState({fail: true});
         });
     }
   }
@@ -205,13 +205,13 @@ class ForgetPas extends React.Component {
     var curHr = today.getHours();
 
     if (curHr < 12) {
-      this.setState({ wishes: 'Good Morning' });
+      this.setState({wishes: 'Good Morning'});
       // console.log('good morning')
     } else if (curHr < 18) {
-      this.setState({ wishes: 'Good Afternoon' });
+      this.setState({wishes: 'Good Afternoon'});
       // console.log('good afternoon')
     } else {
-      this.setState({ wishes: 'Good Evening' });
+      this.setState({wishes: 'Good Evening'});
       // console.log('good evening')
     }
 
@@ -291,8 +291,8 @@ class ForgetPas extends React.Component {
               style={styles.SubmitButtonStyledd}
               activeOpacity={0.5}
               onPress={() => {
-                this.setState({ fail: false }, () => {
-                  // this.props.navigation.push('signup');
+                this.setState({fail: false}, () => {
+                  this.props.navigation.push('Signup');
                 });
               }}>
               <Text
@@ -353,8 +353,8 @@ class ForgetPas extends React.Component {
               style={styles.SubmitButtonStyledd}
               activeOpacity={0.5}
               onPress={() => {
-                this.setState({ fail1: false }, () => {
-                  // this.props.navigation.push('signup');
+                this.setState({fail1: false}, () => {
+                  this.props.navigation.push('Signup');
                 });
               }}>
               <Text
@@ -419,7 +419,7 @@ class ForgetPas extends React.Component {
                 style={styles.SubmitButtonStyled}
                 activeOpacity={0.5}
                 onPress={() => {
-                  this.setState({ success: false }, () => {
+                  this.setState({success: false}, () => {
                     this.props.navigation.push('LoginPass', {
                       // data: {
                       //   StudentID: this.state.StudentID,
@@ -442,7 +442,7 @@ class ForgetPas extends React.Component {
             </ScrollView>
           </Dialog>
           <ImageBackground
-            style={{ width: wp('100%') }}
+            style={{width: wp('100%')}}
             activeOpacity={0.5}
             source={require('../assets/output-onlinepngtools1.png')}
             resizeMode="cover">
@@ -550,12 +550,12 @@ class ForgetPas extends React.Component {
             <TouchableOpacity
               activeOpacity={0.5}
               onPress={() => {
-                this.setState({ mreg: false });
+                this.setState({mreg: false});
                 const reg2 = /^[0-9]*$/;
                 if (this.state.MobileNumber == null) {
-                  this.setState({ MobileNumbererror: true });
+                  this.setState({MobileNumbererror: true});
                 } else if (reg2.test(this.state.MobileNumber) != true) {
-                  this.setState({ mreg: true });
+                  this.setState({mreg: true});
                 } else {
                   const a = {
                     MobileNumber: this.state.MobileNumber,
@@ -571,16 +571,16 @@ class ForgetPas extends React.Component {
                       console.log(response.data);
                       console.log(response.status);
                       if (response.data.Status == 'GENERATED') {
-                        this.setState({ orxc: true });
+                        this.setState({orxc: true});
 
                         // AsyncStorage.setItem('OtherCountry', 'no');
                       } else {
-                        this.setState({ fail: true });
+                        this.setState({fail: true});
                       }
                     })
                     .catch(err => {
                       console.log(err);
-                      this.setState({ fail: true });
+                      this.setState({fail: true});
                     });
                 }
               }}>
@@ -680,9 +680,9 @@ class ForgetPas extends React.Component {
             <TouchableOpacity
               activeOpacity={0.5}
               onPress={() => {
-                this.setState({ verie: false });
+                this.setState({verie: false});
                 if (this.state.OTP == null) {
-                  this.setState({ OTPError: true });
+                  this.setState({OTPError: true});
                 } else {
                   const a = {
                     MobileNumber: this.state.MobileNumber,
@@ -699,17 +699,17 @@ class ForgetPas extends React.Component {
                       console.log(response.data);
                       console.log(response.status);
                       if (response.data.OTPStatus == 'VALID') {
-                        this.setState({ verified: true });
+                        this.setState({verified: true});
                       } else if (response.data.OTPStatus == 'NOTVALID') {
-                        this.setState({ invalid: true });
+                        this.setState({invalid: true});
                       } else {
                         // console.log("czxbhj")
-                        this.setState({ fail: true });
+                        this.setState({fail: true});
                       }
                     })
                     .catch(err => {
                       // clearInterval(this.timer);
-                      this.setState({ fail: true });
+                      this.setState({fail: true});
                     });
                 }
               }}>
@@ -800,7 +800,7 @@ class ForgetPas extends React.Component {
                 }}
               />
               {this.state.hidePassword == true ? (
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Icon
                     style={
                       {
@@ -817,7 +817,7 @@ class ForgetPas extends React.Component {
                   />
                 </View>
               ) : (
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Icon
                     style={
                       {
@@ -902,7 +902,7 @@ class ForgetPas extends React.Component {
                 }}
               />
               {this.state.hidePassword == true ? (
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Icon
                     style={
                       {
@@ -919,7 +919,7 @@ class ForgetPas extends React.Component {
                   />
                 </View>
               ) : (
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{alignItems: 'flex-end'}}>
                   <Icon
                     style={
                       {

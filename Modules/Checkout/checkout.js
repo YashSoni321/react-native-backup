@@ -59,6 +59,37 @@ const time = moment().format('hh:mm A');
 const reg2 = /^[0-9]+$/;
 
 const Checkout = ({navigation, route}) => {
+  // Add error boundary
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <SafeAreaView
+        style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text
+          style={{
+            fontSize: 16,
+            color: '#333',
+            textAlign: 'center',
+            marginBottom: 20,
+          }}>
+          Something went wrong with the checkout.
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setHasError(false);
+            navigation.goBack();
+          }}
+          style={{
+            backgroundColor: '#00afb5',
+            padding: 15,
+            borderRadius: 8,
+          }}>
+          <Text style={{color: 'white', fontSize: 14}}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
   // State management
   const [state, setState] = useState({
     PaymentMethodList: [],
@@ -68,12 +99,23 @@ const Checkout = ({navigation, route}) => {
     AddressID: null,
     TipAmountErrior: false,
     PaymentMethodIDerror: false,
-    TotalUnitPrice: route?.params?.data?.TotalUnitPrice || null,
+    TotalUnitPrice: route?.params?.data?.TotalUnitPrice || 0,
+    Subtotal: route?.params?.data?.Subtotal || 0,
+    DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
+    DeliveryFee: route?.params?.data?.DeliveryFee || 0,
+    ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
+    PackagingFee: route?.params?.data?.PackagingFee || 0,
+    CartItems: route?.params?.data?.CartItems || [],
     Latitude: 10.8062818,
     Longitude: 78.6949227,
     loading: false,
     fail: false,
+    error: null,
   });
+
+  useEffect(() => {
+    console.log('Checkout component mounted');
+  }, []);
 
   // Input change handler
   const handleInputChange = useCallback(
@@ -94,12 +136,54 @@ const Checkout = ({navigation, route}) => {
 
   // Load initial data
   useEffect(() => {
+    // Validate that we have the required data
+    if (!route?.params?.data?.TotalUnitPrice) {
+      Alert.alert('Error', 'Invalid checkout data. Please return to cart.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+      return;
+    }
+
     loadInitialData();
+  }, []);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = error => {
+      console.error('Unhandled error in checkout:', error);
+      setHasError(true);
+    };
+
+    // Add global error handler
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      originalConsoleError(...args);
+      if (args[0]?.includes?.('Checkout')) {
+        handleError(args[0]);
+      }
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+    };
   }, []);
 
   const loadInitialData = async () => {
     try {
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+
+      if (!UserProfileID) {
+        Alert.alert('Error', 'Please login to continue with checkout.', [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]);
+        return;
+      }
 
       // Load payment methods and tip amounts
       await Promise.all([
@@ -108,6 +192,10 @@ const Checkout = ({navigation, route}) => {
       ]);
     } catch (error) {
       console.error('Failed to load initial data:', error);
+      setState(prevState => ({
+        ...prevState,
+        error: 'Failed to load checkout data. Please try again.',
+      }));
     }
   };
 
@@ -172,14 +260,14 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
-      const stateResponse = await axios.get(
-        URL_key + 'api/AddressApi/gStateList',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      // const stateResponse = await axios.get(
+      //   URL_key + 'api/AddressApi/gStateList',
+      //   {
+      //     headers: {
+      //       'content-type': `application/json`,
+      //     },
+      //   },
+      // );
 
       const preferredAddress = addressResponse.data.filter(
         data => data.IsPreferred === true,
@@ -268,7 +356,8 @@ const Checkout = ({navigation, route}) => {
 
       const orderId = PhonePeService.generateOrderId();
       const totalAmount =
-        parseFloat(state.TotalUnitPrice) + parseFloat(state.TipAmount || 0);
+        parseFloat(state.TotalUnitPrice || 0) +
+        parseFloat(state.TipAmount || 0);
       const mobileNumber =
         (await AsyncStorage.getItem('MobileNumber')) || '9999999999';
 
@@ -558,266 +647,530 @@ const Checkout = ({navigation, route}) => {
     </TouchableOpacity>
   );
 
-  return (
-    <SafeAreaView>
-      <ScrollView>
-        <Dialog
-          visible={state.fail}
-          title="Payment Failed"
-          onTouchOutside={() =>
-            setState(prevState => ({...prevState, fail: false}))
-          }
-          dialogStyle={{
-            backgroundColor: '#ffff',
-            width: wp('70%'),
-            alignSelf: 'center',
-            borderRadius: wp('2%'),
-          }}>
-          <View style={{alignItems: 'center'}}>
+  try {
+    return (
+      <SafeAreaView>
+        <ScrollView>
+          {state.error && (
+            <View
+              style={{
+                backgroundColor: '#ffebee',
+                padding: 15,
+                margin: 10,
+                borderRadius: 8,
+                borderLeftWidth: 4,
+                borderLeftColor: '#f44336',
+              }}>
+              <Text
+                style={{
+                  color: '#c62828',
+                  fontSize: 14,
+                  fontFamily: 'Poppins-Medium',
+                }}>
+                {state.error}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  setState(prevState => ({...prevState, error: null}))
+                }
+                style={{
+                  alignSelf: 'flex-end',
+                  marginTop: 5,
+                }}>
+                <Text style={{color: '#00afb5', fontSize: 12}}>Dismiss</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <Dialog
+            visible={state.fail}
+            title="Payment Failed"
+            onTouchOutside={() =>
+              setState(prevState => ({...prevState, fail: false}))
+            }
+            dialogStyle={{
+              backgroundColor: '#ffff',
+              width: wp('70%'),
+              alignSelf: 'center',
+              borderRadius: wp('2%'),
+            }}>
+            <View style={{alignItems: 'center'}}>
+              <Text
+                style={{
+                  fontSize: 15,
+                  color: '#333',
+                  fontFamily: 'Poppins-Medium',
+                  textAlign: 'center',
+                  marginTop: hp('2%'),
+                }}>
+                Payment processing failed. Please try again.
+              </Text>
+              <TouchableOpacity
+                style={styles.SubmitButtonStyledd}
+                activeOpacity={0.5}
+                onPress={() =>
+                  setState(prevState => ({...prevState, fail: false}))
+                }>
+                <Text
+                  style={{
+                    color: '#ffff',
+                    textAlign: 'center',
+                    fontSize: 15,
+                    fontFamily: 'Poppins-SemiBold',
+                  }}>
+                  OK
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Dialog>
+
+          <ImageBackground
+            style={{width: wp('100%')}}
+            activeOpacity={0.5}
+            source={require('../Images/output-onlinepngtools1.png')}>
+            <Text
+              style={{
+                fontSize: 20,
+                color: '#00afb5',
+                fontFamily: 'Poppins-SemiBold',
+                marginTop: hp('5%'),
+                marginLeft: wp('17%'),
+              }}>
+              Delivering to {'>'}
+            </Text>
+            <Text
+              style={{
+                fontSize: 40,
+                textAlign: 'right',
+                color: '#00afb5',
+                fontFamily: 'Poppins-Bold',
+                marginTop: hp('-3%'),
+                marginRight: wp('7%'),
+              }}>
+              ₹{state.TotalUnitPrice.toFixed(2)}
+            </Text>
+
+            {/* Show discounted price if available */}
+            {state.DiscountedPrice > 0 && (
+              <View
+                style={{
+                  alignItems: 'flex-end',
+                  marginRight: wp('7%'),
+                  marginTop: hp('1%'),
+                }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: '#666',
+                    fontFamily: 'Poppins-Light',
+                    textDecorationLine: 'line-through',
+                  }}>
+                  ₹ {state.Subtotal.toFixed(2)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    color: '#e74c3c',
+                    fontFamily: 'Poppins-Medium',
+                  }}>
+                  Save ₹ {state.DiscountedPrice.toFixed(2)}
+                </Text>
+              </View>
+            )}
+            <Icon
+              onPress={() => navigation.push('Tab')}
+              name="chevron-back"
+              color={'#00afb5'}
+              size={40}
+              style={{
+                marginLeft: wp('1%'),
+                padding: hp('1%'),
+                marginTop: hp('-10%'),
+                marginBottom: hp('4%'),
+              }}
+            />
+          </ImageBackground>
+
+          {state.Latitude && state.Longitude ? (
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              region={{
+                latitude: state.Latitude,
+                longitude: state.Longitude,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              }}
+              style={{
+                height: hp('20%'),
+                width: wp('80%'),
+                alignSelf: 'center',
+                marginTop: hp('2%'),
+              }}>
+              <Marker
+                coordinate={{
+                  latitude: state.Latitude,
+                  longitude: state.Longitude,
+                }}
+                title="Delivery Address"
+              />
+            </MapView>
+          ) : (
+            <View
+              style={{
+                height: hp('20%'),
+                width: wp('80%'),
+                alignSelf: 'center',
+                marginTop: hp('2%'),
+                backgroundColor: '#f5f5f5',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 8,
+              }}>
+              <Icon name="location" color="#00afb5" size={40} />
+              <Text
+                style={{
+                  color: '#666',
+                  fontSize: 12,
+                  fontFamily: 'Poppins-Light',
+                  marginTop: 10,
+                }}>
+                Loading delivery location...
+              </Text>
+            </View>
+          )}
+
+          <Icon
+            name="location"
+            color={'#00afb5'}
+            size={40}
+            style={{
+              marginLeft: wp('7%'),
+              padding: hp('1%'),
+              marginTop: hp('2%'),
+            }}
+          />
+
+          <Text
+            style={{
+              fontSize: 17,
+              color: '#333',
+              fontFamily: 'Poppins-SemiBold',
+              marginLeft: wp('18%'),
+              marginTop: hp('-7%'),
+            }}>
+            Delivery Address
+          </Text>
+
+          <Icon
+            onPress={() => navigation.push('AddressList')}
+            name="chevron-forward-outline"
+            color={'#00afb5'}
+            size={40}
+            style={{
+              alignSelf: 'flex-end',
+              padding: hp('1%'),
+              marginTop: hp('-7.5%'),
+              marginRight: wp('3%'),
+            }}
+          />
+
+          <Text
+            style={{
+              fontSize: 15,
+              color: '#333',
+              fontFamily: 'Poppins-SemiBold',
+              marginLeft: wp('7%'),
+              marginTop: hp('3%'),
+            }}>
+            Tip Amount
+          </Text>
+
+          <TextInput
+            placeholder="Enter tip amount"
+            placeholderTextColor="#999"
+            keyboardType="numeric"
+            fontSize={11}
+            maxLength={6}
+            onChangeText={value => handleInputChange('TipAmount', value)}
+            style={{
+              padding: hp('0.5%'),
+              marginLeft: wp('9%'),
+              width: wp('30%'),
+              marginTop: hp('1.5%'),
+            }}
+          />
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignSelf: 'flex-end',
+              marginLeft: wp('40'),
+              marginTop: hp('-5%'),
+            }}>
+            <FlatList
+              data={state.TipAmountList}
+              horizontal={true}
+              renderItem={renderTipAmountItem}
+              keyExtractor={(item, index) => index.toString()}
+            />
+          </View>
+
+          {state.TipAmountErrior && (
+            <Text
+              style={{
+                fontSize: 10,
+                color: 'red',
+                fontFamily: 'Poppins-Medium',
+                marginLeft: wp('9%'),
+                marginTop: hp('1%'),
+              }}>
+              Please enter valid tip amount
+            </Text>
+          )}
+
+          {/* Order Summary */}
+          <View
+            style={{
+              marginTop: hp('3%'),
+              marginHorizontal: wp('7%'),
+              backgroundColor: '#f8f8f8',
+              borderRadius: 8,
+              padding: 15,
+            }}>
             <Text
               style={{
                 fontSize: 15,
                 color: '#333',
-                fontFamily: 'Poppins-Medium',
-                textAlign: 'center',
-                marginTop: hp('2%'),
+                fontFamily: 'Poppins-SemiBold',
+                marginBottom: hp('2%'),
               }}>
-              Payment processing failed. Please try again.
+              Order Summary
             </Text>
-            <TouchableOpacity
-              style={styles.SubmitButtonStyledd}
-              activeOpacity={0.5}
-              onPress={() =>
-                setState(prevState => ({...prevState, fail: false}))
-              }>
-              <Text
+
+            <View style={{marginBottom: hp('1%')}}>
+              <View
                 style={{
-                  color: '#ffff',
-                  textAlign: 'center',
-                  fontSize: 15,
-                  fontFamily: 'Poppins-SemiBold',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: hp('1%'),
                 }}>
-                OK
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  Subtotal
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  ₹ {state.Subtotal.toFixed(2)}
+                </Text>
+              </View>
+
+              {state.DiscountedPrice > 0 && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#e74c3c',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Discount
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#e74c3c',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    - ₹ {state.DiscountedPrice.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: hp('1%'),
+                }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  Delivery Fee
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  ₹ {state.DeliveryFee.toFixed(2)}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: hp('1%'),
+                }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  Convenience Fee
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  ₹ {state.ConvenienceFee.toFixed(2)}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginBottom: hp('1%'),
+                }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  Packaging Fee
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: '#333',
+                    fontFamily: 'Poppins-Light',
+                  }}>
+                  ₹ {state.PackagingFee.toFixed(2)}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: '#ddd',
+                  paddingTop: hp('1%'),
+                  marginTop: hp('1%'),
+                }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#333',
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    Total Amount
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#333',
+                      fontFamily: 'Poppins-Medium',
+                    }}>
+                    ₹ {state.TotalUnitPrice.toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
-        </Dialog>
 
-        <ImageBackground
-          style={{width: wp('100%')}}
-          activeOpacity={0.5}
-          source={require('../Images/output-onlinepngtools1.png')}>
           <Text
             style={{
-              fontSize: 20,
-              color: '#00afb5',
+              fontSize: 15,
+              color: '#333',
               fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('5%'),
-              marginLeft: wp('17%'),
+              marginLeft: wp('7%'),
+              marginTop: hp('3%'),
             }}>
-            Delivering to {'>'}
+            Payment Method
           </Text>
-          <Text
-            style={{
-              fontSize: 40,
-              textAlign: 'right',
-              color: '#00afb5',
-              fontFamily: 'Poppins-Bold',
-              marginTop: hp('-3%'),
-              marginRight: wp('7%'),
-            }}>
-            ₹{state.TotalUnitPrice}
-          </Text>
-          <Icon
-            onPress={() => navigation.push('Tab')}
-            name="chevron-back"
-            color={'#00afb5'}
-            size={40}
-            style={{
-              marginLeft: wp('1%'),
-              padding: hp('1%'),
-              marginTop: hp('-10%'),
-              marginBottom: hp('4%'),
-            }}
-          />
-        </ImageBackground>
 
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          region={{
-            latitude: state.Latitude,
-            longitude: state.Longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-          style={{
-            height: hp('20%'),
-            width: wp('80%'),
-            alignSelf: 'center',
-            marginTop: hp('2%'),
-          }}>
-          <Marker
-            coordinate={{
-              latitude: state.Latitude,
-              longitude: state.Longitude,
-            }}
-            title="Start Point"
-          />
-        </MapView>
-
-        <Icon
-          name="location"
-          color={'#00afb5'}
-          size={40}
-          style={{
-            marginLeft: wp('7%'),
-            padding: hp('1%'),
-            marginTop: hp('2%'),
-          }}
-        />
-
-        <Text
-          style={{
-            fontSize: 17,
-            color: '#333',
-            fontFamily: 'Poppins-SemiBold',
-            marginLeft: wp('18%'),
-            marginTop: hp('-7%'),
-          }}>
-          Delivery Address
-        </Text>
-
-        <Icon
-          onPress={() => navigation.push('AddressList')}
-          name="chevron-forward-outline"
-          color={'#00afb5'}
-          size={40}
-          style={{
-            alignSelf: 'flex-end',
-            padding: hp('1%'),
-            marginTop: hp('-7.5%'),
-            marginRight: wp('3%'),
-          }}
-        />
-
-        <Text
-          style={{
-            fontSize: 15,
-            color: '#333',
-            fontFamily: 'Poppins-SemiBold',
-            marginLeft: wp('7%'),
-            marginTop: hp('3%'),
-          }}>
-          Tip Amount
-        </Text>
-
-        <TextInput
-          placeholder="Enter tip amount"
-          placeholderTextColor="#999"
-          keyboardType="numeric"
-          fontSize={11}
-          maxLength={6}
-          onChangeText={value => handleInputChange('TipAmount', value)}
-          style={{
-            padding: hp('0.5%'),
-            marginLeft: wp('9%'),
-            width: wp('30%'),
-            marginTop: hp('1.5%'),
-          }}
-        />
-
-        <View
-          style={{
-            flexDirection: 'row',
-            alignSelf: 'flex-end',
-            marginLeft: wp('40'),
-            marginTop: hp('-5%'),
-          }}>
           <FlatList
-            data={state.TipAmountList}
-            horizontal={true}
-            renderItem={renderTipAmountItem}
+            data={state.PaymentMethodList}
+            renderItem={renderPaymentMethodItem}
             keyExtractor={(item, index) => index.toString()}
           />
-        </View>
 
-        {state.TipAmountErrior && (
-          <Text
-            style={{
-              fontSize: 10,
-              color: 'red',
-              fontFamily: 'Poppins-Medium',
-              marginLeft: wp('9%'),
-              marginTop: hp('1%'),
-            }}>
-            Please enter valid tip amount
-          </Text>
-        )}
+          {state.PaymentMethodIDerror && (
+            <Text
+              style={{
+                fontSize: 10,
+                color: 'red',
+                fontFamily: 'Poppins-Medium',
+                marginLeft: wp('7%'),
+                marginTop: hp('1%'),
+              }}>
+              Please select payment method
+            </Text>
+          )}
 
-        <Text
-          style={{
-            fontSize: 15,
-            color: '#333',
-            fontFamily: 'Poppins-SemiBold',
-            marginLeft: wp('7%'),
-            marginTop: hp('3%'),
-          }}>
-          Payment Method
-        </Text>
-
-        <FlatList
-          data={state.PaymentMethodList}
-          renderItem={renderPaymentMethodItem}
-          keyExtractor={(item, index) => index.toString()}
-        />
-
-        {state.PaymentMethodIDerror && (
-          <Text
-            style={{
-              fontSize: 10,
-              color: 'red',
-              fontFamily: 'Poppins-Medium',
-              marginLeft: wp('7%'),
-              marginTop: hp('1%'),
-            }}>
-            Please select payment method
-          </Text>
-        )}
-
-        <TouchableOpacity
-          activeOpacity={0.5}
-          disabled={state.loading}
-          onPress={processPayment}>
-          <View
-            style={{
-              backgroundColor: state.loading ? '#cccccc' : '#00afb5',
-              width: wp('80%'),
-              height: hp('5%'),
-              alignSelf: 'center',
-              marginTop: hp('5%'),
-              marginBottom: hp('2%'),
-              borderRadius: wp('2%'),
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-            {state.loading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text
-                style={{
-                  color: '#ffff',
-                  textAlign: 'center',
-                  fontSize: 15,
-                  fontFamily: 'Poppins-SemiBold',
-                }}>
-                Get it delivered
-              </Text>
-            )}
-          </View>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
+          <TouchableOpacity
+            activeOpacity={0.5}
+            disabled={state.loading || !state.TotalUnitPrice}
+            onPress={processPayment}>
+            <View
+              style={{
+                backgroundColor: state.loading ? '#cccccc' : '#00afb5',
+                width: wp('80%'),
+                height: hp('5%'),
+                alignSelf: 'center',
+                marginTop: hp('5%'),
+                marginBottom: hp('2%'),
+                borderRadius: wp('2%'),
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              {state.loading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text
+                  style={{
+                    color: '#ffff',
+                    textAlign: 'center',
+                    fontSize: 15,
+                    fontFamily: 'Poppins-SemiBold',
+                  }}>
+                  Get it delivered
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  } catch (error) {
+    console.error('Checkout component error:', error);
+    setHasError(true);
+    return null;
+  }
 };
 
 const styles = StyleSheet.create({
