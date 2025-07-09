@@ -799,53 +799,6 @@ const Cart = ({navigation}) => {
             fybr
           </Text>
 
-          {/* Display Total Amount */}
-          <Text
-            style={{
-              fontSize: 18,
-              textAlign: 'right',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('-2%'),
-              marginRight: wp('7%'),
-            }}>
-            ₹{' '}
-            {(
-              state.TotalUnitPrice -
-              state.TotalDiscountPrice +
-              state.totalDeliveryFee +
-              state.totalConvenienceFee +
-              state.totalPackagingFee
-            ).toFixed(2)}
-          </Text>
-
-          {/* Display Discounted Price if available */}
-          {state.TotalDiscountPrice > 0 && (
-            <View
-              style={{
-                alignItems: 'flex-end',
-                marginRight: wp('7%'),
-                marginTop: hp('0.5%'),
-              }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: '#666',
-                  fontFamily: 'Poppins-Light',
-                  textDecorationLine: 'line-through',
-                }}>
-                ₹ {state.TotalUnitPrice.toFixed(2)}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: '#e74c3c',
-                  fontFamily: 'Poppins-Medium',
-                }}>
-                Save ₹ {state.TotalDiscountPrice.toFixed(2)}
-              </Text>
-            </View>
-          )}
           <Icon
             onPress={() => {
               navigation.push('Tab');

@@ -38,7 +38,7 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 
 import CheckBox from 'react-native-check-box';
-import Geolocation from 'react-native-geolocation-service';
+import Geolocation from '@react-native-community/geolocation';
 import {getDistance} from 'geolib';
 
 const DISTANCE_THRESHOLD = 3000; // 3km in meters
@@ -576,16 +576,41 @@ class Home extends React.Component {
                 } catch (locationError) {
                   clearTimeout(locationTimeout);
                   console.error('📍 Location processing error:', locationError);
-                  // Don't show alert, just log the error
+                  this.setState({isLoadingStores: false});
                 }
               },
               error => {
                 clearTimeout(locationTimeout);
                 console.error('📍 Location error:', error);
-                // Don't show alert, just log the error and continue
-                this.setState({isLoadingStores: false});
+
+                // Provide user-friendly error message
+                let errorMessage = 'Unable to get your location.';
+                switch (error.code) {
+                  case error.PERMISSION_DENIED:
+                    errorMessage =
+                      'Location permission denied. Please enable location access in settings.';
+                    break;
+                  case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Location information unavailable.';
+                    break;
+                  case error.TIMEOUT:
+                    errorMessage = 'Location request timed out.';
+                    break;
+                }
+
+                Alert.alert('Location Error', errorMessage, [
+                  {
+                    text: 'OK',
+                    onPress: () => this.setState({isLoadingStores: false}),
+                  },
+                ]);
               },
-              {enableHighAccuracy: false, timeout: 8000, maximumAge: 60000},
+              {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 300000, // 5 minutes
+                distanceFilter: 10, // Update if moved 10 meters
+              },
             );
           } catch (geolocationError) {
             clearTimeout(locationTimeout);
@@ -597,8 +622,15 @@ class Home extends React.Component {
           }
         } else {
           console.log(
-            '⚠️ Location permission not granted, skipping location-based features',
+            '⚠️ Location permission not granted, using default location',
           );
+          // Use a default location (e.g., city center)
+          const defaultLocation = {
+            latitude: 28.7041, // Default to Delhi coordinates
+            longitude: 77.1025,
+          };
+          this.setState({currentLocation: defaultLocation});
+          await this.fetchNearbyStores(defaultLocation);
         }
       } catch (locationPermissionError) {
         console.error('📍 Location permission error:', locationPermissionError);
@@ -629,18 +661,89 @@ class Home extends React.Component {
     await this.fetchNearbyStores(testLocation);
   };
 
+  // Refresh location manually
+  refreshLocation = async () => {
+    try {
+      this.setState({isLoadingStores: true});
+      const hasPermission = await this.requestLocationPermission();
+
+      if (hasPermission) {
+        Geolocation.getCurrentPosition(
+          async position => {
+            const currentLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            this.setState({currentLocation});
+            console.log('📍 Refreshed location:', currentLocation);
+            await this.fetchNearbyStores(currentLocation);
+          },
+          error => {
+            console.error('📍 Refresh location error:', error);
+            Alert.alert(
+              'Error',
+              'Failed to refresh location. Please try again.',
+            );
+            this.setState({isLoadingStores: false});
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0, // Force fresh location
+          },
+        );
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is required to refresh your location.',
+        );
+        this.setState({isLoadingStores: false});
+      }
+    } catch (error) {
+      console.error('📍 Refresh location error:', error);
+      this.setState({isLoadingStores: false});
+    }
+  };
+
   handleInputChange = (inputName, inputValue) => {
     this.setState(state => ({...state, [inputName]: inputValue}));
   };
 
   requestLocationPermission = async () => {
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    try {
+      if (Platform.OS === 'android') {
+        // Check if permission is already granted
+        const hasPermission = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+
+        if (hasPermission) {
+          console.log('📍 Location permission already granted');
+          return true;
+        }
+
+        // Request permission
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message:
+              'This app needs access to your location to show nearby stores.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+
+        const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+        console.log('📍 Location permission result:', isGranted);
+        return isGranted;
+      }
+      return true; // iOS handles permissions differently
+    } catch (error) {
+      console.error('📍 Location permission error:', error);
+      return false;
     }
-    return true;
   };
 
   render() {
@@ -1137,27 +1240,7 @@ class Home extends React.Component {
                     View all -&gt;
                   </Text>
 
-                  {/* Debug Button for Testing Location */}
-                  {/* <TouchableOpacity
-                    onPress={this.testSpecificLocation}
-                    style={{
-                      backgroundColor: '#ff6b6b',
-                      paddingHorizontal: wp('3%'),
-                      paddingVertical: hp('1%'),
-                      borderRadius: wp('2%'),
-                      marginLeft: wp('7%'),
-                      marginBottom: hp('2%'),
-                      alignSelf: 'flex-start',
-                    }}>
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontSize: 9,
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      🐛 Test My Location
-                    </Text>
-                  </TouchableOpacity> */}
+                  {/* Refresh Location Button */}
 
                   {isLoadingStores && (
                     <View
