@@ -542,7 +542,7 @@ class Home extends React.Component {
       console.log('📍 Skipping location functionality to prevent crashes');
 
       // Uncomment the following code when location issues are resolved:
-      /*
+
       try {
         const hasPermission = await this.requestLocationPermission();
         if (hasPermission) {
@@ -604,7 +604,6 @@ class Home extends React.Component {
         console.error('📍 Location permission error:', locationPermissionError);
         // Don't block the app for location permission issues
       }
-      
 
       console.log('✅ Home component mounted successfully');
     } catch (error) {
