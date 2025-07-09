@@ -8,10 +8,6 @@ import {
   Alert,
   TouchableOpacity,
   ScrollView,
-  Linking,
-  TextInput,
-  ActivityIndicator,
-  BackHandler,
   FlatList,
   ImageBackground,
 } from 'react-native';
@@ -19,13 +15,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {Switch} from 'react-native-switch';
-import axios from 'axios';
-import {useFocusEffect} from '@react-navigation/native';
-import ToggleSwitch from 'toggle-switch-react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import {CustomPicker} from 'react-native-custom-picker';
 import {API_KEY, URL_key} from '../Api/api';
@@ -40,19 +31,9 @@ import apiService, {
   removeFromCart,
   addToWishlist,
 } from '../Api/api';
-import ImagePicker from 'react-native-image-crop-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
-import {SwiperFlatList} from 'react-native-swiper-flatlist';
-import InputSpinner from 'react-native-input-spinner';
+
 var RNFS = require('react-native-fs');
-import {
-  notifications,
-  messages,
-  NotificationMessage,
-  Android,
-} from 'react-native-firebase-push-notifications';
-import Normalize from '../Size/size';
 
 const ProductDetails = ({navigation, route}) => {
   const [state, setState] = useState({

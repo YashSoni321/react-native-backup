@@ -333,24 +333,65 @@ const Cart = ({navigation}) => {
         {headers: {'content-type': 'application/json'}},
       );
 
-      let cartItems = cartResponse.data.CartItems || [];
-      console.log('cartItems', cartItems);
+      console.log('Cart API Response:', cartResponse.data);
+
+      // Handle the new API response format - array of cart objects
+      let cartItems = [];
+      if (Array.isArray(cartResponse.data)) {
+        // Extract all cart items from all carts
+        cartResponse.data.forEach(cart => {
+          if (cart.CartItems && Array.isArray(cart.CartItems)) {
+            cartItems = cartItems.concat(cart.CartItems);
+          }
+        });
+      } else if (cartResponse.data && cartResponse.data.CartItems) {
+        // Fallback for old format
+        cartItems = cartResponse.data.CartItems;
+      }
+
+      console.log('Processed cartItems:', cartItems);
+
+      console.log('Processing cartItems count:', cartItems.length);
+
+      if (cartItems.length === 0) {
+        console.log('No cart items found, setting empty state');
+        setState(prevState => ({
+          ...prevState,
+          Nearbystores: [],
+          Nearbystores1: [],
+          TotalUnitPrice: 0,
+          TotalDiscountPrice: 0,
+          totalDeliveryFee: 0,
+          totalConvenienceFee: 0,
+          totalPackagingFee: 0,
+          isLoading: false,
+          error: null,
+        }));
+        hideLoading();
+        return;
+      }
 
       const enrichedCartItems = await Promise.all(
-        cartItems.map(async cartItem => {
+        cartItems.map(async (cartItem, index) => {
           try {
+            console.log(`Processing cart item ${index + 1}:`, cartItem);
+
             const productDetailsResponse = await axios.get(
               `https://fybrappapi.benchstep.com/api/ProductApi/gProductDetails?ProductID=${cartItem.ProductID}`,
               {headers: {'content-type': 'application/json'}},
             );
 
             const productDetails = productDetailsResponse.data;
+            console.log(
+              `Product details for ProductID ${cartItem.ProductID}:`,
+              productDetails,
+            );
 
             const productItem = productDetails.ProductItems?.find(
               item => item.ProductItemID === cartItem.ProductItemID,
             );
 
-            return {
+            const enrichedItem = {
               ...cartItem,
               ProductName: productDetails.ProductName || '',
               ProductImage: productDetails.ProductImage || '',
@@ -360,6 +401,9 @@ const Cart = ({navigation}) => {
               StoreLocation: productDetails.StoreLocation || '',
               DiscountedPrice: productDetails.DiscountedPrice || 0,
             };
+
+            console.log(`Enriched cart item ${index + 1}:`, enrichedItem);
+            return enrichedItem;
           } catch (error) {
             console.error(
               'Error fetching product details for ProductID:',
@@ -371,8 +415,13 @@ const Cart = ({navigation}) => {
         }),
       );
 
+      console.log('Enriched cart items:', enrichedCartItems);
+
+      console.log('Starting to group products by store...');
+
       const groupedProducts = enrichedCartItems.reduce((acc, product) => {
         const key = `${product.StoreName} - ${product.StoreLocation}`;
+        console.log(`Grouping product for store key: ${key}`);
 
         if (!acc[key]) {
           acc[key] = {
@@ -387,9 +436,13 @@ const Cart = ({navigation}) => {
       }, {});
 
       const groupedArray = Object.values(groupedProducts);
+      console.log('Grouped products:', groupedArray);
 
       const totalUnitPrice = enrichedCartItems
-        .reduce((sum, product) => sum + (product.TotalPrice || 0), 0)
+        .reduce(
+          (sum, product) => sum + (parseFloat(product.TotalPrice) || 0),
+          0,
+        )
         .toFixed(2);
       const totalDiscountPrice = enrichedCartItems
         .reduce(
@@ -418,6 +471,18 @@ const Cart = ({navigation}) => {
         );
       }
 
+      console.log('Final state update data:', {
+        StreetName: addressResponse.data[0]?.StreetName || '',
+        Pincode: addressResponse.data[0]?.AddressCategory || '',
+        Nearbystores: groupedArray,
+        Nearbystores1: groupedArray,
+        TotalUnitPrice: parseFloat(totalUnitPrice),
+        TotalDiscountPrice: parseFloat(totalDiscountPrice),
+        totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
+        totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
+        totalPackagingFee: deliveryFeeData.totalPackagingFee,
+      });
+
       setState(prevState => ({
         ...prevState,
         StreetName: addressResponse.data[0]?.StreetName || '',
@@ -440,6 +505,12 @@ const Cart = ({navigation}) => {
 
   const handleQuantityChange = async (item, num) => {
     try {
+      // Prevent negative quantities
+      if (num < 0) {
+        console.log('Quantity cannot be negative');
+        return;
+      }
+
       showLoading();
       setState(prevState => ({...prevState, isLoading: true}));
 
@@ -458,7 +529,7 @@ const Cart = ({navigation}) => {
 
       const CartID = latestCart.data;
 
-      if (num !== 0) {
+      if (num > 0) {
         const body = {
           CartID,
           CartItemID: item.CartItemID,
@@ -489,6 +560,7 @@ const Cart = ({navigation}) => {
           throw new Error('Failed to update cart item');
         }
       } else {
+        // Handle deletion when quantity becomes 0
         const body = {
           CartID,
           CartItemID: item.CartItemID,
@@ -508,6 +580,7 @@ const Cart = ({navigation}) => {
 
         if (res.data === 'DELETED') {
           await AsyncStorage.removeItem('CartID');
+          // Refresh cart data to recalculate totals
           await fetchCartData();
         } else {
           throw new Error('Failed to delete cart item');
@@ -952,158 +1025,184 @@ const Cart = ({navigation}) => {
               </View>
             </View>
 
-            <Text
+            <View
               style={{
-                fontSize: 12,
-                color: '#333',
-                fontFamily: 'Poppins-Medium',
-                marginTop: hp('1%'),
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
-              }}>
-              Payment Summary
-            </Text>
-
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Light',
                 marginTop: hp('2%'),
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
+                marginHorizontal: wp('8%'),
+                backgroundColor: '#f8f8f8',
+                borderRadius: 8,
+                padding: 15,
               }}>
-              Subtotal
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              ₹ {state.TotalUnitPrice.toFixed(2)}
-            </Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: '#333',
+                  fontFamily: 'Poppins-Medium',
+                  marginBottom: hp('2%'),
+                }}>
+                Payment Summary
+              </Text>
 
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
-              }}>
-              Delivery Fees
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              ₹ {state.totalDeliveryFee.toFixed(2)}
-            </Text>
+              <View style={{marginBottom: hp('1%')}}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Subtotal
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    ₹ {state.TotalUnitPrice.toFixed(2)}
+                  </Text>
+                </View>
 
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
-              }}>
-              Discounted Price
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              - ₹ {state.TotalDiscountPrice.toFixed(2)}
-            </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Delivery Fees
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    ₹ {state.totalDeliveryFee.toFixed(2)}
+                  </Text>
+                </View>
 
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
-              }}>
-              Convenience Fees
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              ₹ {state.totalConvenienceFee.toFixed(2)}
-            </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Discounted Price
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    - ₹ {state.TotalDiscountPrice.toFixed(2)}
+                  </Text>
+                </View>
 
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginLeft: wp('8%'),
-                marginRight: wp('1%'),
-              }}>
-              Packaging Fees
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Light',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              ₹ {state.totalPackagingFee.toFixed(2)}
-            </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Convenience Fees
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    ₹ {state.totalConvenienceFee.toFixed(2)}
+                  </Text>
+                </View>
 
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#333',
-                fontFamily: 'Poppins-Medium',
-                marginTop: hp('3%'),
-                marginLeft: wp('7%'),
-                marginRight: wp('1%'),
-              }}>
-              Total amount
-            </Text>
-            <Text
-              style={{
-                fontSize: 10,
-                textAlign: 'right',
-                color: '#333',
-                fontFamily: 'Poppins-Medium',
-                marginTop: hp('-2.5%'),
-                marginRight: wp('5%'),
-              }}>
-              ₹{' '}
-              {(
-                state.TotalUnitPrice -
-                state.TotalDiscountPrice +
-                state.totalDeliveryFee +
-                state.totalConvenienceFee +
-                state.totalPackagingFee
-              ).toFixed(2)}
-            </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginBottom: hp('1%'),
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    Packaging Fees
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#333',
+                      fontFamily: 'Poppins-Light',
+                    }}>
+                    ₹ {state.totalPackagingFee.toFixed(2)}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: '#ddd',
+                    paddingTop: hp('1%'),
+                    marginTop: hp('1%'),
+                  }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#333',
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      Total amount
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: '#333',
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      ₹{' '}
+                      {(
+                        state.TotalUnitPrice -
+                        state.TotalDiscountPrice +
+                        state.totalDeliveryFee +
+                        state.totalConvenienceFee +
+                        state.totalPackagingFee
+                      ).toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
 
             <TouchableOpacity
               activeOpacity={0.5}
@@ -1120,6 +1219,7 @@ const Cart = ({navigation}) => {
                   marginTop: hp('3%'),
                   marginBottom: hp('1.5%'),
                   borderColor: '#216e66',
+                  borderRadius: 8,
                 }}>
                 <Text
                   style={{
@@ -1128,7 +1228,7 @@ const Cart = ({navigation}) => {
                     fontFamily: 'Poppins-SemiBold',
                     textAlign: 'center',
                   }}>
-                  {state.isLoading ? 'Loading...' : 'Checkout'}
+                  {state.isLoading ? 'Processing...' : 'Checkout'}
                 </Text>
               </View>
             </TouchableOpacity>

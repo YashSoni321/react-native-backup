@@ -207,7 +207,7 @@ class ApiService {
 
   // Login APIs
   async validateOTP(mobileNumber, otp) {
-    return this.get(`api/LoginApi/ValidateOTP`, {
+    return this.post(`api/LoginApi/ValidateOTP`, {
       MobileNumber: mobileNumber,
       OTP: otp,
     });

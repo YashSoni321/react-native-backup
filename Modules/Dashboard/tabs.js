@@ -19,7 +19,7 @@ const TabNavigator = () => {
       initialRouteName="store"
       screenOptions={{
         headerShown: false, // Hide the default header
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
         tabBarActiveTintColor: '#00afb5',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: {

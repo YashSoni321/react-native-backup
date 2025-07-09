@@ -7,7 +7,7 @@ import {
 
 const EmptyCart = ({navigation}) => {
   const handleShopNow = () => {
-    navigation.push('tabs');
+    navigation.push('Tabs');
   };
 
   return (

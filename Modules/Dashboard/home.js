@@ -1380,9 +1380,6 @@ class Home extends React.Component {
                           <TouchableOpacity
                             onPress={() => {
                               try {
-                                console.log(
-                                  '🔄 Navigating to Tabs screen from Browse All Stores...',
-                                );
                                 this.props.navigation.push('Tabs');
                               } catch (error) {
                                 console.error('❌ Navigation error:', error);
