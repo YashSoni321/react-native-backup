@@ -44,12 +44,13 @@ import LinearGradient from 'react-native-linear-gradient';
 import MenuDrawer from 'react-native-side-drawer';
 import RNFetchBlob from 'rn-fetch-blob';
 import CheckBox from 'react-native-check-box';
-import MapView, {
-  Marker,
-  Polyline,
-  PROVIDER_GOOGLE,
-  AnimatedRegion,
-} from 'react-native-maps';
+// import MapView, {
+//   Marker,
+//   Polyline,
+//   PROVIDER_GOOGLE,
+//   AnimatedRegion,
+// } from 'react-native-maps';
+import MapView, {Marker} from 'react-native-maps';
 import PhonePeService from '../Services/PhonePeService';
 import {PHONEPE_CONFIG} from '../Config/phonepe-config';
 import {PAYMENT_MOCK_DATA} from '../MockData/paymentMockData';
@@ -111,6 +112,9 @@ const Checkout = ({navigation, route}) => {
     loading: false,
     fail: false,
     error: null,
+    mapReady: false,
+    mapError: false,
+    disableMapView: false, // Add this to completely disable MapView if needed
   });
 
   useEffect(() => {
@@ -275,16 +279,47 @@ const Checkout = ({navigation, route}) => {
 
       if (preferredAddress.length > 0) {
         const address = preferredAddress[0];
-        setState(prevState => ({
-          ...prevState,
-          Latitude: Number(address.Latitude),
-          Longitude: Number(address.Longitude),
-          AddressID: address.AddressID,
-        }));
+        const latitude = Number(address.Latitude);
+        const longitude = Number(address.Longitude);
+
+        // Validate coordinates
+        if (isValidCoordinate(latitude, longitude)) {
+          setState(prevState => ({
+            ...prevState,
+            Latitude: latitude,
+            Longitude: longitude,
+            AddressID: address.AddressID,
+          }));
+        } else {
+          console.warn('Invalid coordinates received:', {latitude, longitude});
+          setState(prevState => ({
+            ...prevState,
+            error:
+              'Invalid delivery address coordinates. Please update your address.',
+          }));
+        }
       }
     } catch (error) {
       console.error('Failed to load address data:', error);
+      setState(prevState => ({
+        ...prevState,
+        error: 'Failed to load address data. Please try again.',
+      }));
     }
+  };
+
+  // Helper function to validate coordinates
+  const isValidCoordinate = (lat, lng) => {
+    return (
+      typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      !isNaN(lat) &&
+      !isNaN(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    );
   };
 
   // Payment processing
@@ -647,6 +682,54 @@ const Checkout = ({navigation, route}) => {
     </TouchableOpacity>
   );
 
+  // Check if MapView is available
+  const isMapViewAvailable = () => {
+    try {
+      return typeof MapView !== 'undefined' && MapView;
+    } catch (error) {
+      console.error('MapView not available:', error);
+      return false;
+    }
+  };
+
+  // Simple location display component (no MapView)
+  const LocationDisplay = ({latitude, longitude}) => (
+    <View
+      style={{
+        height: hp('20%'),
+        width: wp('80%'),
+        alignSelf: 'center',
+        backgroundColor: '#f8f9fa',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e9ecef',
+      }}>
+      <Icon name="location" color="#00afb5" size={40} />
+      <Text
+        style={{
+          color: '#495057',
+          fontSize: 14,
+          fontFamily: 'Poppins-Medium',
+          marginTop: 10,
+          textAlign: 'center',
+        }}>
+        Delivery Location
+      </Text>
+      <Text
+        style={{
+          color: '#6c757d',
+          fontSize: 12,
+          fontFamily: 'Poppins-Light',
+          marginTop: 5,
+          textAlign: 'center',
+        }}>
+        Lat: {latitude?.toFixed(6)}, Lng: {longitude?.toFixed(6)}
+      </Text>
+    </View>
+  );
+
   try {
     return (
       <SafeAreaView>
@@ -737,45 +820,7 @@ const Checkout = ({navigation, route}) => {
               }}>
               Delivering to {'>'}
             </Text>
-            <Text
-              style={{
-                fontSize: 40,
-                textAlign: 'right',
-                color: '#00afb5',
-                fontFamily: 'Poppins-Bold',
-                marginTop: hp('-3%'),
-                marginRight: wp('7%'),
-              }}>
-              ₹{state.TotalUnitPrice.toFixed(2)}
-            </Text>
 
-            {/* Show discounted price if available */}
-            {state.DiscountedPrice > 0 && (
-              <View
-                style={{
-                  alignItems: 'flex-end',
-                  marginRight: wp('7%'),
-                  marginTop: hp('1%'),
-                }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: '#666',
-                    fontFamily: 'Poppins-Light',
-                    textDecorationLine: 'line-through',
-                  }}>
-                  ₹ {state.Subtotal.toFixed(2)}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    color: '#e74c3c',
-                    fontFamily: 'Poppins-Medium',
-                  }}>
-                  Save ₹ {state.DiscountedPrice.toFixed(2)}
-                </Text>
-              </View>
-            )}
             <Icon
               onPress={() => navigation.push('Tab')}
               name="chevron-back"
@@ -790,53 +835,131 @@ const Checkout = ({navigation, route}) => {
             />
           </ImageBackground>
 
-          {state.Latitude && state.Longitude ? (
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              region={{
-                latitude: state.Latitude,
-                longitude: state.Longitude,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              }}
-              style={{
-                height: hp('20%'),
-                width: wp('80%'),
-                alignSelf: 'center',
-                marginTop: hp('2%'),
-              }}>
-              <Marker
-                coordinate={{
-                  latitude: state.Latitude,
-                  longitude: state.Longitude,
-                }}
-                title="Delivery Address"
-              />
-            </MapView>
-          ) : (
-            <View
-              style={{
-                height: hp('20%'),
-                width: wp('80%'),
-                alignSelf: 'center',
-                marginTop: hp('2%'),
-                backgroundColor: '#f5f5f5',
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8,
-              }}>
-              <Icon name="location" color="#00afb5" size={40} />
-              <Text
+          {/* Map View with Error Handling */}
+          <View style={{marginTop: hp('2%')}}>
+            {state.Latitude &&
+            state.Longitude &&
+            isValidCoordinate(state.Latitude, state.Longitude) &&
+            !state.mapError &&
+            isMapViewAvailable() &&
+            !state.disableMapView ? (
+              <View
                 style={{
-                  color: '#666',
-                  fontSize: 12,
-                  fontFamily: 'Poppins-Light',
-                  marginTop: 10,
+                  height: hp('20%'),
+                  width: wp('80%'),
+                  alignSelf: 'center',
                 }}>
-                Loading delivery location...
-              </Text>
-            </View>
-          )}
+                {(() => {
+                  try {
+                    return (
+                      <MapView
+                        style={{
+                          height: hp('20%'),
+                          width: wp('80%'),
+                          alignSelf: 'center',
+                          borderRadius: 8,
+                        }}
+                        initialRegion={{
+                          latitude: 37.78825,
+                          longitude: -122.4324,
+                          latitudeDelta: 0.0922,
+                          longitudeDelta: 0.0421,
+                        }}
+                        loadingEnabled={true}
+                        showsUserLocation={false}
+                        showsMyLocationButton={false}
+                        showsCompass={false}
+                        showsScale={false}
+                        showsTraffic={false}
+                        showsBuildings={false}
+                        showsIndoors={false}
+                        onError={error => {
+                          console.error('MapView error:', error);
+                          setState(prevState => ({
+                            ...prevState,
+                            mapError: true,
+                            error: 'Failed to load map. Please try again.',
+                          }));
+                        }}
+                        onMapReady={() => {
+                          console.log('Map is ready');
+                          setState(prevState => ({
+                            ...prevState,
+                            mapReady: true,
+                          }));
+                        }}>
+                        <Marker
+                          coordinate={{
+                            latitude: 37.78825,
+                            longitude: -122.4324,
+                          }}
+                          title={'My Marker'}
+                        />
+                      </MapView>
+                    );
+                  } catch (error) {
+                    console.error('MapView rendering error:', error);
+                    return (
+                      <LocationDisplay
+                        latitude={state.Latitude}
+                        longitude={state.Longitude}
+                      />
+                    );
+                  }
+                })()}
+              </View>
+            ) : state.Latitude &&
+              state.Longitude &&
+              isValidCoordinate(state.Latitude, state.Longitude) ? (
+              <LocationDisplay
+                latitude={state.Latitude}
+                longitude={state.Longitude}
+              />
+            ) : (
+              <View
+                style={{
+                  height: hp('20%'),
+                  width: wp('80%'),
+                  alignSelf: 'center',
+                  backgroundColor: '#f5f5f5',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: 8,
+                }}>
+                <Icon name="location" color="#00afb5" size={40} />
+                <Text
+                  style={{
+                    color: '#666',
+                    fontSize: 12,
+                    fontFamily: 'Poppins-Light',
+                    marginTop: 10,
+                    textAlign: 'center',
+                  }}>
+                  {state.mapError
+                    ? 'Map temporarily unavailable'
+                    : 'Loading delivery location...'}
+                </Text>
+                {state.mapError && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setState(prevState => ({
+                        ...prevState,
+                        mapError: false,
+                      }));
+                    }}
+                    style={{
+                      marginTop: 10,
+                      paddingHorizontal: 15,
+                      paddingVertical: 5,
+                      backgroundColor: '#00afb5',
+                      borderRadius: 5,
+                    }}>
+                    <Text style={{color: 'white', fontSize: 10}}>Retry</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           <Icon
             name="location"
@@ -872,6 +995,28 @@ const Checkout = ({navigation, route}) => {
               marginRight: wp('3%'),
             }}
           />
+
+          {/* Debug button to toggle MapView */}
+          <TouchableOpacity
+            onPress={() =>
+              setState(prevState => ({
+                ...prevState,
+                disableMapView: !prevState.disableMapView,
+              }))
+            }
+            style={{
+              position: 'absolute',
+              top: hp('15%'),
+              right: wp('5%'),
+              backgroundColor: '#00afb5',
+              padding: 5,
+              borderRadius: 5,
+              zIndex: 1000,
+            }}>
+            <Text style={{color: 'white', fontSize: 10}}>
+              {state.disableMapView ? 'Enable Map' : 'Disable Map'}
+            </Text>
+          </TouchableOpacity>
 
           <Text
             style={{
