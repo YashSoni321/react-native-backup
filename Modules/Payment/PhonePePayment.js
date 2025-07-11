@@ -71,7 +71,7 @@ const PhonePePayment = ({navigation, route}) => {
           if (onPaymentResult) {
             onPaymentResult('SUCCESS', txnId, statusResult);
           }
-          navigation.navigate('orders');
+          navigation.navigate('Orders');
         } else {
           handlePaymentFailure(txnId, statusResult.error);
         }

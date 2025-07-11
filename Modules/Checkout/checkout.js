@@ -117,10 +117,6 @@ const Checkout = ({navigation, route}) => {
     disableMapView: false, // Add this to completely disable MapView if needed
   });
 
-  useEffect(() => {
-    console.log('Checkout component mounted');
-  }, []);
-
   // Input change handler
   const handleInputChange = useCallback(
     (inputName, inputValue) => {
@@ -852,48 +848,64 @@ const Checkout = ({navigation, route}) => {
                 {(() => {
                   try {
                     return (
+                      // <MapView
+                      //   style={{
+                      //     height: hp('20%'),
+                      //     width: wp('80%'),
+                      //     alignSelf: 'center',
+                      //     borderRadius: 8,
+                      //   }}
+                      //   initialRegion={{
+                      //     latitude: 37.78825,
+                      //     longitude: -122.4324,
+                      //     latitudeDelta: 0.0922,
+                      //     longitudeDelta: 0.0421,
+                      //   }}
+                      //   loadingEnabled={true}
+                      //   showsUserLocation={false}
+                      //   showsMyLocationButton={false}
+                      //   showsCompass={false}
+                      //   showsScale={false}
+                      //   showsTraffic={false}
+                      //   showsBuildings={false}
+                      //   showsIndoors={false}
+                      //   onError={error => {
+                      //     console.error('MapView error:', error);
+                      //     setState(prevState => ({
+                      //       ...prevState,
+                      //       mapError: true,
+                      //       error: 'Failed to load map. Please try again.',
+                      //     }));
+                      //   }}
+                      //   onMapReady={() => {
+                      //     console.log('Map is ready');
+                      //     setState(prevState => ({
+                      //       ...prevState,
+                      //       mapReady: true,
+                      //     }));
+                      //   }}>
+                      //   <Marker
+                      //     coordinate={{
+                      //       latitude: 37.78825,
+                      //       longitude: -122.4324,
+                      //     }}
+                      //     title={'My Marker'}
+                      //   />
+                      // </MapView>
                       <MapView
-                        style={{
-                          height: hp('20%'),
-                          width: wp('80%'),
-                          alignSelf: 'center',
-                          borderRadius: 8,
-                        }}
+                        style={styles.map}
                         initialRegion={{
-                          latitude: 37.78825,
-                          longitude: -122.4324,
+                          latitude: state.Latitude,
+                          longitude: state.Longitude,
                           latitudeDelta: 0.0922,
                           longitudeDelta: 0.0421,
-                        }}
-                        loadingEnabled={true}
-                        showsUserLocation={false}
-                        showsMyLocationButton={false}
-                        showsCompass={false}
-                        showsScale={false}
-                        showsTraffic={false}
-                        showsBuildings={false}
-                        showsIndoors={false}
-                        onError={error => {
-                          console.error('MapView error:', error);
-                          setState(prevState => ({
-                            ...prevState,
-                            mapError: true,
-                            error: 'Failed to load map. Please try again.',
-                          }));
-                        }}
-                        onMapReady={() => {
-                          console.log('Map is ready');
-                          setState(prevState => ({
-                            ...prevState,
-                            mapReady: true,
-                          }));
                         }}>
                         <Marker
                           coordinate={{
-                            latitude: 37.78825,
-                            longitude: -122.4324,
+                            latitude: state.Latitude,
+                            longitude: state.Longitude,
                           }}
-                          title={'My Marker'}
+                          title={'My Location'}
                         />
                       </MapView>
                     );
@@ -1341,6 +1353,13 @@ const styles = StyleSheet.create({
     marginTop: hp('3%'),
     borderRadius: wp('1%'),
     marginLeft: wp('4%'),
+  },
+  map: {
+    // ...StyleSheet.absoluteFillObject,
+    height: hp('20%'),
+    width: wp('80%'),
+    alignSelf: 'center',
+    borderRadius: 8,
   },
 });
 

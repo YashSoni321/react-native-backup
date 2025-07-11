@@ -20,7 +20,7 @@ import {
   DeviceEventEmitter,
   FlatList,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
+import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,13 +29,13 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { NavigationEvents } from 'react-navigation';
-import { SwiperFlatList } from 'react-native-swiper-flatlist';
+import {NavigationEvents} from 'react-navigation';
+import {SwiperFlatList} from 'react-native-swiper-flatlist';
 var date = moment().format('YYYY/MM/DD ');
 var time = moment().format('hh:mm A');
 import ImagePicker from 'react-native-image-crop-picker';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from './api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
 import XLSX from 'xlsx';
@@ -44,8 +44,8 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 import MenuDrawer from 'react-native-side-drawer';
 import RNFetchBlob from 'rn-fetch-blob';
-import { image } from './image';
-import { marginBottom } from 'styled-system';
+import {image} from './image';
+import {marginBottom} from 'styled-system';
 import StepIndicator from 'react-native-step-indicator';
 import CheckBox from 'react-native-check-box';
 const customStyles = {
@@ -150,7 +150,7 @@ class Orders extends React.Component {
               source={require('../assets/FYBR-Logo.jpg')}
             />
           </View>
-          <View style={{ backgroundColor: '#00afb5' }}>
+          <View style={{backgroundColor: '#00afb5'}}>
             <View
               style={{
                 backgroundColor: '#ffff',
@@ -187,7 +187,7 @@ class Orders extends React.Component {
               <FlatList
                 data={this.state.categories1}
                 // horizontal={true}
-                renderItem={({ item, index }) => {
+                renderItem={({item, index}) => {
                   return (
                     <>
                       <TouchableOpacity
@@ -226,7 +226,7 @@ class Orders extends React.Component {
                               // borderWidth: 0.7,
                             },
                           ]}>
-                          <View style={{ flexDirection: 'row' }}>
+                          <View style={{flexDirection: 'row'}}>
                             <View>
                               <Image
                                 style={{
@@ -463,7 +463,7 @@ class Orders extends React.Component {
               },
             }}>
             <ScrollView>
-              <View style={{ backgroundColor: '#00afb5' }}>
+              <View style={{backgroundColor: '#00afb5'}}>
                 <TouchableOpacity
                   activeOpacity={0.5}
                   // style={{position: 'absolute'}}
@@ -472,7 +472,7 @@ class Orders extends React.Component {
                     name="close-circle-sharp"
                     color={'lightgrey'}
                     size={hp('4%')}
-                    style={{ marginLeft: wp('7%'), marginTop: hp('2.5%') }}
+                    style={{marginLeft: wp('7%'), marginTop: hp('2.5%')}}
                   />
                 </TouchableOpacity>
                 <Text
@@ -526,7 +526,7 @@ class Orders extends React.Component {
                         // borderWidth: 0.7,
                       },
                     ]}>
-                    <View style={{ flexDirection: 'row' }}>
+                    <View style={{flexDirection: 'row'}}>
                       <View>
                         <Image
                           style={{
@@ -709,9 +709,9 @@ class Orders extends React.Component {
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
-                    this.setState({ coup: !this.state.coup });
+                    this.setState({coup: !this.state.coup});
                   }}>
-                  <View style={{ flexDirection: 'row' }}>
+                  <View style={{flexDirection: 'row'}}>
                     <Icon
                       name={'bookmarks-outline'}
                       color="lightgrey"
@@ -758,7 +758,7 @@ class Orders extends React.Component {
                   <FlatList
                     data={this.state.categories}
                     // horizontal={true}
-                    renderItem={({ item, index }) => {
+                    renderItem={({item, index}) => {
                       return (
                         <>
                           <View
