@@ -33,6 +33,7 @@ import {CustomSpinner} from '../../shared/CustomSpinner';
 import EmptyCart from './EmptyCart';
 import {useLoading} from '../../shared/LoadingContext';
 import CartValidation from '../../shared/CartValidation';
+import CenteredView from '../Common/CenteredView';
 
 const customStyles = {
   stepCount: 4,
@@ -371,7 +372,44 @@ const Cart = ({navigation}) => {
         hideLoading();
         return;
       }
-      const enrichedCartItems = cartItems;
+      // Map and enrich cart items with proper field mapping
+      const enrichedCartItems = cartItems.map(item => {
+        console.log('🔍 Processing cart item:', item);
+
+        // Map the fields properly from the API response
+        const enrichedItem = {
+          // Cart item fields
+          CartID: item.CartID,
+          CartItemID: item.CartItemID,
+          ProductID: item.ProductID,
+          ProductItemID: item.ProductItemID,
+          StoreID: item.StoreID,
+          Quantity: item.Quantity || 0,
+          UnitPrice: item.UnitPrice || 0,
+          TotalPrice: item.TotalPrice || 0,
+
+          // Product details (from the new API structure)
+          ProductName: item.ProductName || item.ItemName || 'Product',
+          ProductImage: item.ProductImage || item.ItemImage || '',
+          ProductColor: item.Color || '',
+          ProductSize: item.Size || '',
+
+          // Store details
+          StoreName: item.StoreName || 'Store',
+          StoreLocation: item.StoreLocation || 'Location',
+
+          // Additional fields
+          DiscountedPrice: item.DiscountedPrice || 0,
+          Color: item.Color || '',
+          SizeID: item.Size || '',
+        };
+
+        console.log('✅ Enriched item:', enrichedItem);
+        return enrichedItem;
+      });
+
+      console.log('📦 All enriched cart items:', enrichedCartItems);
+
       const groupedProducts = enrichedCartItems.reduce((acc, product) => {
         const key = `${product.StoreName} - ${product.StoreLocation}`;
 
@@ -939,9 +977,7 @@ const Cart = ({navigation}) => {
                                       borderWidth: 1,
                                       borderColor: '#00afb5',
                                       marginLeft: wp('3%'),
-                                      backgroundColor:
-                                        product.ProductColor?.toLowerCase() ||
-                                        '#ccc',
+                                      backgroundColor: product.ProductColor,
                                       marginTop: hp('1%'),
                                     }}></View>
 
@@ -1240,41 +1276,40 @@ const Cart = ({navigation}) => {
                 </View>
               </View>
             </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                margin: 'auto',
-                marginTop: hp('3%'),
-                // marginHorizontal: wp('8%'),
-              }}>
-              <TouchableOpacity
-                activeOpacity={0.5}
-                onPress={handleCheckout}
-                disabled={state.isLoading}
+            <CenteredView>
+              <View
                 style={{
-                  backgroundColor: state.isLoading ? '#ccc' : '#00afb5',
-                  width: wp('75%'),
-                  height: hp('4.5%'),
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 8,
-                  // borderColor: '#216e66',
-                  // borderWidth: 1,
+                  width: 'auto',
+                  marginHorizontal: wp('8%'),
+                  marginTop: hp('3%'),
                 }}>
-                <Text
+                <TouchableOpacity
+                  activeOpacity={0.5}
+                  onPress={handleCheckout}
+                  disabled={state.isLoading}
                   style={{
-                    color: '#ffff',
-                    fontSize: 11,
-                    fontFamily: 'Poppins-SemiBold',
-                    textAlign: 'center',
+                    backgroundColor: state.isLoading ? '#ccc' : '#00afb5',
+                    width: wp('85%'),
+                    height: hp('4.5%'),
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 8,
                   }}>
-                  {state.isLoading ? 'Processing...' : 'Checkout'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Text
+                    style={{
+                      color: '#ffff',
+                      fontSize: 11,
+                      fontFamily: 'Poppins-SemiBold',
+                      textAlign: 'center',
+                    }}>
+                    {state.isLoading ? 'Processing...' : 'Checkout'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </CenteredView>
           </>
         )}
       </ScrollView>

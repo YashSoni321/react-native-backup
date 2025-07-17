@@ -1026,7 +1026,8 @@ class Home extends React.Component {
                     </View>
                   </ImageBackground>
 
-                  {this.state.banner == 'true' ? (
+                  {false ? (
+                    // {this.state.banner == 'true' ? (
                     <></>
                   ) : (
                     <>
@@ -1036,65 +1037,79 @@ class Home extends React.Component {
                           this.props.navigation.push('Invite');
                         }}>
                         <View
-                          style={[
-                            {
-                              width: wp('85%'),
-                              alignSelf: 'center',
-                              backgroundColor: '#00afb5',
-                              borderRadius: wp('5%'),
-                              marginLeft: wp('1%'),
-                              marginRight: wp('1%'),
-                              marginTop: hp('-3%'),
-                              height: hp('15%'),
-                            },
-                          ]}>
-                          <Text
-                            style={{
-                              fontSize: 15,
-                              color: '#ffff',
-                              fontFamily: 'Poppins-Medium',
-                              marginTop: hp('2%'),
-                              marginBottom: hp('-0.5%'),
-                              marginLeft: wp('7%'),
-                              marginRight: wp('1%'),
-                            }}>
-                            Refer & Enjoy
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 10,
-                              color: '#ffff',
-                              fontFamily: 'Poppins-Light',
-                              marginTop: hp('2%'),
-                              marginBottom: hp('-0.5%'),
-                              marginLeft: wp('7%'),
-                              marginRight: wp('1%'),
-                              width: wp('50%'),
-                            }}>
-                            Tap here to refer and get 20% off on order above
-                            ₹1299 →
-                          </Text>
-                          <View
-                            style={{
-                              justifyContent: 'center',
-                              borderWidth: 1,
-                              borderRadius: wp('2%'),
-                              height: hp('6%'),
-                              borderColor: '#ffff',
-                              marginTop: hp('-6%'),
-                              marginBottom: hp('5%'),
-                              alignItems: 'center',
-                              marginRight: wp('7%'),
-                            }}>
+                          style={{
+                            width: wp('90%'),
+                            alignSelf: 'center',
+                            backgroundColor: '#00afb5',
+                            borderRadius: wp('4%'),
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: wp('4%'),
+                            marginTop: hp('2%'),
+                          }}>
+                          {/* Left side: Text content */}
+                          <View style={{flex: 1, paddingRight: wp('2%')}}>
                             <Text
                               style={{
                                 fontSize: 14,
-                                textAlign: 'center',
-                                color: '#ffff',
+                                color: '#fff',
+                                fontFamily: 'Poppins-Medium',
+                                marginBottom: hp('0.5%'),
+                                fontWeight: 'bold',
+                              }}>
+                              Refer & Enjoy
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 10,
+                                color: '#fff',
                                 fontFamily: 'Poppins-Light',
                               }}>
-                              20% OFF
+                              Tap here to refer and get 20% off on {'\n'} order
+                              above ₹1299 →
                             </Text>
+                          </View>
+
+                          {/* Right side: Badge */}
+                          <View style={{alignItems: 'center'}}>
+                            {/* Main Badge Box */}
+                            <View
+                              style={{
+                                borderWidth: 1,
+                                borderColor: '#fff',
+                                borderRadius: wp('2%'),
+                                paddingVertical: hp('0.8%'),
+                                paddingHorizontal: wp('3.5%'),
+                                alignItems: 'center',
+                                backgroundColor: '#00afb5',
+                              }}>
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  color: '#fff',
+                                  fontFamily: 'Poppins-Medium',
+                                  textAlign: 'center',
+                                  fontWeight: 'bold',
+                                  lineHeight: 14,
+                                }}>
+                                20%{'\n'}OFF
+                              </Text>
+                            </View>
+
+                            {/* Triangle Pointer */}
+                            <View
+                              style={{
+                                width: 0,
+                                height: 0,
+                                borderLeftWidth: wp('1.5%'),
+                                borderRightWidth: wp('1.5%'),
+                                borderTopWidth: hp('1%'),
+                                borderLeftColor: 'transparent',
+                                borderRightColor: 'transparent',
+                                borderTopColor: '#fff',
+                              }}
+                            />
                           </View>
                         </View>
                       </TouchableOpacity>
@@ -1333,7 +1348,7 @@ class Home extends React.Component {
                                                   data: {
                                                     ProductID:
                                                       product.ProductID,
-                                                    Pagename: 'tab',
+                                                    Pagename: 'Tab',
                                                   },
                                                 },
                                               );

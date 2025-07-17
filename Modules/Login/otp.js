@@ -36,6 +36,7 @@ navigator.geolocation = require('@react-native-community/geolocation');
 import {useFocusEffect} from '@react-navigation/native';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {useLoading} from '../../shared/LoadingContext';
+import CenteredView from '../Common/CenteredView';
 
 const Otp = ({navigation, route}) => {
   // State management using useState
@@ -191,6 +192,25 @@ const Otp = ({navigation, route}) => {
   const handleBackButtonClick = useCallback(() => {
     BackHandler.exitApp();
     return true;
+  }, []);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setState(prevState => {
+        if (prevState.seconds <= 1) {
+          clearInterval(intervalId);
+          return {...prevState, seconds: 0};
+        }
+
+        return {
+          ...prevState,
+          seconds: prevState.seconds - 1,
+        };
+      });
+    }, 1000);
+
+    // Cleanup on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Component mount effect
@@ -462,7 +482,7 @@ const Otp = ({navigation, route}) => {
                   marginBottom: hp('-9%'),
                   marginRight: wp('5%'),
                 }}>
-                00 : {state.time.s}
+                00 : {state.seconds}
               </Text>
               <View
                 style={{
@@ -558,88 +578,55 @@ const Otp = ({navigation, route}) => {
                   </Text>
                 </View>
               </TouchableOpacity>
-              <Text
+              <View
                 style={{
-                  fontSize: 6,
-                  textAlign: 'center',
-                  color: '#333',
-                  fontFamily: 'Poppins-Light',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
                   marginBottom: hp('9%'),
+                  paddingHorizontal: wp('8%'),
                 }}>
                 <Text
                   style={{
                     fontSize: 6,
-                    textAlign: 'justify',
+                    textAlign: 'center',
                     color: '#333',
                     fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
                   }}>
                   By registering you agree to our{' '}
-                </Text>
-                <Text
-                  onPress={() => {
-                    clearInterval(timerRef.current);
-                    navigation.push('Terms', {
-                      data: {
-                        Data: 'otp',
-                        otp: state.OTP1,
-                      },
-                    });
-                  }}
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                    textDecorationLine: 'underline',
-                  }}>
-                  Terms
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                  }}>
-                  {' '}
+                  <Text
+                    onPress={() => {
+                      navigation.push('Terms', {
+                        data: {
+                          Data: 'Login',
+                          otp: '102111',
+                        },
+                      });
+                    }}
+                    style={{
+                      textDecorationLine: 'underline',
+                      color: '#333',
+                    }}>
+                    Terms
+                  </Text>{' '}
                   and{' '}
+                  <Text
+                    onPress={() => {
+                      navigation.push('Terms', {
+                        data: {
+                          Data: 'Login',
+                          otp: '102111',
+                        },
+                      });
+                    }}
+                    style={{
+                      textDecorationLine: 'underline',
+                      color: '#333',
+                    }}>
+                    Privacy Policy
+                  </Text>
                 </Text>
-                <Text
-                  onPress={() => {
-                    clearInterval(timerRef.current);
-                    navigation.push('Terms', {
-                      data: {
-                        Data: 'otp',
-                        otp: state.OTP1,
-                      },
-                    });
-                  }}
-                  style={{
-                    fontSize: 6,
-                    textAlign: 'justify',
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                    marginTop: hp('2%'),
-                    marginBottom: hp('2%'),
-                    marginLeft: wp('8%'),
-                    marginRight: wp('8%'),
-                    textDecorationLine: 'underline',
-                  }}>
-                  Privacy Policy
-                </Text>
-              </Text>
+              </View>
             </View>
           </SafeAreaView>
         </ScrollView>

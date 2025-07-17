@@ -243,7 +243,7 @@ const Store = ({navigation}) => {
   // Fetch data function
   const fetchData = async () => {
     try {
-      showLoading('fetching_data', 'Fetching store list.');
+        showLoading('fetching_data', 'Fetching store list.');
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
@@ -636,7 +636,8 @@ const Store = ({navigation}) => {
                               alignContent: 'center',
                               textAlign: 'left',
                               justifyContent: 'center',
-                              color: '#02b008',
+                              color: '#232423',
+                              fontWeight: 'bold',
                               marginTop: hp('0.5%'),
                               marginLeft: wp('1%'),
                               marginRight: wp('2%'),

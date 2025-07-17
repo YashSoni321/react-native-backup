@@ -392,7 +392,7 @@ const StoreProducts = ({navigation, route}) => {
               color: '#333',
               fontSize: 11,
               fontFamily: 'Poppins-Medium',
-              marginTop: hp('3%'),
+              marginTop: hp('4%'),
               marginLeft: wp('15%'),
             }}>
             Delivering to &gt;
@@ -440,7 +440,7 @@ const StoreProducts = ({navigation, route}) => {
             style={{
               marginLeft: wp('1%'),
               padding: hp('1%'),
-              marginTop: hp('-9.5%'),
+              marginTop: hp('-7.5%'),
               marginBottom: hp('6%'),
             }}
           />

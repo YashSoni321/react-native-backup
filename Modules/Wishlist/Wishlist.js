@@ -48,6 +48,7 @@ import {image} from './image';
 import {alignSelf, marginBottom} from 'styled-system';
 import StepIndicator from 'react-native-step-indicator';
 import CheckBox from 'react-native-check-box';
+import NoResults from '../Dashboard/NoResults';
 
 class Add extends React.Component {
   constructor(props) {
@@ -82,6 +83,7 @@ class Add extends React.Component {
       ],
       Nearbystores1: null,
       Nearbystores: null,
+      searchTerm: null,
     };
   }
   async componentDidMount() {
@@ -179,7 +181,10 @@ class Add extends React.Component {
         search: text,
       });
     } else {
-      this.setState({Nearbystores1: this.state.Nearbystores});
+      this.setState({
+        Nearbystores1: this.state.Nearbystores,
+        searchTerm: '',
+      });
     }
   }
 
@@ -262,9 +267,16 @@ class Add extends React.Component {
                   // maxLength={10}
                   // keyboardType={'number-pad'}
                   onChangeText={
-                    value => this.SearchFilterFunction(value)
+                    value => {
+                      this.SearchFilterFunction(value);
+                      this.setState(prevValue => ({
+                        ...prevValue,
+                        searchTerm: value,
+                      }));
+                    }
                     // this.handleInputChange('MobileNo', value)
                   }
+                  value={this.state.searchTerm}
                   style={{
                     // borderWidth: 1,
                     padding: hp('1%'),
@@ -289,241 +301,249 @@ class Add extends React.Component {
             </View>
           </ImageBackground>
           <View style={{marginTop: hp('2%')}}></View>
-          <FlatList
-            data={this.state.Nearbystores1}
-            // horizontal={true}
-            renderItem={({item, index}) => {
-              return (
-                <>
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      // textAlign: 'center',
-                      //   justifyContent: 'center',
-                      color: '#333',
-                      fontFamily: 'Poppins-SemiBold',
-                      // marginTop: hp('2%'),
-                      marginBottom: hp('-0.5%'),
-                      marginLeft: wp('10%'),
-                      marginRight: wp('1%'),
-                      width: wp('80%'),
-                    }}>
+          {this.state.Nearbystores1 && this.state.Nearbystores1.length >= 1 ? (
+            <FlatList
+              data={this.state.Nearbystores1}
+              // horizontal={true}
+              renderItem={({item, index}) => {
+                return (
+                  <>
                     <Text
                       style={{
-                        fontSize: 11,
+                        fontSize: 15,
                         // textAlign: 'center',
                         //   justifyContent: 'center',
                         color: '#333',
-                        fontFamily: 'Poppins-Medium',
+                        fontFamily: 'Poppins-SemiBold',
                         // marginTop: hp('2%'),
                         marginBottom: hp('-0.5%'),
                         marginLeft: wp('10%'),
                         marginRight: wp('1%'),
+                        width: wp('80%'),
                       }}>
-                      {item.StoreName}
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          // textAlign: 'center',
+                          //   justifyContent: 'center',
+                          color: '#333',
+                          fontFamily: 'Poppins-Medium',
+                          // marginTop: hp('2%'),
+                          marginBottom: hp('-0.5%'),
+                          marginLeft: wp('10%'),
+                          marginRight: wp('1%'),
+                        }}>
+                        {item.StoreName}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          // textAlign: 'center',
+                          //   justifyContent: 'center',
+                          color: 'grey',
+                          fontFamily: 'Poppins-Light',
+                          marginTop: hp('2%'),
+                          marginBottom: hp('-0.5%'),
+                        }}>
+                        {'  '}
+                        {item.StoreLocation}
+                      </Text>
                     </Text>
-                    <Text
+                    <View
                       style={{
-                        fontSize: 9,
-                        // textAlign: 'center',
-                        //   justifyContent: 'center',
-                        color: 'grey',
-                        fontFamily: 'Poppins-Light',
+                        marginLeft: wp('4%'),
+                        marginRight: wp('4%'),
                         marginTop: hp('2%'),
-                        marginBottom: hp('-0.5%'),
+                        marginBottom: hp('2%'),
                       }}>
-                      {'  '}
-                      {item.StoreLocation}
-                    </Text>
-                  </Text>
-                  <View
-                    style={{
-                      marginLeft: wp('4%'),
-                      marginRight: wp('4%'),
-                      marginTop: hp('2%'),
-                      marginBottom: hp('2%'),
-                    }}>
-                    <FlatList
-                      data={item.Products}
-                      // horizontal={true}
-                      renderItem={({item, index}) => {
-                        return (
-                          <>
-                            <TouchableOpacity
-                              onPress={() => {
-                                this.props.navigation.push('ProductDetails', {
-                                  data: {
-                                    ProductID: item.ProductID,
-                                    Pagename: 'Wishlist',
-                                  },
-                                });
-                              }}>
-                              <View
-                                style={[
-                                  {
-                                    // width: wp('30%'),
-                                    alignSelf: 'center',
-                                    //   elevation: 10,
-                                    //   shadowColor: '#000',
-                                    //   shadowOffset: {width: 0, height: 3},
-                                    //   shadowOpacity: 0.5,
-                                    //   shadowRadius: 5,
+                      <FlatList
+                        data={item.Products}
+                        // horizontal={true}
+                        renderItem={({item, index}) => {
+                          return (
+                            <>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  this.props.navigation.push('ProductDetails', {
+                                    data: {
+                                      ProductID: item.ProductID,
+                                      Pagename: 'Wishlist',
+                                    },
+                                  });
+                                }}>
+                                <View
+                                  style={[
+                                    {
+                                      // width: wp('30%'),
+                                      alignSelf: 'center',
+                                      //   elevation: 10,
+                                      //   shadowColor: '#000',
+                                      //   shadowOffset: {width: 0, height: 3},
+                                      //   shadowOpacity: 0.5,
+                                      //   shadowRadius: 5,
 
-                                    // backgroundColor: '#ffff',
-                                    // borderRadius: wp('3%'),
-                                    borderRadius: wp('5%'),
-                                    // borderTopRightRadius: wp('3%'),
-                                    //   borderBottomRightRadius: wp('3%'),
-                                    // marginLeft: wp('0.5%'),
-                                    // justifyContent: 'center',
-                                    // alignItems: 'center',
-                                    marginLeft: wp('1%'),
-                                    marginRight: wp('1%'),
-                                    marginTop: hp('1%'),
-                                    // marginBottom: hp('2%'),
-                                    // borderColor: '#00afb5',
-                                    // height: hp('7%'),
-                                    // alignItems: 'center',
-                                    // justifyContent: 'center',
-                                    // flexDirection: 'row',
-                                    // borderWidth: 0.7,
-                                  },
-                                ]}>
-                                {item.ProductImage1 == null ||
-                                item.ProductImage1 == undefined ? (
-                                  <>
-                                    <Image
-                                      style={{
-                                        width: wp('39%'),
-                                        height: hp('15%'),
-                                        resizeMode: 'stretch',
-                                        // resizeMode: 'stretch',s
-                                        // borderTopRightRadius: hp('1%'),
-                                        // borderTopLeftRadius: hp('1%'),
-                                        // marginTop: hp('2%'),
-                                        marginLeft: wp('3%'),
-                                        marginRight: wp('3%'),
-                                        // borderRadius: wp('5%'),
-                                        // marginBottom: hp('2%'),
-                                        // marginLeft: wp('1.5%'),
-                                      }}
-                                      // resizeMode="center"
-                                      source={require('../Images/tshirt.jpg')}
-                                    />
-                                  </>
-                                ) : (
-                                  <>
-                                    {item.ProductImage1.length == 0 ||
-                                    item.ProductImage1 == '' ? (
-                                      <>
-                                        <Image
-                                          style={{
-                                            width: wp('39%'),
-                                            height: hp('15%'),
-                                            resizeMode: 'stretch',
-                                            // resizeMode: 'stretch',s
-                                            // borderTopRightRadius: hp('1%'),
-                                            // borderTopLeftRadius: hp('1%'),
-                                            // marginTop: hp('2%'),
-                                            marginLeft: wp('3%'),
-                                            marginRight: wp('3%'),
-                                            // borderRadius: wp('5%'),
-                                            // marginBottom: hp('2%'),
-                                            // marginLeft: wp('1.5%'),
-                                          }}
-                                          // resizeMode="center"
-                                          source={require('../Images/tshirt.jpg')}
-                                        />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Image
-                                          style={{
-                                            width: wp('39%'),
-                                            height: hp('15%'),
-                                            resizeMode: 'stretch',
-                                            // resizeMode: 'stretch',s
-                                            // borderTopRightRadius: hp('1%'),
-                                            // borderTopLeftRadius: hp('1%'),
-                                            // marginTop: hp('2%'),
-                                            marginLeft: wp('3%'),
-                                            marginRight: wp('3%'),
-                                            // borderRadius: wp('5%'),
-                                            // marginBottom: hp('2%'),
-                                            // marginLeft: wp('1.5%'),
-                                          }}
-                                          // resizeMode="center"
-                                          source={{uri: item.ProductImage1}}
-                                        />
-                                      </>
-                                    )}
-                                  </>
-                                )}
+                                      // backgroundColor: '#ffff',
+                                      // borderRadius: wp('3%'),
+                                      borderRadius: wp('5%'),
+                                      // borderTopRightRadius: wp('3%'),
+                                      //   borderBottomRightRadius: wp('3%'),
+                                      // marginLeft: wp('0.5%'),
+                                      // justifyContent: 'center',
+                                      // alignItems: 'center',
+                                      marginLeft: wp('1%'),
+                                      marginRight: wp('1%'),
+                                      marginTop: hp('1%'),
+                                      // marginBottom: hp('2%'),
+                                      // borderColor: '#00afb5',
+                                      // height: hp('7%'),
+                                      // alignItems: 'center',
+                                      // justifyContent: 'center',
+                                      // flexDirection: 'row',
+                                      // borderWidth: 0.7,
+                                    },
+                                  ]}>
+                                  {item.ProductImage1 == null ||
+                                  item.ProductImage1 == undefined ? (
+                                    <>
+                                      <Image
+                                        style={{
+                                          width: wp('39%'),
+                                          height: hp('15%'),
+                                          resizeMode: 'stretch',
+                                          // resizeMode: 'stretch',s
+                                          // borderTopRightRadius: hp('1%'),
+                                          // borderTopLeftRadius: hp('1%'),
+                                          // marginTop: hp('2%'),
+                                          marginLeft: wp('3%'),
+                                          marginRight: wp('3%'),
+                                          // borderRadius: wp('5%'),
+                                          // marginBottom: hp('2%'),
+                                          // marginLeft: wp('1.5%'),
+                                        }}
+                                        // resizeMode="center"
+                                        source={require('../Images/tshirt.jpg')}
+                                      />
+                                    </>
+                                  ) : (
+                                    <>
+                                      {item.ProductImage1.length == 0 ||
+                                      item.ProductImage1 == '' ? (
+                                        <>
+                                          <Image
+                                            style={{
+                                              width: wp('39%'),
+                                              height: hp('15%'),
+                                              resizeMode: 'stretch',
+                                              // resizeMode: 'stretch',s
+                                              // borderTopRightRadius: hp('1%'),
+                                              // borderTopLeftRadius: hp('1%'),
+                                              // marginTop: hp('2%'),
+                                              marginLeft: wp('3%'),
+                                              marginRight: wp('3%'),
+                                              // borderRadius: wp('5%'),
+                                              // marginBottom: hp('2%'),
+                                              // marginLeft: wp('1.5%'),
+                                            }}
+                                            // resizeMode="center"
+                                            source={require('../Images/tshirt.jpg')}
+                                          />
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Image
+                                            style={{
+                                              width: wp('39%'),
+                                              height: hp('15%'),
+                                              resizeMode: 'stretch',
+                                              // resizeMode: 'stretch',s
+                                              // borderTopRightRadius: hp('1%'),
+                                              // borderTopLeftRadius: hp('1%'),
+                                              // marginTop: hp('2%'),
+                                              marginLeft: wp('3%'),
+                                              marginRight: wp('3%'),
+                                              // borderRadius: wp('5%'),
+                                              // marginBottom: hp('2%'),
+                                              // marginLeft: wp('1.5%'),
+                                            }}
+                                            // resizeMode="center"
+                                            source={{uri: item.ProductImage1}}
+                                          />
+                                        </>
+                                      )}
+                                    </>
+                                  )}
 
-                                <Text
-                                  // onPress={() => {
-                                  //   Linking.openURL(item.name);
-                                  // }}
-                                  style={{
-                                    fontSize: 9,
-                                    fontFamily: 'Poppins-Light',
+                                  <Text
+                                    // onPress={() => {
+                                    //   Linking.openURL(item.name);
+                                    // }}
+                                    style={{
+                                      fontSize: 9,
+                                      fontFamily: 'Poppins-Light',
 
-                                    color: '#333',
-                                    marginTop: hp('0.5%'),
-                                    // marginBottom: hp('1%'),
-                                    marginLeft: wp('4%'),
-                                    width: wp('39%'),
-                                    // marginRight: wp('2%'),
-                                    // textDecorationLine: 'underline',
-                                  }}>
-                                  {item.ProductName}
-                                </Text>
-                                <Text
-                                  // onPress={() => {
-                                  //   Linking.openURL(item.name);
-                                  // }}
-                                  style={{
-                                    fontSize: 8,
-                                    fontFamily: 'Poppins-Light',
+                                      color: '#333',
+                                      marginTop: hp('0.5%'),
+                                      // marginBottom: hp('1%'),
+                                      marginLeft: wp('4%'),
+                                      width: wp('39%'),
+                                      // marginRight: wp('2%'),
+                                      // textDecorationLine: 'underline',
+                                    }}>
+                                    {item.ProductName}
+                                  </Text>
+                                  <Text
+                                    // onPress={() => {
+                                    //   Linking.openURL(item.name);
+                                    // }}
+                                    style={{
+                                      fontSize: 8,
+                                      fontFamily: 'Poppins-Light',
 
-                                    color: 'grey',
-                                    // marginTop: hp('0.5%'),
-                                    // marginBottom: hp('1%'),
-                                    marginLeft: wp('4%'),
-                                    // marginRight: wp('2%'),
-                                    // textDecorationLine: 'underline',
-                                  }}>
-                                  {item.ProductColor}
-                                </Text>
-                                <Text
-                                  // onPress={() => {
-                                  //   Linking.openURL(item.name);
-                                  // }}
-                                  style={{
-                                    fontSize: 8,
-                                    fontFamily: 'Poppins-Light',
+                                      color: 'grey',
+                                      // marginTop: hp('0.5%'),
+                                      // marginBottom: hp('1%'),
+                                      marginLeft: wp('4%'),
+                                      // marginRight: wp('2%'),
+                                      // textDecorationLine: 'underline',
+                                    }}>
+                                    {item.ProductColor}
+                                  </Text>
+                                  <Text
+                                    // onPress={() => {
+                                    //   Linking.openURL(item.name);
+                                    // }}
+                                    style={{
+                                      fontSize: 8,
+                                      fontFamily: 'Poppins-Light',
 
-                                    color: '#333',
-                                    // marginTop: hp('0.5%'),
-                                    // marginBottom: hp('1%'),
-                                    marginLeft: wp('4%'),
-                                    // marginRight: wp('2%'),
-                                    // textDecorationLine: 'underline',
-                                  }}>
-                                  ₹ {item.ProductPrice}
-                                </Text>
-                              </View>
-                            </TouchableOpacity>
-                          </>
-                        );
-                      }}
-                      numColumns={2}
-                    />
-                  </View>
-                </>
-              );
-            }}
-          />
+                                      color: '#333',
+                                      // marginTop: hp('0.5%'),
+                                      // marginBottom: hp('1%'),
+                                      marginLeft: wp('4%'),
+                                      // marginRight: wp('2%'),
+                                      // textDecorationLine: 'underline',
+                                    }}>
+                                    ₹ {item.ProductPrice}
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            </>
+                          );
+                        }}
+                        numColumns={2}
+                      />
+                    </View>
+                  </>
+                );
+              }}
+            />
+          ) : (
+            <NoResults
+              title="No Products Found"
+              subtitle="Try searching for products in your wishlist"
+              onClearSearch={() => this.SearchFilterFunction('')}
+            />
+          )}
         </ScrollView>
       </SafeAreaView>
     );

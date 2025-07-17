@@ -98,13 +98,26 @@ class CartValidation {
       const cartItems = this.extractCartItems(cartResponse);
 
       // Find existing product with same attributes
-      const existingItem = cartItems.find(
-        item =>
+      const existingItem = cartItems.find(item => {
+        console.log('🔍 Checking item:', {
+          itemProductID: item.ProductID,
+          itemProductItemID: item.ProductItemID,
+          itemSizeID: item.SizeID || item.Size,
+          itemColor: item.Color || item.ItemColor || item.ProductColor,
+          searchProductID: productData.ProductID,
+          searchProductItemID: productData.ProductItemID,
+          searchSizeID: productData.SizeID,
+          searchColor: productData.Color,
+        });
+
+        return (
           item.ProductID === productData.ProductID &&
           item.ProductItemID === productData.ProductItemID &&
-          item.SizeID === productData.SizeID &&
-          item.Color === productData.Color,
-      );
+          (item.SizeID || item.Size) === productData.SizeID &&
+          (item.Color || item.ItemColor || item.ProductColor) ===
+            productData.Color
+        );
+      });
 
       return existingItem || null;
     } catch (error) {
@@ -316,6 +329,8 @@ class CartValidation {
   static extractCartItems(cartResponse) {
     if (!cartResponse) return [];
 
+    console.log('🔍 Extracting cart items from response:', cartResponse);
+
     // Handle new API response format - array of cart objects
     if (Array.isArray(cartResponse)) {
       let cartItems = [];
@@ -324,16 +339,26 @@ class CartValidation {
           cartItems = cartItems.concat(cart.CartItems);
         }
       });
+      console.log('📦 Extracted cart items from array format:', cartItems);
       return cartItems;
     }
 
     // Handle old format
     if (cartResponse.CartItems) {
-      return Array.isArray(cartResponse.CartItems)
+      const items = Array.isArray(cartResponse.CartItems)
         ? cartResponse.CartItems
         : [];
+      console.log('📦 Extracted cart items from old format:', items);
+      return items;
     }
 
+    // Handle direct array of cart items
+    if (Array.isArray(cartResponse)) {
+      console.log('📦 Direct array of cart items:', cartResponse);
+      return cartResponse;
+    }
+
+    console.log('⚠️ No cart items found in response');
     return [];
   }
 

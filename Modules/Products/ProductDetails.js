@@ -33,6 +33,7 @@ import apiService, {
 } from '../Api/api';
 import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
+import {getColorHex} from '../../shared/ColorUtils';
 
 var RNFS = require('react-native-fs');
 
@@ -595,7 +596,7 @@ const ProductDetails = ({navigation, route}) => {
                   onPress={() => handleColorSelect(item.ItemColor)}
                   style={[
                     styles.colorButton,
-                    {backgroundColor: color},
+                    {backgroundColor: getColorHex(item.ItemColor)},
                     state.selectedColor?.toLowerCase?.() === color &&
                       styles.selectedColorButton,
                   ]}
@@ -707,6 +708,43 @@ const ProductDetails = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#fff', // ensure buttons are not transparent
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          // padding: wp('4%'),
+          // borderTopWidth: 1,
+          // borderColor: '#ddd',
+        }}>
+        <TouchableOpacity activeOpacity={0.5} onPress={addToCart}>
+          <View style={styles.cartButton}>
+            <Icon
+              name="cart-outline"
+              color={'#00afb5'}
+              size={20}
+              style={{marginLeft: wp('1%'), padding: hp('0%')}}
+            />
+            <Text style={styles.cartButtonText}>Add to Cart</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity activeOpacity={0.5} onPress={addToWishlist}>
+          <View style={styles.wishlistButton}>
+            <Icon
+              name="heart-sharp"
+              color={'#fff'}
+              size={20}
+              style={{marginLeft: wp('1%'), padding: hp('1%')}}
+            />
+            <Text style={styles.wishlistButtonText}>Wishlist</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };

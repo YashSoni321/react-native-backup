@@ -30,39 +30,21 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {NavigationEvents} from 'react-navigation';
-import {SwiperFlatList} from 'react-native-swiper-flatlist';
-import ImagePicker from 'react-native-image-crop-picker';
-import {CustomPicker} from 'react-native-custom-picker';
-import {API_KEY, URL_key} from '../Api/api';
+import {URL_key} from '../Api/api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
-import XLSX from 'xlsx';
-import publicIP from 'react-native-public-ip';
-import RBSheet from 'react-native-raw-bottom-sheet';
-import LinearGradient from 'react-native-linear-gradient';
-import MenuDrawer from 'react-native-side-drawer';
-import RNFetchBlob from 'rn-fetch-blob';
-import CheckBox from 'react-native-check-box';
-// import MapView, {
-//   Marker,
-//   Polyline,
-//   PROVIDER_GOOGLE,
-//   AnimatedRegion,
-// } from 'react-native-maps';
+
 import MapView, {Marker} from 'react-native-maps';
 import PhonePeService from '../Services/PhonePeService';
-import {PHONEPE_CONFIG} from '../Config/phonepe-config';
 import {PAYMENT_MOCK_DATA} from '../MockData/paymentMockData';
 import CenteredView from '../Common/CenteredView';
 import GetLocation from 'react-native-get-location';
-
-const date = moment().format('YYYY/MM/DD ');
-const time = moment().format('hh:mm A');
+import {useLoading} from '../../shared/LoadingContext';
 const reg2 = /^[0-9]+$/;
 
 const Checkout = ({navigation, route}) => {
   // Add error boundary
+  const {showLoading, hideLoading} = useLoading();
   const [hasError, setHasError] = useState(false);
 
   if (hasError) {
@@ -152,8 +134,34 @@ const Checkout = ({navigation, route}) => {
     loadInitialData();
   }, []);
 
+  const loadUserCurrentLocation = async () => {
+    GetLocation.getCurrentPosition({
+      enableHighAccuracy: true,
+    })
+      .then(location => {
+        console.log(location);
+        console.log('Latitudelocation>>', location);
+
+        // setLatitude(location.latitude);
+        setState(prevState => ({
+          ...prevState,
+          Latitude: location.latitude,
+          Longitude: location.longitude,
+        }));
+        // setLongitude(location.longitude);
+      })
+      .catch(error => {
+        const {code, message} = error;
+        console.warn(code, message);
+      });
+  };
+
   // Error boundary effect
   useEffect(() => {
+    showLoading(
+      'fetching_data',
+      'Fetching Currect Location and other details.',
+    );
     const handleError = error => {
       console.error('Unhandled error in checkout:', error);
       setHasError(true);
@@ -168,29 +176,14 @@ const Checkout = ({navigation, route}) => {
       }
     };
 
-    GetLocation.getCurrentPosition({
-      enableHighAccuracy: true,
-    })
-      .then(location => {
-        console.log(location);
-        // setLatitude(location.latitude);
-        setState(prevState => ({
-          ...prevState,
-          Latitude: location.latitude,
-          Longitude: location.longitude,
-        }));
-        // setLongitude(location.longitude);
-      })
-      .catch(error => {
-        const {code, message} = error;
-        console.warn(code, message);
-      });
+    hideLoading('fetching_data');
   }, []);
 
   const loadInitialData = async () => {
     try {
+      showLoading();
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-
+      loadUserCurrentLocation();
       if (!UserProfileID) {
         Alert.alert('Error', 'Please login to continue with checkout.', [
           {
@@ -206,6 +199,7 @@ const Checkout = ({navigation, route}) => {
         loadPaymentMethods(UserProfileID),
         loadAddressData(UserProfileID),
       ]);
+      hideLoading();
     } catch (error) {
       console.error('Failed to load initial data:', error);
       setState(prevState => ({
@@ -296,12 +290,12 @@ const Checkout = ({navigation, route}) => {
 
         // Validate coordinates
         if (isValidCoordinate(latitude, longitude)) {
-          setState(prevState => ({
-            ...prevState,
-            Latitude: latitude,
-            Longitude: longitude,
-            AddressID: address.AddressID,
-          }));
+          // setState(prevState => ({
+          //   ...prevState,
+          //   Latitude: latitude,
+          //   Longitude: longitude,
+          //   AddressID: address.AddressID,
+          // }));
         } else {
           console.warn('Invalid coordinates received:', {latitude, longitude});
           setState(prevState => ({
@@ -1050,6 +1044,9 @@ const Checkout = ({navigation, route}) => {
             </Text>
           )}
 
+          {/* Insert renderCartItems before Order Summary */}
+          {renderCartItems()}
+
           {/* Order Summary */}
           <View
             style={{
@@ -1296,6 +1293,42 @@ const Checkout = ({navigation, route}) => {
   }
 };
 
+const renderCartItems = () => {
+  return (
+    <View style={styles.cartItemsContainer}>
+      <Text style={styles.sectionTitle}>Order Items</Text>
+      {state.CartItems.map((item, index) => (
+        <View key={index} style={styles.cartItemContainer}>
+          <Image
+            style={styles.productImage}
+            source={item.ProductImage ? {uri: item.ProductImage} : require('../Images/bb.jpg')}
+            resizeMode="cover"
+          />
+          <View style={styles.productDetails}>
+            <Text style={styles.productName}>{item.ProductName}</Text>
+            <View style={styles.productAttributes}>
+              <View style={{
+                height: hp('2%'),
+                width: hp('2%'),
+                borderRadius: wp('100%'),
+                borderWidth: 1,
+                borderColor: '#00afb5',
+                backgroundColor: item.ProductColor,
+                marginRight: wp('2%')
+              }} />
+              <Text style={styles.productInfo}>{item.ProductSize}</Text>
+            </View>
+            <View style={styles.quantityPrice}>
+              <Text style={styles.quantityText}>Qty: {item.Quantity}</Text>
+              <Text style={styles.priceText}>₹ {item.TotalPrice}</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1321,11 +1354,68 @@ const styles = StyleSheet.create({
     marginLeft: wp('4%'),
   },
   map: {
-    // ...StyleSheet.absoluteFillObject,
-    height: hp('20%'),
-    width: wp('80%'),
-    alignSelf: 'center',
+    flex: 1,
     borderRadius: 8,
+  },
+  cartItemsContainer: {
+    marginHorizontal: wp('7%'),
+    marginTop: hp('3%'),
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 15,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    color: '#333',
+    fontFamily: 'Poppins-SemiBold',
+    marginBottom: hp('2%'),
+  },
+  cartItemContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: hp('1%'),
+  },
+  productImage: {
+    width: wp('20%'),
+    height: wp('20%'),
+    borderRadius: 8,
+  },
+  productDetails: {
+    flex: 1,
+    marginLeft: wp('3%'),
+  },
+  productName: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: '#333',
+  },
+  productAttributes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: hp('1%'),
+  },
+  productInfo: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+  },
+  quantityPrice: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: hp('1%'),
+  },
+  quantityText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+  },
+  priceText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
   },
 });
 
