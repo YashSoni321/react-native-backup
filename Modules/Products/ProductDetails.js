@@ -32,6 +32,7 @@ import apiService, {
   addToWishlist,
 } from '../Api/api';
 import moment from 'moment';
+import CartValidation from '../../shared/CartValidation';
 
 var RNFS = require('react-native-fs');
 
@@ -161,6 +162,8 @@ const ProductDetails = ({navigation, route}) => {
   };
 
   const handleColorSelect = color => {
+    console.log('ColorhandleColorSelect', color);
+
     setState(prev => ({
       ...prev,
       selectedColor: color,
@@ -218,11 +221,14 @@ const ProductDetails = ({navigation, route}) => {
         ? state.ItemColor
         : state.ProductsDetails?.ProductItems || [];
 
-    return data?.filter(
+    const renderData = data?.filter(
       (item, index, self) =>
         item?.ItemColor &&
         index === self.findIndex(t => t.ItemColor === item.ItemColor),
     );
+    console.log('🔍 Unique color items:', renderData);
+
+    return renderData;
   };
 
   const addToCart = async () => {
@@ -245,18 +251,7 @@ const ProductDetails = ({navigation, route}) => {
         return;
       }
 
-      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-      if (!UserProfileID) {
-        console.error('❌ User not logged in');
-        Alert.alert('Error', 'Please login to add items to cart.');
-        return;
-      }
-
-      const SystemUser = await AsyncStorage.getItem('FullName');
-      const SystemDate = moment().format('YYYY-MM-DD hh:mm:ss A');
-
       console.log('🛒 Cart validation data:', {
-        UserProfileID,
         ProductID: state.ProductID,
         StoreID: state.StoreID,
         selectedSize: state.selectedSize,
@@ -264,187 +259,32 @@ const ProductDetails = ({navigation, route}) => {
         quantity: state.quantity,
       });
 
-      // First check if there are items in cart from a different store
-      try {
-        const cartResponse = await apiService.getProductCartList(UserProfileID);
-        console.log('🛒 Current cart items:', cartResponse);
-
-        const cartItems = cartResponse?.CartItems || [];
-
-        if (cartItems.length > 0) {
-          // Get first item's store ID to compare
-          const existingStoreId = cartItems[0].StoreID;
-          console.log('🛒 Store comparison:', {
-            existingStoreId,
-            currentStoreId: state.StoreID,
-          });
-
-          if (existingStoreId !== state.StoreID) {
-            Alert.alert(
-              'Different Store',
-              'You have items in your cart from a different store. Would you like to clear your cart and add this item?',
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Clear Cart & Add',
-                  onPress: async () => {
-                    try {
-                      console.log('🗑️ Clearing cart items...');
-                      // Clear cart
-                      for (const item of cartItems) {
-                        await apiService.removeFromCart({
-                          CartID: item.CartID,
-                          CartItemID: item.CartItemID,
-                          SystemUser,
-                          SystemDate,
-                        });
-                      }
-                      console.log('✅ Cart cleared successfully');
-                      // Now add new item
-                      await addItemToCart();
-                    } catch (clearError) {
-                      console.error('❌ Error clearing cart:', clearError);
-                      setState(prev => ({...prev, fail: true}));
-                    }
-                  },
-                },
-              ],
-            );
-            return;
-          }
-        }
-
-        // If cart is empty or same store, proceed with adding item
-        await addItemToCart();
-      } catch (cartError) {
-        console.error('❌ Error checking cart:', cartError);
-        // Continue with adding item even if cart check fails
-        await addItemToCart();
-      }
-    } catch (err) {
-      console.error('❌ Error in addToCart:', err);
-      setState(prev => ({...prev, fail: true}));
-    }
-  };
-
-  const addItemToCart = async () => {
-    try {
-      console.log('🛒 Adding item to cart...');
-
-      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-      const SystemUser = await AsyncStorage.getItem('FullName');
-      const SystemDate = moment().format('YYYY-MM-DD hh:mm:ss A');
-
-      if (!UserProfileID) {
-        console.error('❌ UserProfileID not found');
-        Alert.alert('Error', 'Please login to add items to cart.');
-        return;
-      }
-
-      console.log('🛒 Item data for cart:', {
+      // Use the new cart validation utility
+      const productData = {
         ProductID: state.ProductID,
         ProductItemID: state.ProductItemID,
         StoreID: state.StoreID,
-        selectedSize: state.selectedSize,
-        selectedColor: state.selectedColor,
-        quantity: state.quantity,
+        SizeID: state.selectedSize,
+        Color: state.selectedColor,
+        Quantity: state.quantity,
         UnitPrice: state.UnitPrice,
-      });
+        StoreName: state.ProductsDetails?.StoreName || 'this store',
+      };
+      console.log('productDataproductData', productData);
 
-      // Check if same product with same size/color exists
-      try {
-        const cartResponse = await apiService.getProductCartList(UserProfileID);
-        console.log('🛒 Checking existing cart items...');
+      const result = await CartValidation.addToCartWithValidation(productData);
 
-        const cartItems = cartResponse?.CartItems || [];
-        const existingItem = cartItems.find(
-          item =>
-            item.ProductID === state.ProductID &&
-            item.ProductItemID === state.ProductItemID &&
-            item.SizeID === state.selectedSize &&
-            item.Color === state.selectedColor,
-        );
-
-        if (existingItem) {
-          console.log('🛒 Updating existing item quantity...');
-          // Update quantity of existing item
-          const updateData = {
-            CartID: existingItem.CartID,
-            CartItemID: existingItem.CartItemID,
-            UserProfileID,
-            ProductID: state.ProductID,
-            ProductItemID: state.ProductItemID,
-            StoreID: state.StoreID,
-            Quantity: existingItem.Quantity + state.quantity,
-            UnitPrice: state.UnitPrice,
-            SystemUser,
-            SystemDate,
-            SizeID: state.selectedSize,
-            Color: state.selectedColor,
-          };
-
-          const res = await apiService.updateCartItem(updateData);
-          console.log('🛒 Update cart response:', res);
-
-          if (res.Result === 'UPDATED') {
-            await AsyncStorage.setItem('CartID', res.CartID.toString());
-            console.log('✅ Item updated in cart successfully');
-            navigation.push('TabC');
-          } else {
-            console.error('❌ Failed to update cart item:', res);
-            setState(prev => ({...prev, fail: true}));
-          }
-        } else {
-          console.log('🛒 Adding new item to cart...');
-          // Add as new item
-          try {
-            const latestCartID = await apiService.getLatestCartID(
-              UserProfileID,
-            );
-            console.log('🛒 Latest cart ID:', latestCartID);
-
-            const cartItem = {
-              CartID: latestCartID,
-              CartItemID: 0,
-              UserProfileID,
-              ProductID: state.ProductID,
-              ProductItemID: state.ProductItemID,
-              StoreID: state.StoreID,
-              Quantity: state.quantity,
-              UnitPrice: state.UnitPrice,
-              SystemUser,
-              SystemDate,
-              SizeID: state.selectedSize,
-              Color: state.selectedColor,
-            };
-
-            console.log('🛒 Cart item data:', cartItem);
-
-            const response = await apiService.addToCart(cartItem);
-            console.log('🛒 Add to cart response:', response);
-
-            if (response.Result === 'INSERTED') {
-              await AsyncStorage.setItem('CartID', response.CartID.toString());
-              console.log('✅ Item added to cart successfully');
-              navigation.push('TabC');
-            } else {
-              console.error('❌ Failed to add item to cart:', response);
-              setState(prev => ({...prev, fail: true}));
-            }
-          } catch (latestCartError) {
-            console.error('❌ Error getting latest cart ID:', latestCartError);
-            setState(prev => ({...prev, fail: true}));
-          }
+      if (result.success) {
+        console.log('✅ Cart operation successful:', result.message);
+        navigation.push('TabC');
+      } else {
+        console.error('❌ Cart operation failed:', result.message);
+        if (result.action !== 'cancelled') {
+          setState(prev => ({...prev, fail: true}));
         }
-      } catch (cartCheckError) {
-        console.error('❌ Error checking cart items:', cartCheckError);
-        setState(prev => ({...prev, fail: true}));
       }
     } catch (err) {
-      console.error('❌ Error in addItemToCart:', err);
+      console.error('❌ Error in addToCart:', err);
       setState(prev => ({...prev, fail: true}));
     }
   };
@@ -758,7 +598,10 @@ const ProductDetails = ({navigation, route}) => {
                     {backgroundColor: color},
                     state.selectedColor?.toLowerCase?.() === color &&
                       styles.selectedColorButton,
-                  ]}></TouchableOpacity>
+                  ]}
+                  aria-label="cocol">
+                  {color}
+                </TouchableOpacity>
               );
             }}
           />

@@ -46,35 +46,35 @@ class PhonePeService {
       const transactionId = this.generateTransactionId();
       const appUrls = PHONEPE_CONFIG.getAppUrls();
 
-      const payload = {
-        merchantId: this.config.MERCHANT_ID,
-        merchantTransactionId: transactionId,
-        merchantUserId: 'TEST-M22031L2ZT2SN_25042',
-        amount: Math.round(orderData.amount * 100), // Convert to paise
-        redirectUrl: appUrls.redirectUrl,
-        redirectMode: 'POST',
-        callbackUrl: appUrls.callbackUrl,
-        mobileNumber: orderData.mobileNumber,
-        paymentInstrument: {
-          type: 'PAY_PAGE',
-        },
-      };
       // const payload = {
-      //   payload: {
-      //     merchantId: 'PGTESTPAYUAT',
-      //     merchantTransactionId: 'TXN_1751187357312_24125',
-      //     merchantUserId: 'TEST-M22031L2ZT2SN_25042',
-      //     amount: 399900,
-      //     redirectUrl: 'fybr://payment/redirect',
-      //     redirectMode: 'POST',
-      //     callbackUrl: 'fybr://payment/callback',
-      //     mobileNumber: '7375863649',
-      //     paymentInstrument: {
-      //       type: 'PAY_PAGE',
-      //     },
+      //   merchantId: this.config.MERCHANT_ID,
+      //   merchantTransactionId: transactionId,
+      //   merchantUserId: 'TEST-M22031L2ZT2SN_25042',
+      //   amount: Math.round(orderData.amount * 100), // Convert to paise
+      //   redirectUrl: appUrls.redirectUrl,
+      //   redirectMode: 'POST',
+      //   callbackUrl: appUrls.callbackUrl,
+      //   mobileNumber: orderData.mobileNumber,
+      //   paymentInstrument: {
+      //     type: 'PAY_PAGE',
       //   },
-      //   url: 'https://api-preprod.phonepe.com/apis/pg‑sandbox/pg/v1/pay',
       // };
+      const payload = {
+        payload: {
+          merchantId: 'PGTESTPAYUAT',
+          merchantTransactionId: 'TXN_1751187357312_24125',
+          merchantUserId: 'TEST-M22031L2ZT2SN_25042',
+          amount: 3999,
+          redirectUrl: 'fybr://payment/redirect',
+          redirectMode: 'POST',
+          callbackUrl: 'fybr://payment/callback',
+          mobileNumber: '7375863649',
+          paymentInstrument: {
+            type: 'PAY_PAGE',
+          },
+        },
+        url: 'https://api-preprod.phonepe.com/apis/pg‑sandbox/pg/v1/pay',
+      };
 
       const endpoint = '/pg/v1/pay';
       const checksum = await this.generateChecksum(payload, endpoint);

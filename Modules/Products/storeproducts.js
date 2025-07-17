@@ -46,6 +46,7 @@ import apiService, {
   testConnection,
 } from '../Api/api';
 import axios from 'axios';
+import CartValidation from '../../shared/CartValidation';
 var RNFS = require('react-native-fs');
 import GetLocation from 'react-native-get-location';
 import LinearGradient from 'react-native-linear-gradient';
@@ -294,27 +295,20 @@ const StoreProducts = ({navigation, route}) => {
       // Check if user has items in cart from a different store
       try {
         console.log('🛒 Checking cart items...');
-        const cartResponse = await apiService.getProductCartList(UserProfileID);
-        console.log('🛒 Cart response:', cartResponse);
+        const currentCartStore = await CartValidation.getCurrentCartStore();
 
-        if (cartResponse && cartResponse.CartItems) {
-          const cartItems = cartResponse.CartItems || [];
-          if (cartItems.length > 0) {
-            const existingStoreId = cartItems[0].StoreID;
-            console.log(
-              '🛒 Existing store in cart:',
-              existingStoreId,
-              'Current store:',
-              state.StoreID,
-            );
-            if (existingStoreId !== state.StoreID) {
-              Alert.alert(
-                'Different Store',
-                'You have items in your cart from a different store. You can browse products but will need to clear your cart before adding items from this store.',
-                [{text: 'OK', style: 'default'}],
-              );
-            }
-          }
+        if (currentCartStore && currentCartStore.StoreID !== state.StoreID) {
+          console.log(
+            '🛒 Different store detected:',
+            currentCartStore.StoreName,
+            'vs',
+            state.StoreName,
+          );
+          Alert.alert(
+            'Different Store',
+            `You have ${currentCartStore.ItemCount} item(s) in your cart from ${currentCartStore.StoreName}. You can browse products but will need to clear your cart before adding items from this store.`,
+            [{text: 'OK', style: 'default'}],
+          );
         }
       } catch (cartError) {
         console.warn('⚠️ Cart check failed:', cartError.message);

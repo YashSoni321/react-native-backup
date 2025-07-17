@@ -17,7 +17,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {API_KEY, URL_key} from '../Api/api';
+import {URL_key} from '../Api/api';
 import axios from 'axios';
 
 const Orders = ({navigation}) => {

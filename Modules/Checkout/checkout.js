@@ -54,6 +54,8 @@ import MapView, {Marker} from 'react-native-maps';
 import PhonePeService from '../Services/PhonePeService';
 import {PHONEPE_CONFIG} from '../Config/phonepe-config';
 import {PAYMENT_MOCK_DATA} from '../MockData/paymentMockData';
+import CenteredView from '../Common/CenteredView';
+import GetLocation from 'react-native-get-location';
 
 const date = moment().format('YYYY/MM/DD ');
 const time = moment().format('hh:mm A');
@@ -107,8 +109,8 @@ const Checkout = ({navigation, route}) => {
     ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
     PackagingFee: route?.params?.data?.PackagingFee || 0,
     CartItems: route?.params?.data?.CartItems || [],
-    Latitude: 10.8062818,
-    Longitude: 78.6949227,
+    Latitude: null,
+    Longitude: null,
     loading: false,
     fail: false,
     error: null,
@@ -166,9 +168,23 @@ const Checkout = ({navigation, route}) => {
       }
     };
 
-    return () => {
-      console.error = originalConsoleError;
-    };
+    GetLocation.getCurrentPosition({
+      enableHighAccuracy: true,
+    })
+      .then(location => {
+        console.log(location);
+        // setLatitude(location.latitude);
+        setState(prevState => ({
+          ...prevState,
+          Latitude: location.latitude,
+          Longitude: location.longitude,
+        }));
+        // setLongitude(location.longitude);
+      })
+      .catch(error => {
+        const {code, message} = error;
+        console.warn(code, message);
+      });
   }, []);
 
   const loadInitialData = async () => {
@@ -848,50 +864,6 @@ const Checkout = ({navigation, route}) => {
                 {(() => {
                   try {
                     return (
-                      // <MapView
-                      //   style={{
-                      //     height: hp('20%'),
-                      //     width: wp('80%'),
-                      //     alignSelf: 'center',
-                      //     borderRadius: 8,
-                      //   }}
-                      //   initialRegion={{
-                      //     latitude: 37.78825,
-                      //     longitude: -122.4324,
-                      //     latitudeDelta: 0.0922,
-                      //     longitudeDelta: 0.0421,
-                      //   }}
-                      //   loadingEnabled={true}
-                      //   showsUserLocation={false}
-                      //   showsMyLocationButton={false}
-                      //   showsCompass={false}
-                      //   showsScale={false}
-                      //   showsTraffic={false}
-                      //   showsBuildings={false}
-                      //   showsIndoors={false}
-                      //   onError={error => {
-                      //     console.error('MapView error:', error);
-                      //     setState(prevState => ({
-                      //       ...prevState,
-                      //       mapError: true,
-                      //       error: 'Failed to load map. Please try again.',
-                      //     }));
-                      //   }}
-                      //   onMapReady={() => {
-                      //     console.log('Map is ready');
-                      //     setState(prevState => ({
-                      //       ...prevState,
-                      //       mapReady: true,
-                      //     }));
-                      //   }}>
-                      //   <Marker
-                      //     coordinate={{
-                      //       latitude: 37.78825,
-                      //       longitude: -122.4324,
-                      //     }}
-                      //     title={'My Marker'}
-                      //   />
-                      // </MapView>
                       <MapView
                         style={styles.map}
                         initialRegion={{
@@ -972,63 +944,57 @@ const Checkout = ({navigation, route}) => {
               </View>
             )}
           </View>
+          <CenteredView>
+            <View
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
 
-          <Icon
-            name="location"
-            color={'#00afb5'}
-            size={40}
-            style={{
-              marginLeft: wp('7%'),
-              padding: hp('1%'),
-              marginTop: hp('2%'),
-            }}
-          />
+                width: wp('90%'),
+                alignItems: 'center',
+                margin: 'auto',
+                justifyContent: 'space-between',
+                // marginTop: hp('2%'),
+                // width: '100%',
+              }}>
+              <Icon
+                name="location"
+                color={'#00afb5'}
+                size={40}
+                style={{
+                  // marginLeft: wp('7%'),
+                  padding: hp('1%'),
+                  marginTop: hp('2%'),
+                }}
+              />
 
-          <Text
-            style={{
-              fontSize: 17,
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginLeft: wp('18%'),
-              marginTop: hp('-7%'),
-            }}>
-            Delivery Address
-          </Text>
+              <Text
+                style={{
+                  fontSize: 17,
+                  color: '#333',
+                  fontFamily: 'Poppins-SemiBold',
+                  // marginLeft: wp('18%'),
+                  // marginTop: hp('-7%'),
+                }}>
+                Delivery Address
+              </Text>
 
-          <Icon
-            onPress={() => navigation.push('AddressList')}
-            name="chevron-forward-outline"
-            color={'#00afb5'}
-            size={40}
-            style={{
-              alignSelf: 'flex-end',
-              padding: hp('1%'),
-              marginTop: hp('-7.5%'),
-              marginRight: wp('3%'),
-            }}
-          />
+              <Icon
+                onPress={() => navigation.push('AddressList')}
+                name="chevron-forward-outline"
+                color={'#00afb5'}
+                size={40}
+                style={{
+                  alignSelf: 'flex-end',
+                  padding: hp('1%'),
+                  marginTop: hp('-7.5%'),
+                  marginRight: wp('3%'),
+                }}
+              />
+            </View>
+          </CenteredView>
 
           {/* Debug button to toggle MapView */}
-          <TouchableOpacity
-            onPress={() =>
-              setState(prevState => ({
-                ...prevState,
-                disableMapView: !prevState.disableMapView,
-              }))
-            }
-            style={{
-              position: 'absolute',
-              top: hp('15%'),
-              right: wp('5%'),
-              backgroundColor: '#00afb5',
-              padding: 5,
-              borderRadius: 5,
-              zIndex: 1000,
-            }}>
-            <Text style={{color: 'white', fontSize: 10}}>
-              {state.disableMapView ? 'Enable Map' : 'Disable Map'}
-            </Text>
-          </TouchableOpacity>
 
           <Text
             style={{

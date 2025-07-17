@@ -32,6 +32,7 @@ var RNFS = require('react-native-fs');
 import {CustomSpinner} from '../../shared/CustomSpinner';
 import EmptyCart from './EmptyCart';
 import {useLoading} from '../../shared/LoadingContext';
+import CartValidation from '../../shared/CartValidation';
 
 const customStyles = {
   stepCount: 4,
@@ -370,58 +371,9 @@ const Cart = ({navigation}) => {
         hideLoading();
         return;
       }
-
-      const enrichedCartItems = await Promise.all(
-        cartItems.map(async (cartItem, index) => {
-          try {
-            console.log(`Processing cart item ${index + 1}:`, cartItem);
-
-            const productDetailsResponse = await axios.get(
-              `https://fybrappapi.benchstep.com/api/ProductApi/gProductDetails?ProductID=${cartItem.ProductID}`,
-              {headers: {'content-type': 'application/json'}},
-            );
-
-            const productDetails = productDetailsResponse.data;
-            console.log(
-              `Product details for ProductID ${cartItem.ProductID}:`,
-              productDetails,
-            );
-
-            const productItem = productDetails.ProductItems?.find(
-              item => item.ProductItemID === cartItem.ProductItemID,
-            );
-
-            const enrichedItem = {
-              ...cartItem,
-              ProductName: productDetails.ProductName || '',
-              ProductImage: productDetails.ProductImage || '',
-              ProductColor: productDetails.ProductColor || '',
-              ProductSize: productItem?.Size || '',
-              StoreName: productDetails.StoreName || '',
-              StoreLocation: productDetails.StoreLocation || '',
-              DiscountedPrice: productDetails.DiscountedPrice || 0,
-            };
-
-            console.log(`Enriched cart item ${index + 1}:`, enrichedItem);
-            return enrichedItem;
-          } catch (error) {
-            console.error(
-              'Error fetching product details for ProductID:',
-              cartItem.ProductID,
-              error,
-            );
-            return cartItem;
-          }
-        }),
-      );
-
-      console.log('Enriched cart items:', enrichedCartItems);
-
-      console.log('Starting to group products by store...');
-
+      const enrichedCartItems = cartItems;
       const groupedProducts = enrichedCartItems.reduce((acc, product) => {
         const key = `${product.StoreName} - ${product.StoreLocation}`;
-        console.log(`Grouping product for store key: ${key}`);
 
         if (!acc[key]) {
           acc[key] = {
@@ -436,7 +388,6 @@ const Cart = ({navigation}) => {
       }, {});
 
       const groupedArray = Object.values(groupedProducts);
-      console.log('Grouped products:', groupedArray);
 
       const totalUnitPrice = enrichedCartItems
         .reduce(
@@ -638,6 +589,57 @@ const Cart = ({navigation}) => {
       }
     } catch (error) {
       handleError(error, 'Navigating to store');
+    }
+  };
+
+  const handleClearCart = async () => {
+    try {
+      Alert.alert(
+        'Clear Cart',
+        'Are you sure you want to clear all items from your cart?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Clear Cart',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                showLoading();
+                const UserProfileID = await AsyncStorage.getItem(
+                  'LoginUserProfileID',
+                );
+
+                if (!UserProfileID) {
+                  throw new Error('User not logged in');
+                }
+
+                const cartResponse = await axios.get(
+                  `https://fybrappapi.benchstep.com/api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
+                  {headers: {'content-type': 'application/json'}},
+                );
+
+                const cartItems = CartValidation.extractCartItems(cartResponse);
+
+                if (cartItems.length > 0) {
+                  await CartValidation.clearCart(UserProfileID, cartItems);
+                  console.log('✅ Cart cleared successfully');
+                  await fetchCartData(); // Refresh cart data
+                }
+              } catch (error) {
+                console.error('❌ Error clearing cart:', error);
+                Alert.alert('Error', 'Failed to clear cart. Please try again.');
+              } finally {
+                hideLoading();
+              }
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.error('Error in handleClearCart:', error);
     }
   };
 
@@ -1239,22 +1241,28 @@ const Cart = ({navigation}) => {
               </View>
             </View>
 
-            <TouchableOpacity
-              activeOpacity={0.5}
-              onPress={handleCheckout}
-              disabled={state.isLoading}>
-              <View
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                margin: 'auto',
+                marginTop: hp('3%'),
+                // marginHorizontal: wp('8%'),
+              }}>
+              <TouchableOpacity
+                activeOpacity={0.5}
+                onPress={handleCheckout}
+                disabled={state.isLoading}
                 style={{
                   backgroundColor: state.isLoading ? '#ccc' : '#00afb5',
-                  width: wp('85%'),
+                  width: wp('75%'),
                   height: hp('4.5%'),
                   alignItems: 'center',
                   justifyContent: 'center',
-                  alignSelf: 'center',
-                  marginTop: hp('3%'),
-                  marginBottom: hp('1.5%'),
-                  borderColor: '#216e66',
                   borderRadius: 8,
+                  // borderColor: '#216e66',
+                  // borderWidth: 1,
                 }}>
                 <Text
                   style={{
@@ -1265,8 +1273,8 @@ const Cart = ({navigation}) => {
                   }}>
                   {state.isLoading ? 'Processing...' : 'Checkout'}
                 </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </ScrollView>
