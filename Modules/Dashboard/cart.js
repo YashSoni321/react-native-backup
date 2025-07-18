@@ -11,6 +11,8 @@ import {
   ImageBackground,
   FlatList,
   Alert,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -34,37 +36,10 @@ import EmptyCart from './EmptyCart';
 import {useLoading} from '../../shared/LoadingContext';
 import CartValidation from '../../shared/CartValidation';
 import CenteredView from '../Common/CenteredView';
-
-const customStyles = {
-  stepCount: 4,
-  stepIndicatorSize: 25,
-  currentStepIndicatorSize: 30,
-  separatorStrokeWidth: 2,
-  currentStepStrokeWidth: 3,
-  stepStrokeCurrentColor: '#333',
-  stepStrokeWidth: 3,
-  stepStrokeFinishedColor: '#02b008',
-  stepStrokeUnFinishedColor: '#aaaaaa',
-  separatorFinishedColor: '#02b008',
-  separatorUnFinishedColor: '#aaaaaa',
-  stepIndicatorFinishedColor: '#02b008',
-  stepIndicatorUnFinishedColor: '#ffffff',
-  stepIndicatorCurrentColor: '#ffffff',
-  stepIndicatorLabelFontSize: 12,
-  currentStepIndicatorLabelFontSize: 13,
-  stepIndicatorLabelCurrentColor: '#00afb5',
-  stepIndicatorLabelFinishedColor: '#ffffff',
-  stepIndicatorLabelUnFinishedColor: '#c4c4c4',
-  labelColor: '#c4c4c4',
-  labelSize: 12,
-  currentStepLabelColor: '#ffff',
-  labelFontFamily: 'Poppins-Light',
-};
-
-const labels = ['Cart', 'Details', 'Payment'];
+import Geolocation from '@react-native-community/geolocation';
 
 const Cart = ({navigation}) => {
-  const {showLoading, hideLoading, isLoading} = useLoading();
+  const {showLoading, hideLoading} = useLoading();
   const [state, setState] = useState({
     categories1: [
       {
@@ -167,22 +142,125 @@ const Cart = ({navigation}) => {
     }
   };
 
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        // Check if permission is already granted
+        const hasPermission = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+
+        if (hasPermission) {
+          console.log('📍 Location permission already granted');
+          return true;
+        }
+
+        // Request permission
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message:
+              'This app needs access to your location to calculate delivery fees.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+
+        const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+        console.log('📍 Location permission result:', isGranted);
+        return isGranted;
+      }
+      return true; // iOS handles permissions differently
+    } catch (error) {
+      console.error('📍 Location permission error:', error);
+      return false;
+    }
+  };
+
   const getUserLocation = async () => {
     try {
-      const mockUserLocation = {
+      const hasPermission = await requestLocationPermission();
+
+      if (hasPermission) {
+        return new Promise((resolve, reject) => {
+          Geolocation.getCurrentPosition(
+            position => {
+              const currentLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              };
+
+              setState(prevState => ({
+                ...prevState,
+                userLocation: currentLocation,
+              }));
+
+              console.log('📍 Current location:', currentLocation);
+              resolve(currentLocation);
+            },
+            error => {
+              console.error('📍 Location error:', error);
+              Alert.alert(
+                'Error',
+                'Failed to get your location. Using default location instead.',
+              );
+
+              // Fallback to default location
+              const defaultLocation = {
+                latitude: 28.7041,
+                longitude: 79.0011,
+              };
+
+              setState(prevState => ({
+                ...prevState,
+                userLocation: defaultLocation,
+              }));
+
+              resolve(defaultLocation);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0, // Force fresh location
+            },
+          );
+        });
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is required to calculate delivery fees accurately.',
+        );
+
+        // Fallback to default location
+        const defaultLocation = {
+          latitude: 28.7041,
+          longitude: 79.0011,
+        };
+
+        setState(prevState => ({
+          ...prevState,
+          userLocation: defaultLocation,
+        }));
+
+        return defaultLocation;
+      }
+    } catch (error) {
+      console.error('Error getting user location:', error);
+
+      // Fallback to default location
+      const defaultLocation = {
         latitude: 28.7041,
         longitude: 79.0011,
       };
 
       setState(prevState => ({
         ...prevState,
-        userLocation: mockUserLocation,
+        userLocation: defaultLocation,
       }));
 
-      return mockUserLocation;
-    } catch (error) {
-      console.error('Error getting user location:', error);
-      return null;
+      return defaultLocation;
     }
   };
 
@@ -352,7 +430,6 @@ const Cart = ({navigation}) => {
       }
 
       console.log('Processed cartItems:', cartItems);
-
       console.log('Processing cartItems count:', cartItems.length);
 
       if (cartItems.length === 0) {
@@ -372,12 +449,13 @@ const Cart = ({navigation}) => {
         hideLoading();
         return;
       }
+
       // Map and enrich cart items with proper field mapping
       const enrichedCartItems = cartItems.map(item => {
         console.log('🔍 Processing cart item:', item);
 
         // Map the fields properly from the API response
-        const enrichedItem = {
+        return {
           // Cart item fields
           CartID: item.CartID,
           CartItemID: item.CartItemID,
@@ -403,36 +481,36 @@ const Cart = ({navigation}) => {
           Color: item.Color || '',
           SizeID: item.Size || '',
         };
-
-        console.log('✅ Enriched item:', enrichedItem);
-        return enrichedItem;
       });
 
       console.log('📦 All enriched cart items:', enrichedCartItems);
 
-      const groupedProducts = enrichedCartItems.reduce((acc, product) => {
-        const key = `${product.StoreName} - ${product.StoreLocation}`;
+      // Create a simplified structure for the UI
+      // Group products by store for display purposes
+      const storeMap = new Map();
 
-        if (!acc[key]) {
-          acc[key] = {
-            StoreName: product.StoreName,
-            StoreID: product.StoreID,
-            StoreLocation: product.StoreLocation,
+      enrichedCartItems.forEach(item => {
+        if (!storeMap.has(item.StoreID)) {
+          storeMap.set(item.StoreID, {
+            StoreName: item.StoreName,
+            StoreID: item.StoreID,
+            StoreLocation: item.StoreLocation,
             Products: [],
-          };
+          });
         }
-        acc[key].Products.push(product);
-        return acc;
-      }, {});
+        storeMap.get(item.StoreID).Products.push(item);
+      });
 
-      const groupedArray = Object.values(groupedProducts);
+      const groupedArray = Array.from(storeMap.values());
 
+      // Calculate totals
       const totalUnitPrice = enrichedCartItems
         .reduce(
           (sum, product) => sum + (parseFloat(product.TotalPrice) || 0),
           0,
         )
         .toFixed(2);
+
       const rawDiscountPrice = enrichedCartItems.reduce(
         (sum, product) => sum + (parseFloat(product.DiscountedPrice) || 0),
         0,
@@ -447,15 +525,15 @@ const Cart = ({navigation}) => {
       const currentUserLocation = state.userLocation;
       const currentCharges = state.deliveryCharges;
 
+      // Initialize fee data
       let deliveryFeeData = {
         totalDeliveryFee: 0,
         totalConvenienceFee: 0,
         totalPackagingFee: 0,
         grandTotalFees: 0,
       };
-      console.log('currentUserLocation', currentUserLocation);
-      console.log('groupedArray', groupedArray);
 
+      // Calculate delivery fees if we have location and stores
       if (currentUserLocation && groupedArray.length > 0) {
         deliveryFeeData = await calculateTotalDeliveryFees(
           groupedArray,
@@ -478,18 +556,7 @@ const Cart = ({navigation}) => {
         3,
       );
 
-      console.log('Final state update data:', {
-        StreetName: addressResponse.data[0]?.StreetName || '',
-        Pincode: addressResponse.data[0]?.AddressCategory || '',
-        Nearbystores: groupedArray,
-        Nearbystores1: groupedArray,
-        TotalUnitPrice: parseFloat(totalUnitPrice),
-        TotalDiscountPrice: parseFloat(totalDiscountPrice),
-        totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
-        totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
-        totalPackagingFee: deliveryFeeData.totalPackagingFee,
-      });
-
+      // Update state with all the calculated data
       setState(prevState => ({
         ...prevState,
         StreetName: addressResponse.data[0]?.StreetName || '',
@@ -627,57 +694,6 @@ const Cart = ({navigation}) => {
       }
     } catch (error) {
       handleError(error, 'Navigating to store');
-    }
-  };
-
-  const handleClearCart = async () => {
-    try {
-      Alert.alert(
-        'Clear Cart',
-        'Are you sure you want to clear all items from your cart?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Clear Cart',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                showLoading();
-                const UserProfileID = await AsyncStorage.getItem(
-                  'LoginUserProfileID',
-                );
-
-                if (!UserProfileID) {
-                  throw new Error('User not logged in');
-                }
-
-                const cartResponse = await axios.get(
-                  `https://fybrappapi.benchstep.com/api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
-                  {headers: {'content-type': 'application/json'}},
-                );
-
-                const cartItems = CartValidation.extractCartItems(cartResponse);
-
-                if (cartItems.length > 0) {
-                  await CartValidation.clearCart(UserProfileID, cartItems);
-                  console.log('✅ Cart cleared successfully');
-                  await fetchCartData(); // Refresh cart data
-                }
-              } catch (error) {
-                console.error('❌ Error clearing cart:', error);
-                Alert.alert('Error', 'Failed to clear cart. Please try again.');
-              } finally {
-                hideLoading();
-              }
-            },
-          },
-        ],
-      );
-    } catch (error) {
-      console.error('Error in handleClearCart:', error);
     }
   };
 
@@ -912,7 +928,7 @@ const Cart = ({navigation}) => {
 
                       <FlatList
                         data={item.Products}
-                        renderItem={({item: product, index}) => {
+                        renderItem={({item: product}) => {
                           return (
                             <View
                               style={[
@@ -977,7 +993,8 @@ const Cart = ({navigation}) => {
                                       borderWidth: 1,
                                       borderColor: '#00afb5',
                                       marginLeft: wp('3%'),
-                                      backgroundColor: product.ProductColor,
+                                      backgroundColor:
+                                        product.ProductColor.toLowerCase(),
                                       marginTop: hp('1%'),
                                     }}></View>
 
