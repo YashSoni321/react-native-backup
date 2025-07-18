@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useCallback} from 'react';
+import {Buffer} from 'buffer';
 import {
   StyleSheet,
   SafeAreaView,
@@ -30,6 +31,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import PhonePePaymentSDK from 'react-native-phonepe-pg';
 import {URL_key} from '../Api/api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
@@ -41,6 +43,9 @@ import CenteredView from '../Common/CenteredView';
 import GetLocation from 'react-native-get-location';
 import {useLoading} from '../../shared/LoadingContext';
 const reg2 = /^[0-9]+$/;
+
+export const MERCHANT_ID = 'PGTESTPAYUAT86';
+export const SALT_KEY = '96434309-7796-489d-8924-ab56988a6076';
 
 const Checkout = ({navigation, route}) => {
   // Add error boundary
@@ -395,70 +400,148 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
-      const orderId = PhonePeService.generateOrderId();
+      // Generate order data
+      const orderId = `TXN_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
       const totalAmount =
         parseFloat(state.TotalUnitPrice || 0) +
         parseFloat(state.TipAmount || 0);
       const mobileNumber =
         (await AsyncStorage.getItem('MobileNumber')) || '9999999999';
 
-      const orderData = {
-        orderId: orderId,
-        amount: totalAmount,
-        userId: UserProfileID,
-        mobileNumber: mobileNumber,
+      // Try PhonePe SDK first
+      try {
+        console.log('Attempting PhonePe SDK payment...');
+
+        const initResult = await PhonePePaymentSDK.init(
+          'SANDBOX',
+          MERCHANT_ID,
+          null,
+          true,
+        );
+        console.log('initResult', initResult);
+        // await PhonePePaymentSDK.init(
+        //   environmentForSDK,
+        //   merchantId,
+        //   appId,
+        //   isDebuggingEnabled,
+        // ).then(result => {
+        //   // handle promise
+        // });
+
+        if (initResult) {
+          const payload = {
+            merchantId: MERCHANT_ID,
+            merchantTransactionId: orderId,
+            merchantUserId: '90223250',
+            amount: Math.round(totalAmount * 100),
+            redirectUrl: 'fybr://payment/redirect',
+            redirectMode: 'POST',
+            callbackUrl: 'fybr://payment/callback',
+            mobileNumber: mobileNumber,
+            paymentInstrument: {
+              type: 'PAY_PAGE',
+            },
+          };
+
+          const endpoint = '/pg/v1/pay';
+          const checksum = await PhonePeService.generateChecksum(
+            payload,
+            endpoint,
+          );
+          const base64Payload = Buffer.from(JSON.stringify(payload)).toString(
+            'base64',
+          );
+
+          // const transactionResult = await PhonePePaymentSDK.startTransaction(
+          //   base64Payload,
+          //   checksum,
+          //   null,
+          //   'fybr',
+          // );
+          let transactionResultStatus = '';
+          const transactionResult = await PhonePePaymentSDK.startTransaction(
+            base64Payload,
+            checksum,
+            null,
+            'fybr',
+          ).then(a => {
+            transactionResultStatus = a;
+            console.log(a);
+          });
+
+          console.log('PhonePe result:', transactionResult);
+
+          if (transactionResultStatus?.status === 'SUCCESS') {
+            await savePaymentToBackend(orderId, {
+              cartID: cartResponse.data.cartID,
+              UserProfileID,
+              SystemUser,
+              SystemDate,
+              PaymentMethodID: state.PaymentMethodID,
+              TipAmount: state.TipAmount,
+              AddressID: state.AddressID,
+              TotalUnitPrice: state.TotalUnitPrice,
+              TransactionID: orderId,
+            });
+
+            Alert.alert(
+              'Payment Successful',
+              'Your order has been placed successfully!',
+              [{text: 'OK', onPress: () => navigation.push('Orders')}],
+            );
+            setState(prevState => ({...prevState, loading: false}));
+            return;
+          }
+        }
+      } catch (phonepeError) {
+        console.log(
+          'PhonePe SDK failed, trying alternative payment...',
+          phonepeError,
+        );
+      }
+      return;
+      // Fallback: Process as regular payment
+      console.log('Processing as regular payment...');
+
+      const paymentData = {
+        CartID: cartResponse.data.cartID,
+        UserProfileID: UserProfileID,
+        PaymentMethodID: state.PaymentMethodID,
+        AddressID: state.AddressID,
+        TipAmount: state.TipAmount,
+        PaymentAmount: state.TotalUnitPrice,
+        SystemUser: SystemUser,
+        SystemDate: SystemDate,
+        TransactionID: orderId,
       };
 
-      console.log('Initiating PhonePe payment...', orderData);
-
-      // Create PhonePe payment order
-      const paymentResult = await PhonePeService.createPaymentOrder(orderData);
+      const response = await axios.post(
+        URL_key + 'api/ProductApi/sPayment',
+        paymentData,
+        {
+          headers: {
+            'content-type': `application/json`,
+          },
+        },
+      );
 
       setState(prevState => ({...prevState, loading: false}));
 
-      if (paymentResult.success) {
-        // Navigate to PhonePe payment WebView
-        navigation.navigate('PhonePePayment', {
-          paymentUrl: paymentResult.paymentUrl,
-          transactionId: paymentResult.transactionId,
-          orderData: {
-            ...orderData,
-            cartID: cartResponse.data.cartID,
-            UserProfileID,
-            SystemUser,
-            SystemDate,
-            PaymentMethodID: state.PaymentMethodID,
-            TipAmount: state.TipAmount,
-            AddressID: state.AddressID,
-            TotalUnitPrice: state.TotalUnitPrice,
-          },
-          onPaymentResult: handlePaymentResult,
-        });
+      if (response.data === 'INSERTED' || response.data === 'UPDATED') {
+        Alert.alert(
+          'Order Placed Successfully',
+          'Your order has been placed successfully!',
+          [{text: 'OK', onPress: () => navigation.push('Orders')}],
+        );
       } else {
-        handlePaymentError(paymentResult);
+        setState(prevState => ({...prevState, fail: true}));
       }
     } catch (error) {
       setState(prevState => ({...prevState, loading: false}));
-      console.error('PhonePe payment error:', error);
-      Alert.alert('Payment Error', 'Failed to initiate PhonePe payment');
-    }
-  };
-
-  const handlePaymentError = paymentResult => {
-    if (paymentResult.code === 'KEY_NOT_CONFIGURED') {
-      Alert.alert(
-        'PhonePe Configuration Error',
-        'Merchant credentials not configured with PhonePe.\n\n' +
-          'Solution:\n' +
-          '1. Contact PhonePe Business Support\n' +
-          '2. Request test credentials\n' +
-          '3. Visit: business.phonepe.com/dashboard',
-        [{text: 'OK', style: 'default'}],
-      );
-    } else {
+      console.error('Payment error:', error);
       Alert.alert(
         'Payment Error',
-        paymentResult.error || 'Failed to initiate payment',
+        'Unable to process payment. Please try again.',
       );
     }
   };
@@ -1044,9 +1127,6 @@ const Checkout = ({navigation, route}) => {
             </Text>
           )}
 
-          {/* Insert renderCartItems before Order Summary */}
-          {renderCartItems()}
-
           {/* Order Summary */}
           <View
             style={{
@@ -1291,42 +1371,6 @@ const Checkout = ({navigation, route}) => {
     setHasError(true);
     return null;
   }
-};
-
-const renderCartItems = () => {
-  return (
-    <View style={styles.cartItemsContainer}>
-      <Text style={styles.sectionTitle}>Order Items</Text>
-      {state.CartItems.map((item, index) => (
-        <View key={index} style={styles.cartItemContainer}>
-          <Image
-            style={styles.productImage}
-            source={item.ProductImage ? {uri: item.ProductImage} : require('../Images/bb.jpg')}
-            resizeMode="cover"
-          />
-          <View style={styles.productDetails}>
-            <Text style={styles.productName}>{item.ProductName}</Text>
-            <View style={styles.productAttributes}>
-              <View style={{
-                height: hp('2%'),
-                width: hp('2%'),
-                borderRadius: wp('100%'),
-                borderWidth: 1,
-                borderColor: '#00afb5',
-                backgroundColor: item.ProductColor,
-                marginRight: wp('2%')
-              }} />
-              <Text style={styles.productInfo}>{item.ProductSize}</Text>
-            </View>
-            <View style={styles.quantityPrice}>
-              <Text style={styles.quantityText}>Qty: {item.Quantity}</Text>
-              <Text style={styles.priceText}>₹ {item.TotalPrice}</Text>
-            </View>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
 };
 
 const styles = StyleSheet.create({
