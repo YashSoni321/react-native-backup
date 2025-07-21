@@ -252,12 +252,20 @@ const ProductDetails = ({navigation, route}) => {
         return;
       }
 
+      if (!state.StoreID) {
+        console.error('❌ StoreID is missing');
+        Alert.alert('Error', 'Store information is missing. Please try again.');
+        return;
+      }
+
       console.log('🛒 Cart validation data:', {
         ProductID: state.ProductID,
+        ProductItemID: state.ProductItemID,
         StoreID: state.StoreID,
         selectedSize: state.selectedSize,
         selectedColor: state.selectedColor,
         quantity: state.quantity,
+        UnitPrice: state.UnitPrice,
       });
 
       // Use the new cart validation utility
@@ -271,21 +279,25 @@ const ProductDetails = ({navigation, route}) => {
         UnitPrice: state.UnitPrice,
         StoreName: state.ProductsDetails?.StoreName || 'this store',
       };
-      console.log('productDataproductData', productData);
+      console.log('🛒 Product data for cart:', productData);
 
       const result = await CartValidation.addToCartWithValidation(productData);
 
       if (result.success) {
         console.log('✅ Cart operation successful:', result.message);
-        navigation.push('TabC');
+        Alert.alert('Success', result.message, [
+          {text: 'OK', onPress: () => navigation.push('TabC')},
+        ]);
       } else {
         console.error('❌ Cart operation failed:', result.message);
         if (result.action !== 'cancelled') {
+          Alert.alert('Error', result.message || 'Failed to add item to cart.');
           setState(prev => ({...prev, fail: true}));
         }
       }
     } catch (err) {
       console.error('❌ Error in addToCart:', err);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
       setState(prev => ({...prev, fail: true}));
     }
   };

@@ -699,13 +699,34 @@ const Cart = ({navigation}) => {
 
   const handleCheckout = () => {
     try {
+      console.log('🛒 Starting checkout process...');
+      console.log('🛒 Cart state:', {
+        TotalUnitPrice: state.TotalUnitPrice,
+        TotalDiscountPrice: state.TotalDiscountPrice,
+        totalDeliveryFee: state.totalDeliveryFee,
+        totalConvenienceFee: state.totalConvenienceFee,
+        totalPackagingFee: state.totalPackagingFee,
+        cartItems: state.Nearbystores1,
+      });
+
       // Calculate total amount with all fees
+      const subtotal = state.TotalUnitPrice || 0;
+      const discount = state.TotalDiscountPrice || 0;
+      const deliveryFee = state.totalDeliveryFee || 0;
+      const convenienceFee = state.totalConvenienceFee || 0;
+      const packagingFee = state.totalPackagingFee || 0;
+
       const totalAmount =
-        (state.TotalUnitPrice || 0) -
-        (state.TotalDiscountPrice || 0) +
-        (state.totalDeliveryFee || 0) +
-        (state.totalConvenienceFee || 0) +
-        (state.totalPackagingFee || 0);
+        subtotal - discount + deliveryFee + convenienceFee + packagingFee;
+
+      console.log('💰 Amount breakdown:', {
+        subtotal,
+        discount,
+        deliveryFee,
+        convenienceFee,
+        packagingFee,
+        totalAmount,
+      });
 
       // Validate that we have a valid total
       if (totalAmount <= 0) {
@@ -713,20 +734,42 @@ const Cart = ({navigation}) => {
         return;
       }
 
-      // Pass complete data to checkout
+      // Validate cart items
+      if (!state.Nearbystores1 || state.Nearbystores1.length === 0) {
+        Alert.alert(
+          'Error',
+          'Your cart is empty. Please add items before checkout.',
+        );
+        return;
+      }
+
+      // Pass complete data to checkout with proper structure
+      const checkoutData = {
+        TotalUnitPrice: totalAmount, // Final total amount
+        Subtotal: subtotal, // Original cart total
+        DiscountedPrice: discount, // Total discount
+        DeliveryFee: deliveryFee,
+        ConvenienceFee: convenienceFee,
+        PackagingFee: packagingFee,
+        CartItems: state.Nearbystores1 || [],
+        // Add additional fields for backend
+        ItemCount: state.Nearbystores1.reduce(
+          (count, store) =>
+            count + (store.Products ? store.Products.length : 0),
+          0,
+        ),
+        StoreCount: state.Nearbystores1.length,
+        OriginalTotal: subtotal,
+        FinalTotal: totalAmount,
+      };
+
+      console.log('📤 Checkout data being sent:', checkoutData);
+
       navigation.push('Checkout', {
-        data: {
-          TotalUnitPrice: totalAmount,
-          Subtotal: state.TotalUnitPrice || 0,
-          DiscountedPrice: state.TotalDiscountPrice || 0,
-          DeliveryFee: state.totalDeliveryFee || 0,
-          ConvenienceFee: state.totalConvenienceFee || 0,
-          PackagingFee: state.totalPackagingFee || 0,
-          CartItems: state.Nearbystores1 || [],
-        },
+        data: checkoutData,
       });
     } catch (error) {
-      console.error('Checkout error:', error);
+      console.error('❌ Checkout error:', error);
       Alert.alert('Error', 'Failed to proceed to checkout. Please try again.');
     }
   };

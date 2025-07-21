@@ -42,6 +42,7 @@ import {PAYMENT_MOCK_DATA} from '../MockData/paymentMockData';
 import CenteredView from '../Common/CenteredView';
 import GetLocation from 'react-native-get-location';
 import {useLoading} from '../../shared/LoadingContext';
+import BookingDebugger from '../../shared/BookingDebugger';
 const reg2 = /^[0-9]+$/;
 
 export const MERCHANT_ID = 'PGTESTPAYUAT86';
@@ -52,34 +53,6 @@ const Checkout = ({navigation, route}) => {
   const {showLoading, hideLoading} = useLoading();
   const [hasError, setHasError] = useState(false);
 
-  if (hasError) {
-    return (
-      <SafeAreaView
-        style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <Text
-          style={{
-            fontSize: 16,
-            color: '#333',
-            textAlign: 'center',
-            marginBottom: 20,
-          }}>
-          Something went wrong with the checkout.
-        </Text>
-        <TouchableOpacity
-          onPress={() => {
-            setHasError(false);
-            navigation.goBack();
-          }}
-          style={{
-            backgroundColor: '#00afb5',
-            padding: 15,
-            borderRadius: 8,
-          }}>
-          <Text style={{color: 'white', fontSize: 14}}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
   // State management
   const [state, setState] = useState({
     PaymentMethodList: [],
@@ -264,6 +237,8 @@ const Checkout = ({navigation, route}) => {
 
   const loadAddressData = async UserProfileID => {
     try {
+      console.log('📍 Loading address data for user:', UserProfileID);
+
       const addressResponse = await axios.get(
         URL_key +
           'api/AddressApi/gCustomerAddress?UserProfileID=' +
@@ -275,43 +250,83 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
-      // const stateResponse = await axios.get(
-      //   URL_key + 'api/AddressApi/gStateList',
-      //   {
-      //     headers: {
-      //       'content-type': `application/json`,
-      //     },
-      //   },
-      // );
+      console.log('📍 Address response:', addressResponse.data);
 
-      const preferredAddress = addressResponse.data.filter(
-        data => data.IsPreferred === true,
-      );
+      if (addressResponse.data && addressResponse.data.length > 0) {
+        const preferredAddress = addressResponse.data.find(
+          data => data.IsPreferred === true,
+        );
 
-      if (preferredAddress.length > 0) {
-        const address = preferredAddress[0];
-        const latitude = Number(address.Latitude);
-        const longitude = Number(address.Longitude);
+        const selectedAddress = preferredAddress || addressResponse.data[0];
+        const selectedAddressID = selectedAddress.AddressID;
 
-        // Validate coordinates
-        if (isValidCoordinate(latitude, longitude)) {
-          // setState(prevState => ({
-          //   ...prevState,
-          //   Latitude: latitude,
-          //   Longitude: longitude,
-          //   AddressID: address.AddressID,
-          // }));
-        } else {
-          console.warn('Invalid coordinates received:', {latitude, longitude});
-          setState(prevState => ({
-            ...prevState,
-            error:
-              'Invalid delivery address coordinates. Please update your address.',
-          }));
+        console.log('📍 Selected address:', {
+          addressID: selectedAddressID,
+          isPreferred: !!preferredAddress,
+          totalAddresses: addressResponse.data.length,
+        });
+
+        // Set the address ID for payment processing
+        setState(prevState => ({
+          ...prevState,
+          AddressID: selectedAddressID,
+        }));
+
+        // Validate coordinates if available
+        if (selectedAddress.Latitude && selectedAddress.Longitude) {
+          const latitude = Number(selectedAddress.Latitude);
+          const longitude = Number(selectedAddress.Longitude);
+
+          if (isValidCoordinate(latitude, longitude)) {
+            console.log('📍 Valid coordinates:', {latitude, longitude});
+          } else {
+            console.warn('⚠️ Invalid coordinates received:', {
+              latitude,
+              longitude,
+            });
+            setState(prevState => ({
+              ...prevState,
+              error:
+                'Invalid delivery address coordinates. Please update your address.',
+            }));
+          }
         }
+
+        BookingDebugger.log(
+          'Address loaded successfully',
+          {
+            addressCount: addressResponse.data.length,
+            selectedAddressID,
+            preferredAddress: !!preferredAddress,
+          },
+          'info',
+        );
+      } else {
+        console.warn('⚠️ No addresses found for user');
+        BookingDebugger.log(
+          'No addresses found',
+          {
+            userProfileID: UserProfileID,
+          },
+          'warning',
+        );
+
+        setState(prevState => ({
+          ...prevState,
+          error: 'No delivery address found. Please add an address first.',
+        }));
       }
     } catch (error) {
-      console.error('Failed to load address data:', error);
+      console.error('❌ Failed to load address data:', error);
+      BookingDebugger.log(
+        'Address loading error',
+        {
+          error: error.message,
+          userProfileID: UserProfileID,
+        },
+        'error',
+      );
+
       setState(prevState => ({
         ...prevState,
         error: 'Failed to load address data. Please try again.',
@@ -336,14 +351,36 @@ const Checkout = ({navigation, route}) => {
   // Payment processing
   const processPayment = async () => {
     try {
+      BookingDebugger.log('Starting payment process', {}, 'info');
+      console.log('🔄 Starting payment process...');
+
+      // Validate booking prerequisites
+      const validation = await BookingDebugger.validateBookingPrerequisites();
+      if (!validation.isValid) {
+        BookingDebugger.log(
+          'Booking prerequisites validation failed',
+          validation,
+          'error',
+        );
+        Alert.alert('Error', validation.message);
+        return;
+      }
+
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       const SystemUser = await AsyncStorage.getItem('FullName');
       const SystemDate = moment().format('YYYY-MM-DD hh:mm:ss A');
+
+      BookingDebugger.trackPayment('User data retrieved', {
+        UserProfileID,
+        SystemUser,
+        SystemDate,
+      });
 
       setState(prevState => ({
         ...prevState,
         PaymentMethodIDerror: false,
         TipAmountErrior: false,
+        loading: true,
       }));
 
       // Validation
@@ -351,6 +388,7 @@ const Checkout = ({navigation, route}) => {
         setState(prevState => ({
           ...prevState,
           TipAmountErrior: true,
+          loading: false,
         }));
         return;
       }
@@ -359,25 +397,33 @@ const Checkout = ({navigation, route}) => {
         setState(prevState => ({
           ...prevState,
           PaymentMethodIDerror: true,
+          loading: false,
         }));
         return;
       }
+
+      console.log('✅ Payment validation passed');
 
       // Check if PhonePe payment method is selected
       const selectedPaymentMethod = state.PaymentMethodList.find(
         method => method.PaymentMethodID === state.PaymentMethodID,
       );
 
+      console.log('💳 Selected payment method:', selectedPaymentMethod);
+
       if (
         selectedPaymentMethod &&
         selectedPaymentMethod.PaymentMethod === 'UPI'
       ) {
+        console.log('📱 Processing PhonePe payment...');
         await initiatePhonePePayment(UserProfileID, SystemUser, SystemDate);
       } else {
+        console.log('💳 Processing regular payment...');
         await processRegularPayment(UserProfileID, SystemUser, SystemDate);
       }
     } catch (error) {
-      console.error('Payment processing error:', error);
+      console.error('❌ Payment processing error:', error);
+      setState(prevState => ({...prevState, loading: false}));
       Alert.alert('Error', 'Failed to process payment. Please try again.');
     }
   };
@@ -499,21 +545,38 @@ const Checkout = ({navigation, route}) => {
           phonepeError,
         );
       }
-      return;
+
       // Fallback: Process as regular payment
       console.log('Processing as regular payment...');
+
+      // Calculate final payment amount including tip
+      const baseAmount = state.TotalUnitPrice || 0;
+      const tipAmount = parseFloat(state.TipAmount || 0);
+      const finalPaymentAmount = baseAmount + tipAmount;
 
       const paymentData = {
         CartID: cartResponse.data.cartID,
         UserProfileID: UserProfileID,
         PaymentMethodID: state.PaymentMethodID,
         AddressID: state.AddressID,
-        TipAmount: state.TipAmount,
-        PaymentAmount: state.TotalUnitPrice,
+        TipAmount: tipAmount,
+        PaymentAmount: finalPaymentAmount,
         SystemUser: SystemUser,
         SystemDate: SystemDate,
         TransactionID: orderId,
+        // Additional fields for backend
+        Subtotal: route?.params?.data?.Subtotal || 0,
+        DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
+        DeliveryFee: route?.params?.data?.DeliveryFee || 0,
+        ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
+        PackagingFee: route?.params?.data?.PackagingFee || 0,
+        ItemCount: route?.params?.data?.ItemCount || 0,
+        StoreCount: route?.params?.data?.StoreCount || 0,
+        OriginalTotal: route?.params?.data?.OriginalTotal || 0,
+        FinalTotal: finalPaymentAmount,
       };
+
+      console.log('💳 PhonePe fallback payment data:', paymentData);
 
       const response = await axios.post(
         URL_key + 'api/ProductApi/sPayment',
@@ -552,6 +615,17 @@ const Checkout = ({navigation, route}) => {
     SystemDate,
   ) => {
     try {
+      console.log('💳 Processing regular payment...');
+
+      // Validate required data
+      if (!state.PaymentMethodID) {
+        throw new Error('Payment method not selected');
+      }
+
+      if (!state.AddressID) {
+        throw new Error('Delivery address not selected');
+      }
+
       const cartResponse = await axios.get(
         URL_key + 'api/ProductApi/gLatestCardID?UserProfileID=' + UserProfileID,
         {
@@ -561,16 +635,48 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
+      console.log('🛒 Cart response:', cartResponse.data);
+
+      // Calculate final payment amount including tip
+      const baseAmount = state.TotalUnitPrice || 0;
+      const tipAmount = parseFloat(state.TipAmount || 0);
+      const finalPaymentAmount = baseAmount + tipAmount;
+
+      console.log('💰 Payment amount calculation:', {
+        baseAmount,
+        tipAmount,
+        finalPaymentAmount,
+      });
+
       const paymentData = {
         CartID: cartResponse.data,
         UserProfileID: UserProfileID,
         PaymentMethodID: state.PaymentMethodID,
         AddressID: state.AddressID,
-        TipAmount: state.TipAmount,
-        PaymentAmount: state.TotalUnitPrice,
+        TipAmount: tipAmount,
+        PaymentAmount: finalPaymentAmount,
         SystemUser: SystemUser,
         SystemDate: SystemDate,
+        // Additional fields for backend
+        Subtotal: route?.params?.data?.Subtotal || 0,
+        DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
+        DeliveryFee: route?.params?.data?.DeliveryFee || 0,
+        ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
+        PackagingFee: route?.params?.data?.PackagingFee || 0,
+        ItemCount: route?.params?.data?.ItemCount || 0,
+        StoreCount: route?.params?.data?.StoreCount || 0,
+        OriginalTotal: route?.params?.data?.OriginalTotal || 0,
+        FinalTotal: finalPaymentAmount,
       };
+
+      console.log('💳 Complete payment data:', paymentData);
+
+      BookingDebugger.trackApiCall(
+        '/api/ProductApi/sPayment',
+        paymentData,
+        {},
+        true,
+      );
 
       const response = await axios.post(
         URL_key + 'api/ProductApi/sPayment',
@@ -582,14 +688,59 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
+      console.log('💳 Payment response:', response.data);
+
+      BookingDebugger.trackApiCall(
+        '/api/ProductApi/sPayment',
+        paymentData,
+        response.data,
+        response.data === 'INSERTED' || response.data === 'UPDATED',
+      );
+
+      setState(prevState => ({...prevState, loading: false}));
+
       if (response.data === 'INSERTED' || response.data === 'UPDATED') {
-        navigation.push('Orders');
+        BookingDebugger.log(
+          'Payment successful',
+          {
+            paymentData,
+            response: response.data,
+          },
+          'success',
+        );
+
+        Alert.alert(
+          'Order Placed Successfully',
+          'Your order has been placed successfully!',
+          [{text: 'OK', onPress: () => navigation.push('Orders')}],
+        );
       } else {
+        console.error('❌ Payment failed with response:', response.data);
+        BookingDebugger.log(
+          'Payment failed',
+          {
+            paymentData,
+            response: response.data,
+          },
+          'error',
+        );
+
         setState(prevState => ({...prevState, fail: true}));
+        Alert.alert('Error', 'Payment processing failed. Please try again.');
       }
     } catch (error) {
-      console.error('Regular payment error:', error);
-      setState(prevState => ({...prevState, fail: true}));
+      console.error('❌ Regular payment error:', error);
+      BookingDebugger.log(
+        'Payment error',
+        {
+          error: error.message,
+          stack: error.stack,
+        },
+        'error',
+      );
+
+      setState(prevState => ({...prevState, loading: false, fail: true}));
+      Alert.alert('Error', 'Payment processing failed. Please try again.');
     }
   };
 
@@ -621,6 +772,8 @@ const Checkout = ({navigation, route}) => {
 
   const savePaymentToBackend = async (transactionId, paymentData) => {
     try {
+      console.log('💾 Saving payment to backend...');
+
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       const SystemUser = await AsyncStorage.getItem('FullName');
       const SystemDate = moment().format('YYYY-MM-DD hh:mm:ss A');
@@ -634,17 +787,41 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
+      // Calculate final payment amount including tip
+      const baseAmount = state.TotalUnitPrice || 0;
+      const tipAmount = parseFloat(state.TipAmount || 0);
+      const finalPaymentAmount = baseAmount + tipAmount;
+
       const backendPaymentData = {
         CartID: cartResponse.data,
         UserProfileID: UserProfileID,
         PaymentMethodID: state.PaymentMethodID,
         AddressID: state.AddressID,
-        TipAmount: state.TipAmount,
-        PaymentAmount: state.TotalUnitPrice,
+        TipAmount: tipAmount,
+        PaymentAmount: finalPaymentAmount,
         SystemUser: SystemUser,
         SystemDate: SystemDate,
         TransactionID: transactionId,
+        // Additional fields for backend
+        Subtotal: route?.params?.data?.Subtotal || 0,
+        DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
+        DeliveryFee: route?.params?.data?.DeliveryFee || 0,
+        ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
+        PackagingFee: route?.params?.data?.PackagingFee || 0,
+        ItemCount: route?.params?.data?.ItemCount || 0,
+        StoreCount: route?.params?.data?.StoreCount || 0,
+        OriginalTotal: route?.params?.data?.OriginalTotal || 0,
+        FinalTotal: finalPaymentAmount,
       };
+
+      console.log('💾 Backend payment data:', backendPaymentData);
+
+      BookingDebugger.trackApiCall(
+        '/api/ProductApi/sPayment (backend)',
+        backendPaymentData,
+        {},
+        true,
+      );
 
       const response = await axios.post(
         URL_key + 'api/ProductApi/sPayment',
@@ -656,11 +833,37 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
+      console.log('💾 Backend payment response:', response.data);
+
+      BookingDebugger.trackApiCall(
+        '/api/ProductApi/sPayment (backend)',
+        backendPaymentData,
+        response.data,
+        response.data === 'INSERTED' || response.data === 'UPDATED',
+      );
+
       if (response.data !== 'INSERTED' && response.data !== 'UPDATED') {
         throw new Error('Backend payment save failed');
       }
+
+      BookingDebugger.log(
+        'Backend payment saved successfully',
+        {
+          transactionId,
+          response: response.data,
+        },
+        'success',
+      );
     } catch (error) {
-      console.error('Backend payment save error:', error);
+      console.error('❌ Backend payment save error:', error);
+      BookingDebugger.log(
+        'Backend payment save error',
+        {
+          error: error.message,
+          transactionId,
+        },
+        'error',
+      );
       throw error;
     }
   };
@@ -1072,6 +1275,22 @@ const Checkout = ({navigation, route}) => {
           </CenteredView>
 
           {/* Debug button to toggle MapView */}
+          <TouchableOpacity
+            onPress={() => BookingDebugger.showDebugInfo()}
+            style={{
+              position: 'absolute',
+              top: hp('15%'),
+              right: wp('5%'),
+              backgroundColor: '#00afb5',
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+            }}>
+            <Icon name="bug" color="white" size={20} />
+          </TouchableOpacity>
 
           <Text
             style={{

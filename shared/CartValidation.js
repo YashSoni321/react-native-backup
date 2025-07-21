@@ -281,11 +281,19 @@ class CartValidation {
    */
   static async addNewCartItem(productData) {
     try {
+      console.log('🛒 Adding new cart item:', productData);
+
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       const SystemUser = await AsyncStorage.getItem('FullName');
       const SystemDate = new Date().toISOString();
 
+      if (!UserProfileID) {
+        console.error('❌ UserProfileID not found');
+        return {success: false, message: 'User not logged in'};
+      }
+
       const latestCartID = await apiService.getLatestCartID(UserProfileID);
+      console.log('🛒 Latest Cart ID:', latestCartID);
 
       const cartItem = {
         CartID: latestCartID,
@@ -302,22 +310,28 @@ class CartValidation {
         Color: productData.Color,
       };
 
-      console.log('cartItemtobesend', cartItem);
+      console.log('🛒 Cart item to send:', cartItem);
 
       const response = await apiService.addToCart(cartItem);
+      console.log('🛒 Add to cart response:', response);
 
       if (response.Result === 'INSERTED') {
         await AsyncStorage.setItem('CartID', response.CartID.toString());
+        console.log('✅ Cart item added successfully');
         return {
           success: true,
           cartItem: {...cartItem, CartItemID: response.CartItemID},
         };
       } else {
-        return {success: false};
+        console.error('❌ Failed to add cart item:', response);
+        return {success: false, message: 'Failed to add item to cart'};
       }
     } catch (error) {
-      console.error('Error adding new cart item:', error);
-      return {success: false};
+      console.error('❌ Error adding new cart item:', error);
+      return {
+        success: false,
+        message: error.message || 'Unknown error occurred',
+      };
     }
   }
 
