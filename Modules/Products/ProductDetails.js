@@ -35,8 +35,6 @@ import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
 
-var RNFS = require('react-native-fs');
-
 const ProductDetails = ({navigation, route}) => {
   const [state, setState] = useState({
     Size: [
@@ -93,12 +91,6 @@ const ProductDetails = ({navigation, route}) => {
 
       const response = await apiService.getCustomerAddress(UserProfileID);
       const stateResponse = await apiService.getStateDDL();
-
-      const cou =
-        stateResponse?.filter(data => data.StateID == response[0]?.StateID) ||
-        [];
-
-      console.log('📍 Address data:', response[0]);
 
       setState(prev => ({
         ...prev,

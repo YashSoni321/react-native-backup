@@ -13,6 +13,7 @@ import {
   Alert,
   Platform,
   PermissionsAndroid,
+  Modal,
 } from 'react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -37,9 +38,16 @@ import {useLoading} from '../../shared/LoadingContext';
 import CartValidation from '../../shared/CartValidation';
 import CenteredView from '../Common/CenteredView';
 import Geolocation from '@react-native-community/geolocation';
+import {SummaryRow} from '../Common/SummaryRow';
 
 const Cart = ({navigation}) => {
   const {showLoading, hideLoading} = useLoading();
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [isCouponValid, setIsCouponValid] = useState(false);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [state, setState] = useState({
     categories1: [
       {
@@ -53,6 +61,8 @@ const Cart = ({navigation}) => {
         nav: 'Receivables',
       },
     ],
+    appliedCoupon: null,
+    appliedCouponDiscount: 0,
     categories: [
       {
         name: 'Grocery',
@@ -141,6 +151,97 @@ const Cart = ({navigation}) => {
       console.error('Error fetching delivery charges:', error);
     }
   };
+
+  const validateCoupon = async code => {
+    try {
+      const couponToValidate = code || couponCode;
+
+      if (!couponToValidate?.trim()) {
+        setCouponMessage('Please enter a coupon code.');
+        return;
+      }
+
+      showLoading();
+
+      // Find coupon in available coupons
+      const selectedCoupon = availableCoupons.find(
+        c => c.CouponCode === couponToValidate.toUpperCase(),
+      );
+
+      if (!selectedCoupon) {
+        setCouponMessage('Invalid coupon code.');
+        setIsCouponValid(false);
+        hideLoading();
+        return;
+      }
+
+      // Check minimum order amount
+      if (state.TotalUnitPrice < selectedCoupon.MinimumOrderAmount) {
+        setCouponMessage(
+          `Minimum order amount of ₹${selectedCoupon.MinimumOrderAmount} required.`,
+        );
+        setIsCouponValid(false);
+        hideLoading();
+        return;
+      }
+
+      // Calculate discount
+      let discountValue = 0;
+      if (selectedCoupon.DiscountType === 'Flat') {
+        discountValue = selectedCoupon.CouponDiscount;
+      } else {
+        // Percentage discount
+        discountValue =
+          (state.TotalUnitPrice * selectedCoupon.CouponDiscount) / 100;
+      }
+
+      // Update state with applied coupon
+      setState(prev => ({
+        ...prev,
+        appliedCoupon: selectedCoupon,
+        appliedCouponDiscount: discountValue,
+      }));
+
+      setIsCouponValid(true);
+      setCouponMessage(
+        `Coupon applied! You saved ₹${discountValue.toFixed(2)}`,
+      );
+      setShowCouponModal(false);
+
+      hideLoading();
+    } catch (error) {
+      hideLoading();
+      setIsCouponValid(false);
+      setCouponMessage('Error validating coupon. Try again.');
+      console.error('Coupon validation error:', error);
+    }
+  };
+
+  const removeCoupon = () => {
+    setState(prev => ({
+      ...prev,
+      appliedCoupon: null,
+      appliedCouponDiscount: 0,
+    }));
+    setIsCouponValid(false);
+    setCouponCode('');
+    setCouponMessage('');
+  };
+
+  const fetchCoupons = async () => {
+    try {
+      const response = await axios.get(`${URL_key}api/ProductApi/gCoupons`);
+      setAvailableCoupons(response.data || []);
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (showCouponModal) {
+      fetchCoupons();
+    }
+  }, [showCouponModal]);
 
   const requestLocationPermission = async () => {
     try {
@@ -367,6 +468,23 @@ const Cart = ({navigation}) => {
       handleError(error, 'Time calculation');
       return '0 mins';
     }
+  };
+
+  const generateCouponDescription = coupon => {
+    const amount = `₹${coupon.MinimumOrderAmount}`;
+    const discount =
+      coupon.DiscountType === 'Flat'
+        ? `₹${coupon.CouponDiscount}`
+        : `${coupon.CouponDiscount}%`;
+
+    return (
+      <Text key={coupon.CouponID}>
+        <Text style={{fontWeight: 'bold', color: '#000'}}>
+          {coupon.CouponCode}
+        </Text>
+        {`: Get ${discount} off on orders above ${amount}`}
+      </Text>
+    );
   };
 
   const fetchCartData = async () => {
@@ -761,6 +879,9 @@ const Cart = ({navigation}) => {
         StoreCount: state.Nearbystores1.length,
         OriginalTotal: subtotal,
         FinalTotal: totalAmount,
+        // Coupon data
+        AppliedCoupon: state.appliedCoupon,
+        CouponDiscount: state.appliedCouponDiscount,
       };
 
       console.log('📤 Checkout data being sent:', checkoutData);
@@ -1112,230 +1233,321 @@ const Cart = ({navigation}) => {
               }}>
               Coupons
             </Text>
-            <View style={{flexDirection: 'row'}}>
-              <View
-                style={{
-                  justifyContent: 'center',
-                  borderWidth: 0.7,
-                  height: hp('4.5%'),
-                  borderColor: '#00afb5',
-                  marginTop: hp('2%'),
-                  backgroundColor: '#ffff',
-                  width: wp('60%'),
-                  marginBottom: hp('1%'),
-                  textAlignVertical: 'top',
-                  marginLeft: wp('7%'),
-                }}>
-                <TextInput
-                  placeholder="Enter coupon no."
-                  fontFamily={'Poppins-Light'}
-                  placeholderTextColor={'#666'}
-                  color={'black'}
-                  fontSize={10}
-                  onChangeText={SearchFilterFunction}
+            <View style={{marginHorizontal: wp('7%'), marginTop: hp('2%')}}>
+              {/* Coupon Input Section */}
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <View
                   style={{
-                    padding: hp('1%'),
-                    width: wp('58%'),
-                    marginLeft: wp('1%'),
-                  }}
-                />
+                    flex: 1,
+                    borderWidth: 0.7,
+                    height: hp('4.5%'),
+                    borderColor: isCouponValid ? '#2ecc71' : '#00afb5',
+                    backgroundColor: '#ffff',
+                    borderRadius: 4,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <TextInput
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChangeText={text => {
+                      setCouponCode(text.toUpperCase());
+                      setCouponMessage('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: hp('1%'),
+                      fontFamily: 'Poppins-Light',
+                      color: 'black',
+                      fontSize: 12,
+                    }}
+                    autoCapitalize="characters"
+                  />
+                  {state.appliedCoupon && (
+                    <TouchableOpacity
+                      onPress={removeCoupon}
+                      style={{padding: 8}}>
+                      <Icon name="close-circle" size={16} color="#ff4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  onPress={() => validateCoupon()}
+                  style={{
+                    backgroundColor: '#00afb5',
+                    paddingHorizontal: wp('4%'),
+                    paddingVertical: hp('1%'),
+                    borderRadius: 4,
+                    marginLeft: 8,
+                  }}>
+                  <Text style={{color: 'white', fontSize: 12}}>Apply</Text>
+                </TouchableOpacity>
               </View>
-              <View>
+
+              {/* Coupon Message */}
+              {couponMessage ? (
                 <Text
                   style={{
-                    fontSize: 7,
-                    color: '#333',
+                    fontSize: 11,
+                    color: isCouponValid ? '#2ecc71' : '#ff4444',
+                    marginTop: 4,
                     fontFamily: 'Poppins-Light',
-                    marginTop: hp('3.5%'),
-                    marginLeft: wp('11%'),
-                    marginRight: wp('5%'),
                   }}>
-                  Browse coupons
+                  {couponMessage}
                 </Text>
-              </View>
+              ) : (
+                <TouchableOpacity onPress={() => setShowCouponModal(true)}>
+                  {/* <Text
+                    style={{
+                      fontSize: 11,
+                      color: '#00afb5',
+                      marginTop: 4,
+                      fontFamily: 'Poppins-Light',
+                      textDecorationLine: 'underline',
+                    }}>
+                    View available coupons
+                  </Text> */}
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setShowCouponModal(true)}>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: '#00afb5',
+                    marginTop: 4,
+                    fontFamily: 'Poppins-Light',
+                    textDecorationLine: 'underline',
+                  }}>
+                  View available coupons
+                </Text>
+              </TouchableOpacity>
             </View>
 
+            <Modal
+              visible={showCouponModal}
+              animationType="slide"
+              transparent={true}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  justifyContent: 'flex-end',
+                }}>
+                <View
+                  style={{
+                    height: '50%',
+                    backgroundColor: '#fff',
+                    borderTopLeftRadius: 24,
+                    borderTopRightRadius: 24,
+                    paddingHorizontal: 20,
+                    padding: 10,
+                    shadowColor: '#000',
+                    shadowOffset: {width: 0, height: -3},
+                    shadowOpacity: 0.15,
+                    shadowRadius: 8,
+                    elevation: 10,
+                  }}>
+                  <View style={{alignItems: 'center', marginBottom: 8}}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 5,
+                        backgroundColor: '#ccc',
+                        borderRadius: 3,
+                      }}
+                    />
+                  </View>
+
+                  {/* Title */}
+                  <Text
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      marginBottom: 16,
+                      color: '#333',
+                    }}>
+                    🎉 Grab Your Coupons
+                  </Text>
+
+                  {/* Coupons List */}
+                  <FlatList
+                    data={availableCoupons}
+                    keyExtractor={(item, index) => `${item.code}-${index}`}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{paddingBottom: 20}}
+                    renderItem={({item}) => (
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: '#f0f9ff',
+                          borderRadius: 14,
+                          padding: 14,
+                          marginBottom: 12,
+                          borderLeftWidth: 5,
+                          borderLeftColor: '#00bcd4',
+                          shadowColor: '#000',
+                          shadowOffset: {width: 0, height: 2},
+                          shadowOpacity: 0.07,
+                          shadowRadius: 6,
+                          elevation: 2,
+                        }}
+                        onPress={() => {
+                          setCouponCode(item.CouponCode);
+                          setShowCouponModal(false);
+                          validateCoupon(item.CouponCode);
+                        }}>
+                        <Text
+                          style={{
+                            fontSize: 17,
+                            fontWeight: 'bold',
+                            color: '#007b83',
+                          }}>
+                          {item.CouponCode}
+                        </Text>
+                        {item.description && (
+                          <Text
+                            style={{color: '#444', fontSize: 13, marginTop: 4}}>
+                            {item.description}
+                          </Text>
+                        )}
+                        <Text
+                          style={{color: '#666', fontSize: 12, marginTop: 4}}>
+                          {generateCouponDescription(item)}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    ListEmptyComponent={
+                      <Text
+                        style={{
+                          color: '#888',
+                          textAlign: 'center',
+                          marginTop: 20,
+                          fontSize: 14,
+                        }}>
+                        😔 No coupons available right now.
+                      </Text>
+                    }
+                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowCouponModal(false);
+                    }}
+                    style={{
+                      backgroundColor: '#00afb5',
+                      paddingHorizontal: wp('5%'),
+                      paddingVertical: hp('1%'),
+                      borderRadius: wp('3%'),
+                      marginTop: hp('2%'),
+                    }}>
+                    <Text
+                      style={{
+                        textAlign: 'center',
+                        color: '#fff',
+                        fontWeight: '600',
+                        fontSize: 15,
+                      }}>
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
             <View
               style={{
                 marginTop: hp('2%'),
                 marginHorizontal: wp('8%'),
-                backgroundColor: '#f8f8f8',
-                borderRadius: 8,
-                padding: 15,
               }}>
               <Text
                 style={{
-                  fontSize: 12,
-                  color: '#333',
-                  fontFamily: 'Poppins-Medium',
+                  fontSize: 14,
+                  color: '#222',
+                  fontFamily: 'Poppins-SemiBold',
                   marginBottom: hp('2%'),
                 }}>
                 Payment Summary
               </Text>
 
-              <View style={{marginBottom: hp('1%')}}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Subtotal
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    ₹ {state.TotalUnitPrice.toFixed(2)}
-                  </Text>
-                </View>
+              {/* Subtotal */}
+              <SummaryRow label="Subtotal" value={state.TotalUnitPrice} />
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Delivery Fees
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: state.totalDeliveryFee > 0 ? '#333' : '#e74c3c',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    ₹ {state.totalDeliveryFee.toFixed(2)}
-                    {state.totalDeliveryFee === 0 && ' (Free)'}
-                  </Text>
-                </View>
+              {/* Delivery Fees */}
+              <SummaryRow
+                label="Delivery Fees"
+                value={state.totalDeliveryFee}
+                isFree={state.totalDeliveryFee === 0}
+              />
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Discounted Price
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    - ₹ {state.TotalDiscountPrice.toFixed(2)}
-                  </Text>
-                </View>
+              {/* Discounted Price */}
+              <SummaryRow
+                label="Item Discount"
+                value={-state.TotalDiscountPrice}
+              />
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Convenience Fees
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: state.totalConvenienceFee > 0 ? '#333' : '#e74c3c',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    ₹ {state.totalConvenienceFee.toFixed(2)}
-                    {state.totalConvenienceFee === 0 && ' (Free)'}
-                  </Text>
-                </View>
+              {/* Coupon Discount */}
+              {state.appliedCoupon && (
+                <SummaryRow
+                  label={`Coupon (${state.appliedCoupon.CouponCode})`}
+                  value={-state.appliedCouponDiscount}
+                  valueColor="#2ecc71"
+                />
+              )}
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: '#333',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Packaging Fees
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      color: state.totalPackagingFee > 0 ? '#333' : '#e74c3c',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    ₹ {state.totalPackagingFee.toFixed(2)}
-                    {state.totalPackagingFee === 0 && ' (Free)'}
-                  </Text>
-                </View>
+              {/* Convenience Fees */}
+              <SummaryRow
+                label="Convenience Fee"
+                value={state.totalConvenienceFee}
+                isFree={state.totalConvenienceFee === 0}
+              />
 
-                <View
+              {/* Packaging Fees */}
+              <SummaryRow
+                label="Packaging Fee"
+                value={state.totalPackagingFee}
+                isFree={state.totalPackagingFee === 0}
+              />
+
+              {/* Divider */}
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: '#eee',
+                  marginVertical: hp('1.5%'),
+                }}
+              />
+
+              {/* Total */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}>
+                <Text
                   style={{
-                    borderTopWidth: 1,
-                    borderTopColor: '#ddd',
-                    paddingTop: hp('1%'),
-                    marginTop: hp('1%'),
+                    fontSize: 13,
+                    color: '#000',
+                    fontFamily: 'Poppins-SemiBold',
                   }}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: '#333',
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      Total amount
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 11,
-                        color: '#333',
-                        fontFamily: 'Poppins-Medium',
-                      }}>
-                      ₹{' '}
-                      {(
-                        state.TotalUnitPrice -
-                        state.TotalDiscountPrice +
-                        state.totalDeliveryFee +
-                        state.totalConvenienceFee +
-                        state.totalPackagingFee
-                      ).toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
+                  Total Amount
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: '#000',
+                    fontFamily: 'Poppins-SemiBold',
+                  }}>
+                  ₹{' '}
+                  {(
+                    state.TotalUnitPrice -
+                    state.TotalDiscountPrice -
+                    state.appliedCouponDiscount +
+                    state.totalDeliveryFee +
+                    state.totalConvenienceFee +
+                    state.totalPackagingFee
+                  ).toFixed(2)}
+                </Text>
               </View>
             </View>
+
             <CenteredView>
               <View
                 style={{

@@ -183,54 +183,53 @@ const Orders = ({navigation}) => {
       setLoading(true);
       setError(null);
 
-      // Get UserProfileID from AsyncStorage
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+      if (!UserProfileID) throw new Error('User not logged in');
 
-      if (!UserProfileID) {
-        throw new Error('User not logged in');
-      }
-
-      // Fetch Order List
       const orderResponse = await axios.get(
-        URL_key + 'api/ProductApi/gOrderList?UserProfileID=' + UserProfileID,
-        {headers: {'content-type': 'application/json'}},
+        `${URL_key}api/ProductApi/gOrderList?UserProfileID=${UserProfileID}`,
+        {headers: {'Content-Type': 'application/json'}},
       );
 
-      let orders = orderResponse.data;
+      let orders = orderResponse.data || [];
 
-      // Loop through each order and fetch product details for each OrderItem
-      for (let order of orders) {
-        if (order.OrderItems && Array.isArray(order.OrderItems)) {
-          for (let item of order.OrderItems) {
-            try {
-              const productResponse = await axios.get(
-                URL_key +
-                  'api/ProductApi/gProductDetails?ProductID=' +
-                  item.ProductID,
-                {headers: {'content-type': 'application/json'}},
-              );
-
-              // Extract store details from product response
-              if (productResponse.data) {
-                item.StoreName = productResponse.data.StoreName;
-                item.StoreLocation = productResponse.data.StoreLocation;
-              }
-            } catch (productError) {
-              console.error(
-                'Error fetching product details for ProductID:',
-                item.ProductID,
-                productError,
-              );
-              // Set default values if product details fail to load
-              item.StoreName = 'Store';
-              item.StoreLocation = 'Location';
-            }
+      // Fetch product details in parallel
+      const updatedOrders = await Promise.all(
+        orders.map(async order => {
+          if (Array.isArray(order.OrderItems)) {
+            const updatedItems = await Promise.all(
+              order.OrderItems.map(async item => {
+                try {
+                  const productRes = await axios.get(
+                    `${URL_key}api/ProductApi/gProductDetails?ProductID=${item.ProductID}`,
+                    {headers: {'Content-Type': 'application/json'}},
+                  );
+                  return {
+                    ...item,
+                    StoreName: productRes.data?.StoreName || 'Store',
+                    StoreLocation: productRes.data?.StoreLocation || 'Location',
+                  };
+                } catch (err) {
+                  console.error('Product detail error:', item.ProductID, err);
+                  return {
+                    ...item,
+                    StoreName: 'Store',
+                    StoreLocation: 'Location',
+                  };
+                }
+              }),
+            );
+            return {...order, OrderItems: updatedItems};
           }
-        }
-      }
+          return order;
+        }),
+      );
 
-      console.log('Orders data:', JSON.stringify(orders));
-      setOrdersList(orders);
+      // Reverse the order list
+      const reversedOrders = updatedOrders.reverse();
+
+      console.log('Orders data:', JSON.stringify(reversedOrders));
+      setOrdersList(reversedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       setError(error.message || 'Failed to load orders');

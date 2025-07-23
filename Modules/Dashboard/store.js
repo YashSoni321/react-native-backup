@@ -43,6 +43,7 @@ import Normalize from '../Size/size';
 import NoResults from './NoResults';
 import ErrorMessage from '../../shared/ErrorMessage';
 import {useLoading} from '../../shared/LoadingContext';
+import {getUserLocation} from '../Common/locationHelper';
 
 const Store = ({navigation}) => {
   const {showLoading, hideLoading, isLoading} = useLoading();
@@ -145,49 +146,8 @@ const Store = ({navigation}) => {
   };
 
   // Calculate time difference function
-  const calculateTimeDifference = (start, end) => {
-    try {
-      const startTime = new Date(`1970-01-01T${start}Z`);
-      const endTime = new Date(`1970-01-01T${end}Z`);
-
-      const diffMs = endTime - startTime;
-      const diffMinutes = Math.floor(diffMs / 60000);
-
-      if (diffMinutes < 60) {
-        return `${diffMinutes} mins`;
-      } else {
-        const hours = Math.floor(diffMinutes / 60);
-        const minutes = diffMinutes % 60;
-        return minutes === 0
-          ? `${hours} hours`
-          : `${hours} hours ${minutes} mins`;
-      }
-    } catch (error) {
-      handleError(error, 'Time calculation');
-      return '0 mins';
-    }
-  };
 
   // Calculate distance between two coordinates using Haversine formula
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    try {
-      const R = 6371; // Radius of Earth in kilometers
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-      return distance;
-    } catch (error) {
-      handleError(error, 'Distance calculation');
-      return 0;
-    }
-  };
 
   // Estimate delivery time based on distance
   const estimateDeliveryTime = distanceKm => {
@@ -216,144 +176,123 @@ const Store = ({navigation}) => {
     }
   };
 
-  // Get user location
-  const getUserLocation = async () => {
-    try {
-      // Mock user location for now - you can replace this with actual location service
-      const mockUserLocation = {
-        latitude: 28.7041,
-        longitude: 77.1025,
-      };
-
-      setState(prevState => ({
-        ...prevState,
-        userLocation: mockUserLocation,
-      }));
-
-      return mockUserLocation;
-    } catch (error) {
-      handleError(error, 'Getting user location');
-      return {
-        latitude: 28.7041,
-        longitude: 77.1025,
-      };
-    }
-  };
-
   // Fetch data function
   const fetchData = async () => {
     try {
-        showLoading('fetching_data', 'Fetching store list.');
-      setState(prevState => ({...prevState, isLoading: true, error: null}));
+      showLoading('fetching_data', 'Fetching store list.');
+      setState(prev => ({...prev, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
 
-      // Get user location first
+      // Get user location
       const userLocation = await getUserLocation();
+      if (!userLocation) throw new Error('User location not available');
 
-      // Fetch address data
-      const addressResponse = await axios.get(
-        URL_key +
-          'api/AddressApi/gCustomerAddress?UserProfileID=' +
-          UserProfileID,
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      // Fetch all required data in parallel
+      const [addressRes, stateRes, storeRes] = await Promise.all([
+        axios.get(
+          `${URL_key}api/AddressApi/gCustomerAddress?UserProfileID=${UserProfileID}`,
+        ),
+        axios.get(`${URL_key}api/AddressApi/gStateDDL`),
+        axios.get(`${URL_key}api/ProductApi/gStoreList`),
+      ]);
 
-      const stateResponse = await axios.get(
-        URL_key + 'api/AddressApi/gStateDDL',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      const stores = storeRes.data || [];
 
-      const stateData = stateResponse.data.filter(
-        data => data.StateID === addressResponse.data[0]?.StateID,
-      );
+      const transformedStores = stores.map(store => {
+        const {
+          Latitude,
+          Longitude,
+          StoreName,
+          StoreID,
+          StoreLocation,
+          StartTiming,
+          EndTiming,
+          DeliveryCharges,
+          IsDeliveryCharges,
+          StoreImage,
+          IsStoreClosed,
+        } = store;
 
-      // Fetch store list
-      const storeResponse = await axios.get(
-        URL_key + 'api/ProductApi/gStoreList',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+        const storeLat = parseFloat(Latitude);
+        const storeLon = parseFloat(Longitude);
 
-      console.log('storeList', storeResponse.data);
-
-      const calculateTimeDifference = (start, end) => {
-        const startTime = new Date(`1970-01-01T${start}Z`);
-        const endTime = new Date(`1970-01-01T${end}Z`);
-
-        const diffMinutes = (endTime - startTime) / 60000;
-        const hours = Math.floor(diffMinutes / 60);
-        const minutes = diffMinutes % 60;
-
-        return minutes === 0
-          ? `${hours} hours`
-          : `${hours} hours ${minutes} mins`;
-      };
-
-      // Transform stores data with delivery time calculation
-      const transformedStores = storeResponse.data.map(store => {
-        let deliveryTime = '30 mins'; // Default delivery time
         let distance = 0;
+        let deliveryTime = '30 mins';
 
-        if (userLocation && store.Latitude && store.Longitude) {
-          // Calculate distance between user and store
+        if (!isNaN(storeLat) && !isNaN(storeLon)) {
           distance = calculateDistance(
             userLocation.latitude,
             userLocation.longitude,
-            parseFloat(store.Latitude),
-            parseFloat(store.Longitude),
+            storeLat,
+            storeLon,
           );
-
-          // Estimate delivery time based on distance
           deliveryTime = estimateDeliveryTime(distance);
-
-          // Debug log for testing
-          console.log(
-            `Store: ${store.StoreName}, Distance: ${distance.toFixed(
-              1,
-            )}km, Delivery Time: ${deliveryTime}`,
-          );
         }
 
         return {
-          StoreID: store.StoreID,
-          StoreName: store.StoreName,
-          StoreLocation: store.StoreLocation,
-          Timing: calculateTimeDifference(store.StartTiming, store.EndTiming),
-          DeliveryCharges: store.DeliveryCharges,
-          IsDeliveryCharges: store.IsDeliveryCharges,
-          StoreImage: store.StoreImage,
-          IsStoreClosed: store.IsStoreClosed,
-          Latitude: store.Latitude,
-          Longitude: store.Longitude,
+          StoreID,
+          StoreName,
+          StoreLocation,
+          Timing: calculateTimeDiff(StartTiming, EndTiming),
+          DeliveryCharges,
+          IsDeliveryCharges,
+          StoreImage,
+          IsStoreClosed,
+          Latitude,
+          Longitude,
           DeliveryTime: deliveryTime,
-          Distance: distance.toFixed(1), // Distance in km
+          Distance: distance.toFixed(1),
         };
       });
+
       hideLoading('fetching_data');
 
-      setState(prevState => ({
-        ...prevState,
-        StreetName: addressResponse.data[0]?.StreetName || '',
-        Pincode: addressResponse.data[0]?.AddressCategory || '',
+      const address = addressRes.data?.[0] || {};
+
+      setState(prev => ({
+        ...prev,
+        StreetName: address.StreetName || '',
+        Pincode: address.AddressCategory || '',
         Storelist: transformedStores,
         Storelist1: transformedStores,
         isLoading: false,
-        error: null,
       }));
     } catch (error) {
+      hideLoading('fetching_data');
       handleError(error, 'Fetching data');
+    }
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    try {
+      const R = 6371; // Radius of Earth in KM
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    } catch (e) {
+      handleError(e, 'Distance calc error');
+      return 0;
+    }
+  };
+
+  const calculateTimeDiff = (start, end) => {
+    try {
+      const s = new Date(`1970-01-01T${start}Z`);
+      const e = new Date(`1970-01-01T${end}Z`);
+      const diff = Math.max((e - s) / 60000, 0);
+      const hrs = Math.floor(diff / 60);
+      const mins = diff % 60;
+      return mins === 0 ? `${hrs} hrs` : `${hrs} hrs ${mins} mins`;
+    } catch (e) {
+      return 'N/A';
     }
   };
 
