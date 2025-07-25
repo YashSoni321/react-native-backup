@@ -1017,7 +1017,7 @@ const Home = props => {
                   </View>
                 </ImageBackground>
 
-                {banner == 'true' ? (
+                {banner == 'false' ? (
                   <></>
                 ) : (
                   <>

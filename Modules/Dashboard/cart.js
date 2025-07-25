@@ -1330,24 +1330,28 @@ const Cart = ({navigation}) => {
               <View
                 style={{
                   flex: 1,
+
                   backgroundColor: 'rgba(0,0,0,0.4)',
                   justifyContent: 'flex-end',
                 }}>
                 <View
                   style={{
-                    height: '50%',
+                    height: '52%',
+                    // padding: hp('10%'),
                     backgroundColor: '#fff',
                     borderTopLeftRadius: 24,
                     borderTopRightRadius: 24,
                     paddingHorizontal: 20,
-                    padding: 10,
+                    paddingTop: 14,
+                    paddingBottom: 14,
                     shadowColor: '#000',
                     shadowOffset: {width: 0, height: -3},
                     shadowOpacity: 0.15,
                     shadowRadius: 8,
-                    elevation: 10,
+                    elevation: 20,
                   }}>
-                  <View style={{alignItems: 'center', marginBottom: 8}}>
+                  {/* Swipe handle */}
+                  <View style={{alignItems: 'center', marginBottom: 12}}>
                     <View
                       style={{
                         width: 40,
@@ -1361,13 +1365,24 @@ const Cart = ({navigation}) => {
                   {/* Title */}
                   <Text
                     style={{
-                      fontSize: 22,
-                      fontWeight: 'bold',
+                      fontSize: 20,
+                      fontWeight: '600',
+                      textAlign: 'center',
+                      marginBottom: 8,
+                      color: '#222',
+                    }}>
+                    🎁 Available Coupons
+                  </Text>
+
+                  {/* Subtitle */}
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: '#666',
                       textAlign: 'center',
                       marginBottom: 16,
-                      color: '#333',
                     }}>
-                    🎉 Grab Your Coupons
+                    Tap to apply a coupon instantly!
                   </Text>
 
                   {/* Coupons List */}
@@ -1375,21 +1390,22 @@ const Cart = ({navigation}) => {
                     data={availableCoupons}
                     keyExtractor={(item, index) => `${item.code}-${index}`}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{paddingBottom: 20}}
+                    contentContainerStyle={{paddingBottom: 16}}
                     renderItem={({item}) => (
                       <TouchableOpacity
+                        activeOpacity={0.9}
                         style={{
-                          backgroundColor: '#f0f9ff',
-                          borderRadius: 14,
-                          padding: 14,
-                          marginBottom: 12,
-                          borderLeftWidth: 5,
-                          borderLeftColor: '#00bcd4',
+                          backgroundColor: '#e6faff',
+                          borderRadius: 12,
+                          padding: 16,
+                          marginBottom: 14,
+                          borderLeftWidth: 4,
+                          borderLeftColor: '#00afb5',
                           shadowColor: '#000',
                           shadowOffset: {width: 0, height: 2},
-                          shadowOpacity: 0.07,
+                          shadowOpacity: 0.05,
                           shadowRadius: 6,
-                          elevation: 2,
+                          elevation: 1,
                         }}
                         onPress={() => {
                           setCouponCode(item.CouponCode);
@@ -1398,20 +1414,29 @@ const Cart = ({navigation}) => {
                         }}>
                         <Text
                           style={{
-                            fontSize: 17,
-                            fontWeight: 'bold',
+                            fontSize: 16,
+                            fontWeight: '700',
                             color: '#007b83',
                           }}>
                           {item.CouponCode}
                         </Text>
                         {item.description && (
                           <Text
-                            style={{color: '#444', fontSize: 13, marginTop: 4}}>
+                            style={{
+                              color: '#333',
+                              fontSize: 13,
+                              marginTop: 4,
+                              lineHeight: 18,
+                            }}>
                             {item.description}
                           </Text>
                         )}
                         <Text
-                          style={{color: '#666', fontSize: 12, marginTop: 4}}>
+                          style={{
+                            color: '#666',
+                            fontSize: 12,
+                            marginTop: 6,
+                          }}>
                           {generateCouponDescription(item)}
                         </Text>
                       </TouchableOpacity>
@@ -1428,23 +1453,24 @@ const Cart = ({navigation}) => {
                       </Text>
                     }
                   />
+
+                  {/* Close Button */}
                   <TouchableOpacity
                     onPress={() => {
                       setShowCouponModal(false);
                     }}
                     style={{
                       backgroundColor: '#00afb5',
-                      paddingHorizontal: wp('5%'),
-                      paddingVertical: hp('1%'),
-                      borderRadius: wp('3%'),
-                      marginTop: hp('2%'),
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      marginTop: 10,
                     }}>
                     <Text
                       style={{
                         textAlign: 'center',
                         color: '#fff',
                         fontWeight: '600',
-                        fontSize: 15,
+                        fontSize: 16,
                       }}>
                       Close
                     </Text>
@@ -1452,6 +1478,7 @@ const Cart = ({navigation}) => {
                 </View>
               </View>
             </Modal>
+
             <View
               style={{
                 marginTop: hp('2%'),
