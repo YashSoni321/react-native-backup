@@ -165,9 +165,9 @@ class BookingDebugger {
       .map(log => `${log.timestamp}: ${log.step}`)
       .join('\n');
 
-    Alert.alert('Booking Debug Info', `Recent logs:\n${logText}`, [
-      {text: 'OK'},
-    ]);
+    // Alert.alert('Booking Debug Info', `Recent logs:\n${logText}`, [
+    //   {text: 'OK'},
+    // ]);
   }
 
   /**

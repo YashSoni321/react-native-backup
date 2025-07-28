@@ -77,7 +77,15 @@ const Checkout = ({navigation, route}) => {
     mapReady: false,
     mapError: false,
     disableMapView: false, // Add this to completely disable MapView if needed
+    paymentProcessing: false, // Add this to prevent double submission
   });
+
+  // Add helper function for amount calculation
+  const calculateFinalAmount = () => {
+    const baseAmount = parseFloat(state.TotalUnitPrice) || 0;
+    const tipAmount = parseFloat(state.TipAmount) || 0;
+    return (baseAmount + tipAmount).toFixed(2);
+  };
 
   // Input change handler
   const handleInputChange = useCallback(
@@ -326,6 +334,11 @@ const Checkout = ({navigation, route}) => {
   // Payment processing
   const processPayment = async () => {
     try {
+      if (state.paymentProcessing) {
+        console.log('Payment already in progress');
+        return;
+      }
+
       BookingDebugger.log('Starting payment process', {}, 'info');
       console.log('🔄 Starting payment process...');
 
@@ -341,6 +354,32 @@ const Checkout = ({navigation, route}) => {
         return;
       }
 
+      // Basic validations
+      if (!state.PaymentMethodID) {
+        setState(prevState => ({
+          ...prevState,
+          PaymentMethodIDerror: true,
+        }));
+        return;
+      }
+
+      if (state.TipAmount && !reg2.test(state.TipAmount)) {
+        setState(prevState => ({
+          ...prevState,
+          TipAmountErrior: true,
+        }));
+        return;
+      }
+
+      // Set payment processing state
+      setState(prevState => ({
+        ...prevState,
+        paymentProcessing: true,
+        loading: true,
+        PaymentMethodIDerror: false,
+        TipAmountErrior: false,
+      }));
+
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       const SystemUser = await AsyncStorage.getItem('FullName');
       const SystemDate = moment().format('YYYY-MM-DD hh:mm:ss A');
@@ -351,55 +390,42 @@ const Checkout = ({navigation, route}) => {
         SystemDate,
       });
 
-      setState(prevState => ({
-        ...prevState,
-        PaymentMethodIDerror: false,
-        TipAmountErrior: false,
-        loading: true,
-      }));
-
-      // Validation
-      if (state.TipAmount != null && reg2.test(state.TipAmount) !== true) {
-        setState(prevState => ({
-          ...prevState,
-          TipAmountErrior: true,
-          loading: false,
-        }));
-        return;
-      }
-
-      if (state.PaymentMethodID == null) {
-        setState(prevState => ({
-          ...prevState,
-          PaymentMethodIDerror: true,
-          loading: false,
-        }));
-        return;
-      }
-
-      console.log('✅ Payment validation passed');
-
-      // Check if PhonePe payment method is selected
+      // Check payment method
       const selectedPaymentMethod = state.PaymentMethodList.find(
         method => method.PaymentMethodID === state.PaymentMethodID,
       );
 
-      console.log('💳 Selected payment method:', selectedPaymentMethod);
+      if (!selectedPaymentMethod) {
+        throw new Error('Invalid payment method selected');
+      }
 
-      if (
-        selectedPaymentMethod &&
-        selectedPaymentMethod.PaymentMethod === 'UPI'
-      ) {
-        console.log('📱 Processing PhonePe payment...');
+      if (selectedPaymentMethod.PaymentMethod === 'UPI') {
         await initiatePhonePePayment(UserProfileID, SystemUser, SystemDate);
       } else {
-        console.log('💳 Processing regular payment...');
         await processRegularPayment(UserProfileID, SystemUser, SystemDate);
       }
     } catch (error) {
       console.error('❌ Payment processing error:', error);
-      setState(prevState => ({...prevState, loading: false}));
-      Alert.alert('Error', 'Failed to process payment. Please try again.');
+      BookingDebugger.log(
+        'Payment error',
+        {
+          error: error.message,
+          stack: error.stack,
+        },
+        'error',
+      );
+
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        paymentProcessing: false,
+        fail: true,
+      }));
+
+      Alert.alert(
+        'Payment Failed',
+        'Unable to process payment. Please try again.',
+      );
     }
   };
 
@@ -493,6 +519,11 @@ const Checkout = ({navigation, route}) => {
           console.log('PhonePe result:', transactionResult);
 
           if (transactionResultStatus?.status === 'SUCCESS') {
+            Alert.alert(
+              'Payment Successful',
+              'Your order has been placed successfully!',
+              [{text: 'OK', onPress: () => navigation.push('Orders')}],
+            );
             await savePaymentToBackend(orderId, {
               cartID: cartResponse.data.cartID,
               UserProfileID,
@@ -505,12 +536,14 @@ const Checkout = ({navigation, route}) => {
               TransactionID: orderId,
             });
 
-            Alert.alert(
-              'Payment Successful',
-              'Your order has been placed successfully!',
-              [{text: 'OK', onPress: () => navigation.push('Orders')}],
-            );
             setState(prevState => ({...prevState, loading: false}));
+            return;
+          } else {
+            Alert.alert(
+              'Payment Failed',
+              'Your payment could not be processed. Please try again.',
+              [{text: 'OK', onPress: () => navigation.push('Cart')}],
+            );
             return;
           }
         }
@@ -590,17 +623,6 @@ const Checkout = ({navigation, route}) => {
     SystemDate,
   ) => {
     try {
-      console.log('💳 Processing regular payment...');
-
-      // Validate required data
-      if (!state.PaymentMethodID) {
-        throw new Error('Payment method not selected');
-      }
-
-      if (!state.AddressID) {
-        throw new Error('Delivery address not selected');
-      }
-
       const cartResponse = await axios.get(
         URL_key + 'api/ProductApi/gLatestCardID?UserProfileID=' + UserProfileID,
         {
@@ -610,31 +632,14 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
-      console.log('🛒 Cart response:', cartResponse.data);
+      if (!cartResponse.data) {
+        throw new Error('Invalid cart data received');
+      }
 
-      // Calculate final payment amount including tip
-      const baseAmount = state.TotalUnitPrice || 0;
-      const tipAmount = parseFloat(state.TipAmount || 0);
-      const finalPaymentAmount = baseAmount + tipAmount;
-
-      console.log('💰 Payment amount calculation:', {
-        baseAmount,
-        tipAmount,
-        finalPaymentAmount,
-      });
-
-      console.log('route?.params', route?.params);
-
+      const finalAmount = calculateFinalAmount();
       const paymentData = {
         CartID: cartResponse.data,
         UserProfileID: UserProfileID,
-        // PaymentMethodID: state.PaymentMethodID,
-        // AddressID: state.AddressID,
-        // TipAmount: tipAmount,
-        // PaymentAmount: finalPaymentAmount,
-        // SystemUser: SystemUser,
-        // SystemDate: SystemDate,
-        // // Additional fields for backend
         Subtotal: route?.params?.data?.Subtotal || 0,
         DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
         DeliveryFee: route?.params?.data?.DeliveryFee || 0,
@@ -643,11 +648,11 @@ const Checkout = ({navigation, route}) => {
         ItemCount: route?.params?.data?.ItemCount || 0,
         StoreCount: route?.params?.data?.StoreCount || 0,
         OriginalTotal: route?.params?.data?.OriginalTotal || 0,
-        FinalTotal: finalPaymentAmount,
+        FinalTotal: finalAmount,
         PaymentMethodID: state.PaymentMethodID,
         AddressID: state.AddressID,
-        TipAmount: tipAmount,
-        PaymentAmount: finalPaymentAmount,
+        TipAmount: parseFloat(state.TipAmount) || 0,
+        PaymentAmount: finalAmount,
         BaseDeliveryFee:
           route?.params?.data?.DeliveryFeeDetails?.BaseDeliveryFee || 0,
         AdditionDistanceFee:
@@ -660,14 +665,6 @@ const Checkout = ({navigation, route}) => {
           route?.params?.data?.DeliveryFeeDetails?.RainyWeatherBaseFee || 0,
         AdditionalDistanceKM:
           route?.params?.data?.DeliveryFeeDetails?.AdditionalDistanceKM || 0,
-        // CardNumber: 'sample string 13',
-        // CardHolderName: 'sample string 14',
-        // CVV: 'sample string 15',
-        // Validity: 'sample string 16',
-        // MobileNumber: 'sample string 17',
-        // UPIType: 'sample string 18',
-        // UPINumber: 'sample string 19',
-        // UPID: 'sample string 20',
         CouponID: route?.params?.data?.CouponID || 0,
         DiscountTypeID: route?.params?.data?.DiscountTypeID || 0,
         CouponDiscount: route?.params?.data?.CouponDiscount || 0,
@@ -675,8 +672,6 @@ const Checkout = ({navigation, route}) => {
         SystemUser: SystemUser,
         SystemDate: SystemDate,
       };
-
-      console.log('💳 Complete payment data:', paymentData);
 
       BookingDebugger.trackApiCall(
         '/api/ProductApi/sPayment',
@@ -695,8 +690,6 @@ const Checkout = ({navigation, route}) => {
         },
       );
 
-      console.log('💳 Payment response:', response.data);
-
       BookingDebugger.trackApiCall(
         '/api/ProductApi/sPayment',
         paymentData,
@@ -704,7 +697,11 @@ const Checkout = ({navigation, route}) => {
         response.data === 'INSERTED' || response.data === 'UPDATED',
       );
 
-      setState(prevState => ({...prevState, loading: false}));
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        paymentProcessing: false,
+      }));
 
       if (response.data === 'INSERTED' || response.data === 'UPDATED') {
         BookingDebugger.log(
@@ -722,18 +719,7 @@ const Checkout = ({navigation, route}) => {
           [{text: 'OK', onPress: () => navigation.push('Orders')}],
         );
       } else {
-        console.error('❌ Payment failed with response:', response.data);
-        BookingDebugger.log(
-          'Payment failed',
-          {
-            paymentData,
-            response: response.data,
-          },
-          'error',
-        );
-
-        setState(prevState => ({...prevState, fail: true}));
-        Alert.alert('Error', 'Payment processing failed. Please try again.');
+        throw new Error('Payment failed: ' + response.data);
       }
     } catch (error) {
       console.error('❌ Regular payment error:', error);
@@ -746,8 +732,17 @@ const Checkout = ({navigation, route}) => {
         'error',
       );
 
-      setState(prevState => ({...prevState, loading: false, fail: true}));
-      Alert.alert('Error', 'Payment processing failed. Please try again.');
+      setState(prevState => ({
+        ...prevState,
+        loading: false,
+        paymentProcessing: false,
+        fail: true,
+      }));
+
+      Alert.alert(
+        'Payment Failed',
+        'Payment processing failed. Please try again.',
+      );
     }
   };
 
@@ -1067,7 +1062,11 @@ const Checkout = ({navigation, route}) => {
             visible={state.fail}
             title="Payment Failed"
             onTouchOutside={() =>
-              setState(prevState => ({...prevState, fail: false}))
+              setState(prevState => ({
+                ...prevState,
+                fail: false,
+                paymentProcessing: false,
+              }))
             }
             dialogStyle={{
               backgroundColor: '#ffff',
@@ -1076,6 +1075,15 @@ const Checkout = ({navigation, route}) => {
               borderRadius: wp('2%'),
             }}>
             <View style={{alignItems: 'center'}}>
+              {/* <Image
+                source={require('../Images/payment-failed.png')}
+                style={{
+                  width: 60,
+                  height: 60,
+                  marginBottom: 10,
+                }}
+              /> */}
+
               <Text
                 style={{
                   fontSize: 15,
@@ -1087,10 +1095,17 @@ const Checkout = ({navigation, route}) => {
                 Payment processing failed. Please try again.
               </Text>
               <TouchableOpacity
-                style={styles.SubmitButtonStyledd}
+                style={[
+                  styles.SubmitButtonStyledd,
+                  {backgroundColor: '#ff4444'},
+                ]}
                 activeOpacity={0.5}
                 onPress={() =>
-                  setState(prevState => ({...prevState, fail: false}))
+                  setState(prevState => ({
+                    ...prevState,
+                    fail: false,
+                    paymentProcessing: false,
+                  }))
                 }>
                 <Text
                   style={{
@@ -1099,7 +1114,7 @@ const Checkout = ({navigation, route}) => {
                     fontSize: 15,
                     fontFamily: 'Poppins-SemiBold',
                   }}>
-                  OK
+                  Close
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1537,11 +1552,16 @@ const Checkout = ({navigation, route}) => {
 
           <TouchableOpacity
             activeOpacity={0.5}
-            disabled={state.loading || !state.TotalUnitPrice}
+            disabled={
+              state.loading || !state.TotalUnitPrice || state.paymentProcessing
+            }
             onPress={processPayment}>
             <View
               style={{
-                backgroundColor: state.loading ? '#cccccc' : '#00afb5',
+                backgroundColor:
+                  state.loading || state.paymentProcessing
+                    ? '#cccccc'
+                    : '#00afb5',
                 width: wp('80%'),
                 height: hp('5%'),
                 alignSelf: 'center',
@@ -1551,7 +1571,7 @@ const Checkout = ({navigation, route}) => {
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              {state.loading ? (
+              {state.loading || state.paymentProcessing ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
                 <Text
@@ -1561,7 +1581,7 @@ const Checkout = ({navigation, route}) => {
                     fontSize: 15,
                     fontFamily: 'Poppins-SemiBold',
                   }}>
-                  Get it delivered
+                  Get it delivered - ₹{calculateFinalAmount()}
                 </Text>
               )}
             </View>
