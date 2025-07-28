@@ -185,14 +185,42 @@ const Cart = ({navigation}) => {
         return;
       }
 
+      // Validate with API
+      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+      const response = await axios.post(
+        'https://fybrappapi.benchstep.com/api/ProductApi/vUserCoupon',
+        {
+          UserProfileID: parseInt(UserProfileID),
+          CouponID: selectedCoupon.CouponID,
+        },
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      );
+      console.log('response.data ', response.data);
+
+      if (response.data !== 'ALLOW') {
+        setCouponMessage('This coupon cannot be applied to your account.');
+        setIsCouponValid(false);
+        hideLoading();
+        return;
+      }
+
       // Calculate discount
       let discountValue = 0;
       if (selectedCoupon.DiscountType === 'Flat') {
-        discountValue = selectedCoupon.CouponDiscount;
+        discountValue = Math.min(
+          selectedCoupon.CouponDiscount,
+          state.TotalUnitPrice,
+        );
       } else {
         // Percentage discount
-        discountValue =
-          (state.TotalUnitPrice * selectedCoupon.CouponDiscount) / 100;
+        discountValue = Math.min(
+          (state.TotalUnitPrice * selectedCoupon.CouponDiscount) / 100,
+          state.TotalUnitPrice,
+        );
       }
 
       // Update state with applied coupon
@@ -1495,26 +1523,36 @@ const Cart = ({navigation}) => {
               </Text>
 
               {/* Subtotal */}
-              <SummaryRow label="Subtotal" value={state.TotalUnitPrice} />
+              <SummaryRow
+                label="Subtotal"
+                value={Math.max(0, state.TotalUnitPrice)}
+              />
 
               {/* Delivery Fees */}
               <SummaryRow
                 label="Delivery Fees"
-                value={state.totalDeliveryFee}
+                value={Math.max(0, state.totalDeliveryFee)}
                 isFree={state.totalDeliveryFee === 0}
               />
 
               {/* Discounted Price */}
               <SummaryRow
                 label="Item Discount"
-                value={-state.TotalDiscountPrice}
+                value={
+                  -Math.min(state.TotalDiscountPrice, state.TotalUnitPrice)
+                }
               />
 
               {/* Coupon Discount */}
               {state.appliedCoupon && (
                 <SummaryRow
                   label={`Coupon (${state.appliedCoupon.CouponCode})`}
-                  value={-state.appliedCouponDiscount}
+                  value={
+                    -Math.min(
+                      state.appliedCouponDiscount,
+                      state.TotalUnitPrice - state.TotalDiscountPrice,
+                    )
+                  }
                   valueColor="#2ecc71"
                 />
               )}
@@ -1522,14 +1560,14 @@ const Cart = ({navigation}) => {
               {/* Convenience Fees */}
               <SummaryRow
                 label="Convenience Fee"
-                value={state.totalConvenienceFee}
+                value={Math.max(0, state.totalConvenienceFee)}
                 isFree={state.totalConvenienceFee === 0}
               />
 
               {/* Packaging Fees */}
               <SummaryRow
                 label="Packaging Fee"
-                value={state.totalPackagingFee}
+                value={Math.max(0, state.totalPackagingFee)}
                 isFree={state.totalPackagingFee === 0}
               />
 
@@ -1563,14 +1601,20 @@ const Cart = ({navigation}) => {
                     fontFamily: 'Poppins-SemiBold',
                   }}>
                   ₹{' '}
-                  {(
-                    state.TotalUnitPrice -
-                    state.TotalDiscountPrice -
-                    state.appliedCouponDiscount +
-                    state.totalDeliveryFee +
-                    state.totalConvenienceFee +
-                    state.totalPackagingFee
-                  ).toFixed(2)}
+                  {Math.max(
+                    0,
+                    (
+                      Math.max(0, state.TotalUnitPrice) -
+                      Math.min(state.TotalDiscountPrice, state.TotalUnitPrice) -
+                      Math.min(
+                        state.appliedCouponDiscount || 0,
+                        state.TotalUnitPrice - state.TotalDiscountPrice,
+                      ) +
+                      Math.max(0, state.totalDeliveryFee) +
+                      Math.max(0, state.totalConvenienceFee) +
+                      Math.max(0, state.totalPackagingFee)
+                    ).toFixed(2),
+                  )}
                 </Text>
               </View>
             </View>
