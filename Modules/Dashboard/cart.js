@@ -48,6 +48,7 @@ const Cart = ({navigation}) => {
   const [isCouponValid, setIsCouponValid] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
+  // Update initial state
   const [state, setState] = useState({
     categories1: [
       {
@@ -84,12 +85,10 @@ const Cart = ({navigation}) => {
     Nearbystores1: null,
     TotalUnitPrice: 0,
     TotalDiscountPrice: 0,
-    ProductID: null,
-    ProductItemID: null,
-    StoreID: null,
-    UnitPrice: null,
-    isLoading: false,
-    error: null,
+    BaseDeliveryFee: 0,
+    appliedCouponID: 0,
+    appliedDiscountTypeID: 0,
+    appliedCouponDiscountAmount: 0,
     deliveryCharges: {
       BaseDeliveryFee: 42.0,
       AdditionDistanceFee: 10.0,
@@ -100,9 +99,21 @@ const Cart = ({navigation}) => {
     },
     userLocation: null,
     storeLocations: {},
-    totalDeliveryFee: 0,
+    isLoading: false,
+    error: null,
     isRaining: false,
   });
+
+  // Add precision helper
+  const roundToTwoDecimals = num => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
+  // Add amount validation helper
+  const validateAmount = (amount, min = 0) => {
+    const num = parseFloat(amount);
+    return isNaN(num) ? min : Math.max(min, roundToTwoDecimals(num));
+  };
 
   const handleError = (error, context = 'Unknown operation') => {
     hideLoading();
@@ -139,7 +150,7 @@ const Cart = ({navigation}) => {
           },
         },
       );
-      console.log('response.data', response.data);
+      console.log('fetchDeliveryCharges', response.data);
 
       if (response.data && response.data.length > 0) {
         setState(prevState => ({
@@ -152,6 +163,7 @@ const Cart = ({navigation}) => {
     }
   };
 
+  // Update validateCoupon function
   const validateCoupon = async code => {
     try {
       const couponToValidate = code || couponCode;
@@ -162,6 +174,13 @@ const Cart = ({navigation}) => {
       }
 
       showLoading();
+
+      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+      if (!UserProfileID) {
+        setCouponMessage('Please login to apply coupon.');
+        hideLoading();
+        return;
+      }
 
       // Find coupon in available coupons
       const selectedCoupon = availableCoupons.find(
@@ -175,8 +194,9 @@ const Cart = ({navigation}) => {
         return;
       }
 
-      // Check minimum order amount
-      if (state.TotalUnitPrice < selectedCoupon.MinimumOrderAmount) {
+      // Validate minimum order amount
+      const currentSubtotal = validateAmount(state.TotalUnitPrice);
+      if (currentSubtotal < selectedCoupon.MinimumOrderAmount) {
         setCouponMessage(
           `Minimum order amount of ₹${selectedCoupon.MinimumOrderAmount} required.`,
         );
@@ -186,41 +206,50 @@ const Cart = ({navigation}) => {
       }
 
       // Validate with API
-      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-      const response = await axios.post(
-        'https://fybrappapi.benchstep.com/api/ProductApi/vUserCoupon',
-        {
-          UserProfileID: parseInt(UserProfileID),
-          CouponID: selectedCoupon.CouponID,
-        },
-        {
-          headers: {
-            'content-type': 'application/json',
+      try {
+        const response = await axios.post(
+          'https://fybrappapi.benchstep.com/api/ProductApi/vUserCoupon',
+          {
+            UserProfileID: parseInt(UserProfileID),
+            CouponID: selectedCoupon.CouponID,
           },
-        },
-      );
-      console.log('response.data ', response.data);
+          {
+            headers: {
+              'content-type': 'application/json',
+            },
+          },
+        );
 
-      if (response.data !== 'ALLOW') {
-        setCouponMessage('This coupon cannot be applied to your account.');
+        if (response.data !== 'ALLOW') {
+          setCouponMessage('This coupon cannot be applied to your account.');
+          setIsCouponValid(false);
+          hideLoading();
+          return;
+        }
+      } catch (error) {
+        console.error('API validation error:', error);
+        setCouponMessage('Error validating coupon. Please try again.');
         setIsCouponValid(false);
         hideLoading();
         return;
       }
 
-      // Calculate discount
+      // Calculate discount with proper validation
+      const remainingAmount =
+        currentSubtotal - validateAmount(state.TotalDiscountPrice);
       let discountValue = 0;
+
       if (selectedCoupon.DiscountType === 'Flat') {
         discountValue = Math.min(
-          selectedCoupon.CouponDiscount,
-          state.TotalUnitPrice,
+          validateAmount(selectedCoupon.CouponDiscount),
+          remainingAmount,
         );
       } else {
         // Percentage discount
-        discountValue = Math.min(
-          (state.TotalUnitPrice * selectedCoupon.CouponDiscount) / 100,
-          state.TotalUnitPrice,
-        );
+        const percentageDiscount =
+          (remainingAmount * validateAmount(selectedCoupon.CouponDiscount)) /
+          100;
+        discountValue = Math.min(percentageDiscount, remainingAmount);
       }
 
       // Update state with applied coupon
@@ -228,6 +257,9 @@ const Cart = ({navigation}) => {
         ...prev,
         appliedCoupon: selectedCoupon,
         appliedCouponDiscount: discountValue,
+        appliedCouponID: selectedCoupon.CouponID,
+        appliedDiscountTypeID: selectedCoupon.DiscountTypeID,
+        appliedCouponDiscountAmount: discountValue,
       }));
 
       setIsCouponValid(true);
@@ -238,18 +270,22 @@ const Cart = ({navigation}) => {
 
       hideLoading();
     } catch (error) {
+      console.error('Coupon validation error:', error);
       hideLoading();
       setIsCouponValid(false);
-      setCouponMessage('Error validating coupon. Try again.');
-      console.error('Coupon validation error:', error);
+      setCouponMessage('Error validating coupon. Please try again.');
     }
   };
 
+  // Update removeCoupon function
   const removeCoupon = () => {
     setState(prev => ({
       ...prev,
       appliedCoupon: null,
       appliedCouponDiscount: 0,
+      appliedCouponID: 0,
+      appliedDiscountTypeID: 0,
+      appliedCouponDiscountAmount: 0,
     }));
     setIsCouponValid(false);
     setCouponCode('');
@@ -441,37 +477,51 @@ const Cart = ({navigation}) => {
     };
   };
 
+  // Update calculateTotalDeliveryFees function
   const calculateTotalDeliveryFees = async (stores, userLocation, charges) => {
-    let totalDeliveryFee = 0;
-    let totalConvenienceFee = 0;
-    let totalPackagingFee = 0;
+    try {
+      let totalDeliveryFee = 0;
+      let totalConvenienceFee = 0;
+      let totalPackagingFee = 0;
 
-    for (const store of stores) {
-      const storeLocation = await fetchStoreLocation(store.StoreID);
-      console.log('storeLocation', storeLocation);
-      console.log('userLocation', userLocation);
+      for (const store of stores) {
+        const storeLocation = await fetchStoreLocation(store.StoreID);
 
-      const distance = calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        storeLocation.latitude,
-        storeLocation.longitude,
-      );
-      console.log('distance', distance);
-      const fees = calculateDeliveryFee(distance, charges, state.isRaining);
-      console.log('fees', fees);
-      totalDeliveryFee += fees.deliveryFee;
-      totalConvenienceFee += fees.convenienceFee;
-      totalPackagingFee += fees.packagingFee;
+        const distance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          storeLocation.latitude,
+          storeLocation.longitude,
+        );
+
+        const fees = calculateDeliveryFee(distance, charges, state.isRaining);
+
+        totalDeliveryFee += validateAmount(fees.deliveryFee);
+        totalConvenienceFee += validateAmount(fees.convenienceFee);
+        totalPackagingFee += validateAmount(fees.packagingFee);
+      }
+
+      return {
+        totalDeliveryFee: roundToTwoDecimals(totalDeliveryFee),
+        totalConvenienceFee: roundToTwoDecimals(totalConvenienceFee),
+        totalPackagingFee: roundToTwoDecimals(totalPackagingFee),
+        grandTotalFees: roundToTwoDecimals(
+          totalDeliveryFee + totalConvenienceFee + totalPackagingFee,
+        ),
+      };
+    } catch (error) {
+      console.error('Error calculating delivery fees:', error);
+      return {
+        totalDeliveryFee: validateAmount(charges.BaseDeliveryFee),
+        totalConvenienceFee: validateAmount(charges.ConvenienceFee),
+        totalPackagingFee: validateAmount(charges.PackagingFee),
+        grandTotalFees: validateAmount(
+          charges.BaseDeliveryFee +
+            charges.ConvenienceFee +
+            charges.PackagingFee,
+        ),
+      };
     }
-
-    return {
-      totalDeliveryFee,
-      totalConvenienceFee,
-      totalPackagingFee,
-      grandTotalFees:
-        totalDeliveryFee + totalConvenienceFee + totalPackagingFee,
-    };
   };
 
   const calculateTimeDifference = (start, end) => {
@@ -843,45 +893,11 @@ const Cart = ({navigation}) => {
     }
   };
 
+  // Update handleCheckout function
   const handleCheckout = () => {
     try {
-      console.log('🛒 Starting checkout process...');
-      console.log('🛒 Cart state:', {
-        TotalUnitPrice: state.TotalUnitPrice,
-        TotalDiscountPrice: state.TotalDiscountPrice,
-        totalDeliveryFee: state.totalDeliveryFee,
-        totalConvenienceFee: state.totalConvenienceFee,
-        totalPackagingFee: state.totalPackagingFee,
-        cartItems: state.Nearbystores1,
-      });
-
-      // Calculate total amount with all fees
-      const subtotal = state.TotalUnitPrice || 0;
-      const discount = state.TotalDiscountPrice || 0;
-      const deliveryFee = state.totalDeliveryFee || 0;
-      const convenienceFee = state.totalConvenienceFee || 0;
-      const packagingFee = state.totalPackagingFee || 0;
-
-      const totalAmount =
-        subtotal - discount + deliveryFee + convenienceFee + packagingFee;
-
-      console.log('💰 Amount breakdown:', {
-        subtotal,
-        discount,
-        deliveryFee,
-        convenienceFee,
-        packagingFee,
-        totalAmount,
-      });
-
-      // Validate that we have a valid total
-      if (totalAmount <= 0) {
-        Alert.alert('Error', 'Invalid order total. Please check your cart.');
-        return;
-      }
-
       // Validate cart items
-      if (!state.Nearbystores1 || state.Nearbystores1.length === 0) {
+      if (!state.Nearbystores1?.length) {
         Alert.alert(
           'Error',
           'Your cart is empty. Please add items before checkout.',
@@ -889,36 +905,54 @@ const Cart = ({navigation}) => {
         return;
       }
 
-      // Pass complete data to checkout with proper structure
+      // Calculate amounts with validation
+      const subtotal = validateAmount(state.TotalUnitPrice);
+      const itemDiscount = validateAmount(state.TotalDiscountPrice);
+      const couponDiscount = validateAmount(state.appliedCouponDiscountAmount);
+      const deliveryFee = validateAmount(state.totalDeliveryFee);
+      const convenienceFee = validateAmount(state.totalConvenienceFee);
+      const packagingFee = validateAmount(state.totalPackagingFee);
+
+      // Ensure discounts don't exceed subtotal
+      const totalDiscount = Math.min(itemDiscount + couponDiscount, subtotal);
+
+      // Calculate final total
+      const totalAmount = roundToTwoDecimals(
+        subtotal - totalDiscount + deliveryFee + convenienceFee + packagingFee,
+      );
+
+      if (totalAmount <= 0) {
+        Alert.alert('Error', 'Invalid order total. Please check your cart.');
+        return;
+      }
+
       const checkoutData = {
-        TotalUnitPrice: totalAmount, // Final total amount
-        Subtotal: subtotal, // Original cart total
-        DiscountedPrice: discount, // Total discount
+        TotalUnitPrice: totalAmount,
+        TotalAmount: totalAmount,
+        Subtotal: subtotal,
+        DiscountedPrice: itemDiscount,
         DeliveryFee: deliveryFee,
+        DeliveryFeeDetails: state.deliveryCharges,
         ConvenienceFee: convenienceFee,
         PackagingFee: packagingFee,
-        CartItems: state.Nearbystores1 || [],
-        // Add additional fields for backend
+        CartItems: state.Nearbystores1,
         ItemCount: state.Nearbystores1.reduce(
-          (count, store) =>
-            count + (store.Products ? store.Products.length : 0),
+          (count, store) => count + (store.Products?.length || 0),
           0,
         ),
         StoreCount: state.Nearbystores1.length,
         OriginalTotal: subtotal,
         FinalTotal: totalAmount,
-        // Coupon data
         AppliedCoupon: state.appliedCoupon,
-        CouponDiscount: state.appliedCouponDiscount,
+        CouponDiscount: couponDiscount,
+        CouponID: state.appliedCouponID,
+        DiscountTypeID: state.appliedDiscountTypeID,
+        CouponDiscountAmount: state.appliedCouponDiscountAmount,
       };
 
-      console.log('📤 Checkout data being sent:', checkoutData);
-
-      navigation.push('Checkout', {
-        data: checkoutData,
-      });
+      navigation.push('Checkout', {data: checkoutData});
     } catch (error) {
-      console.error('❌ Checkout error:', error);
+      console.error('Checkout error:', error);
       Alert.alert('Error', 'Failed to proceed to checkout. Please try again.');
     }
   };
@@ -1525,34 +1559,27 @@ const Cart = ({navigation}) => {
               {/* Subtotal */}
               <SummaryRow
                 label="Subtotal"
-                value={Math.max(0, state.TotalUnitPrice)}
+                value={validateAmount(state.TotalUnitPrice)}
               />
 
               {/* Delivery Fees */}
               <SummaryRow
                 label="Delivery Fees"
-                value={Math.max(0, state.totalDeliveryFee)}
+                value={validateAmount(state.totalDeliveryFee)}
                 isFree={state.totalDeliveryFee === 0}
               />
 
-              {/* Discounted Price */}
+              {/* Item Discount */}
               <SummaryRow
                 label="Item Discount"
-                value={
-                  -Math.min(state.TotalDiscountPrice, state.TotalUnitPrice)
-                }
+                value={-validateAmount(state.TotalDiscountPrice)}
               />
 
               {/* Coupon Discount */}
               {state.appliedCoupon && (
                 <SummaryRow
                   label={`Coupon (${state.appliedCoupon.CouponCode})`}
-                  value={
-                    -Math.min(
-                      state.appliedCouponDiscount,
-                      state.TotalUnitPrice - state.TotalDiscountPrice,
-                    )
-                  }
+                  value={-validateAmount(state.appliedCouponDiscountAmount)}
                   valueColor="#2ecc71"
                 />
               )}
@@ -1560,14 +1587,14 @@ const Cart = ({navigation}) => {
               {/* Convenience Fees */}
               <SummaryRow
                 label="Convenience Fee"
-                value={Math.max(0, state.totalConvenienceFee)}
+                value={validateAmount(state.totalConvenienceFee)}
                 isFree={state.totalConvenienceFee === 0}
               />
 
               {/* Packaging Fees */}
               <SummaryRow
                 label="Packaging Fee"
-                value={Math.max(0, state.totalPackagingFee)}
+                value={validateAmount(state.totalPackagingFee)}
                 isFree={state.totalPackagingFee === 0}
               />
 
@@ -1601,20 +1628,14 @@ const Cart = ({navigation}) => {
                     fontFamily: 'Poppins-SemiBold',
                   }}>
                   ₹{' '}
-                  {Math.max(
-                    0,
-                    (
-                      Math.max(0, state.TotalUnitPrice) -
-                      Math.min(state.TotalDiscountPrice, state.TotalUnitPrice) -
-                      Math.min(
-                        state.appliedCouponDiscount || 0,
-                        state.TotalUnitPrice - state.TotalDiscountPrice,
-                      ) +
-                      Math.max(0, state.totalDeliveryFee) +
-                      Math.max(0, state.totalConvenienceFee) +
-                      Math.max(0, state.totalPackagingFee)
-                    ).toFixed(2),
-                  )}
+                  {roundToTwoDecimals(
+                    validateAmount(state.TotalUnitPrice) -
+                      validateAmount(state.TotalDiscountPrice) -
+                      validateAmount(state.appliedCouponDiscountAmount) +
+                      validateAmount(state.totalDeliveryFee) +
+                      validateAmount(state.totalConvenienceFee) +
+                      validateAmount(state.totalPackagingFee),
+                  ).toFixed(2)}
                 </Text>
               </View>
             </View>

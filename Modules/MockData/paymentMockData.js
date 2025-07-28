@@ -1,16 +1,6 @@
 export const PAYMENT_MOCK_DATA = {
   PaymentMethodList: [
     {
-      PaymentMethod: 'Credit Card',
-      PaymentMethodID: 1,
-      Description: 'Pay using your Credit Card',
-    },
-    {
-      PaymentMethod: 'Debit Card',
-      PaymentMethodID: 2,
-      Description: 'Pay using your Debit Card',
-    },
-    {
       PaymentMethod: 'UPI',
       PaymentMethodID: 3,
       Description: 'PhonePe, Google Pay, etc.',

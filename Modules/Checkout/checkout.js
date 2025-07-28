@@ -62,7 +62,7 @@ const Checkout = ({navigation, route}) => {
     AddressID: null,
     TipAmountErrior: false,
     PaymentMethodIDerror: false,
-    TotalUnitPrice: route?.params?.data?.TotalUnitPrice || 0,
+    TotalUnitPrice: route?.params?.data?.TotalAmount || 0,
     Subtotal: route?.params?.data?.Subtotal || 0,
     DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
     DeliveryFee: route?.params?.data?.DeliveryFee || 0,
@@ -291,25 +291,8 @@ const Checkout = ({navigation, route}) => {
             }));
           }
         }
-
-        BookingDebugger.log(
-          'Address loaded successfully',
-          {
-            addressCount: addressResponse.data.length,
-            selectedAddressID,
-            preferredAddress: !!preferredAddress,
-          },
-          'info',
-        );
       } else {
         console.warn('⚠️ No addresses found for user');
-        BookingDebugger.log(
-          'No addresses found',
-          {
-            userProfileID: UserProfileID,
-          },
-          'warning',
-        );
 
         setState(prevState => ({
           ...prevState,
@@ -318,14 +301,6 @@ const Checkout = ({navigation, route}) => {
       }
     } catch (error) {
       console.error('❌ Failed to load address data:', error);
-      BookingDebugger.log(
-        'Address loading error',
-        {
-          error: error.message,
-          userProfileID: UserProfileID,
-        },
-        'error',
-      );
 
       setState(prevState => ({
         ...prevState,
@@ -660,37 +635,43 @@ const Checkout = ({navigation, route}) => {
         // SystemUser: SystemUser,
         // SystemDate: SystemDate,
         // // Additional fields for backend
-        // Subtotal: route?.params?.data?.Subtotal || 0,
-        // DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
-        // DeliveryFee: route?.params?.data?.DeliveryFee || 0,
-        // ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
-        // PackagingFee: route?.params?.data?.PackagingFee || 0,
-        // ItemCount: route?.params?.data?.ItemCount || 0,
-        // StoreCount: route?.params?.data?.StoreCount || 0,
-        // OriginalTotal: route?.params?.data?.OriginalTotal || 0,
-        // FinalTotal: finalPaymentAmount,
+        Subtotal: route?.params?.data?.Subtotal || 0,
+        DiscountedPrice: route?.params?.data?.DiscountedPrice || 0,
+        DeliveryFee: route?.params?.data?.DeliveryFee || 0,
+        ConvenienceFee: route?.params?.data?.ConvenienceFee || 0,
+        PackagingFee: route?.params?.data?.PackagingFee || 0,
+        ItemCount: route?.params?.data?.ItemCount || 0,
+        StoreCount: route?.params?.data?.StoreCount || 0,
+        OriginalTotal: route?.params?.data?.OriginalTotal || 0,
+        FinalTotal: finalPaymentAmount,
         PaymentMethodID: state.PaymentMethodID,
         AddressID: state.AddressID,
         TipAmount: tipAmount,
         PaymentAmount: finalPaymentAmount,
-        BaseDeliveryFee: 7.0,
-        AdditionDistanceFee: 8.0,
-        ConvenienceFee: 9.0,
-        PackagingFee: 10.0,
-        RainyWeatherBaseFee: 11.0,
-        AdditionalDistanceKM: 12.0,
-        CardNumber: 'sample string 13',
-        CardHolderName: 'sample string 14',
-        CVV: 'sample string 15',
-        Validity: 'sample string 16',
-        MobileNumber: 'sample string 17',
-        UPIType: 'sample string 18',
-        UPINumber: 'sample string 19',
-        UPID: 'sample string 20',
-        CouponID: 21,
-        DiscountTypeID: 22,
-        CouponDiscount: 23.0,
-        CouponDiscountAmount: 24.0,
+        BaseDeliveryFee:
+          route?.params?.data?.DeliveryFeeDetails?.BaseDeliveryFee || 0,
+        AdditionDistanceFee:
+          route?.params?.data?.DeliveryFeeDetails?.AdditionDistanceFee || 0,
+        ConvenienceFee:
+          route?.params?.data?.DeliveryFeeDetails?.ConvenienceFee || 0,
+        PackagingFee:
+          route?.params?.data?.DeliveryFeeDetails?.PackagingFee || 0,
+        RainyWeatherBaseFee:
+          route?.params?.data?.DeliveryFeeDetails?.RainyWeatherBaseFee || 0,
+        AdditionalDistanceKM:
+          route?.params?.data?.DeliveryFeeDetails?.AdditionalDistanceKM || 0,
+        // CardNumber: 'sample string 13',
+        // CardHolderName: 'sample string 14',
+        // CVV: 'sample string 15',
+        // Validity: 'sample string 16',
+        // MobileNumber: 'sample string 17',
+        // UPIType: 'sample string 18',
+        // UPINumber: 'sample string 19',
+        // UPID: 'sample string 20',
+        CouponID: route?.params?.data?.CouponID || 0,
+        DiscountTypeID: route?.params?.data?.DiscountTypeID || 0,
+        CouponDiscount: route?.params?.data?.CouponDiscount || 0,
+        CouponDiscountAmount: route?.params?.data?.CouponDiscountAmount || 0,
         SystemUser: SystemUser,
         SystemDate: SystemDate,
       };
@@ -1189,12 +1170,7 @@ const Checkout = ({navigation, route}) => {
                     );
                   } catch (error) {
                     console.error('MapView rendering error:', error);
-                    return (
-                      <LocationDisplay
-                        latitude={state.Latitude}
-                        longitude={state.Longitude}
-                      />
-                    );
+                    return <View></View>;
                   }
                 })()}
               </View>
@@ -1229,24 +1205,6 @@ const Checkout = ({navigation, route}) => {
                     ? 'Map temporarily unavailable'
                     : 'Loading delivery location...'}
                 </Text>
-                {state.mapError && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setState(prevState => ({
-                        ...prevState,
-                        mapError: false,
-                      }));
-                    }}
-                    style={{
-                      marginTop: 10,
-                      paddingHorizontal: 15,
-                      paddingVertical: 5,
-                      backgroundColor: '#00afb5',
-                      borderRadius: 5,
-                    }}>
-                    <Text style={{color: 'white', fontSize: 10}}>Retry</Text>
-                  </TouchableOpacity>
-                )}
               </View>
             )}
           </View>
@@ -1373,7 +1331,7 @@ const Checkout = ({navigation, route}) => {
           )}
 
           {/* Order Summary */}
-          <View
+          {/* <View
             style={{
               marginTop: hp('3%'),
               marginHorizontal: wp('7%'),
@@ -1545,7 +1503,7 @@ const Checkout = ({navigation, route}) => {
                 </View>
               </View>
             </View>
-          </View>
+          </View> */}
 
           <Text
             style={{
