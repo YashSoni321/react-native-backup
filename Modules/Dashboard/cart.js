@@ -81,6 +81,7 @@ const Cart = ({navigation}) => {
     fail: false,
     StreetName: '',
     Pincode: '',
+    storeList: [],
     Nearbystores: null,
     Nearbystores1: null,
     TotalUnitPrice: 0,
@@ -344,58 +345,50 @@ const Cart = ({navigation}) => {
     }
   };
 
-  const getUserLocation = async () => {
-    try {
-      const hasPermission = await requestLocationPermission();
-      console.log('hasPermission', hasPermission);
+  // Add this function to get user location with proper error handling
+  const getUserLocation = () => {
+    return new Promise(async resolve => {
+      try {
+        const hasPermission = await requestLocationPermission();
+        if (!hasPermission) {
+          console.warn('Location permission denied');
+          resolve({
+            latitude: 17.385044,
+            longitude: 78.486671,
+          });
+          return;
+        }
 
-      if (hasPermission) {
-        return new Promise((resolve, reject) => {
-          Geolocation.getCurrentPosition(
-            position => {
-              const currentLocation = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              };
-              console.log('currentLocation', currentLocation);
-
-              setState(prevState => ({
-                ...prevState,
-                userLocation: currentLocation,
-              }));
-
-              console.log('📍 Current location:', currentLocation);
-              resolve(currentLocation);
-            },
-            error => {
-              console.error('📍 Location error:', error);
-              Alert.alert(
-                'Error',
-                'Failed to get your location. Using default location instead.',
-              );
-
-              resolve(defaultLocation);
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0, // Force fresh location
-            },
-          );
-        });
-      } else {
-        Alert.alert(
-          'Permission Required',
-          'Location permission is required to calculate delivery fees accurately.',
+        Geolocation.getCurrentPosition(
+          position => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            setState(prev => ({...prev, userLocation: location}));
+            resolve(location);
+          },
+          error => {
+            console.warn('Error getting location:', error);
+            resolve({
+              latitude: 17.385044,
+              longitude: 78.486671,
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 10000,
+          },
         );
-
-        return defaultLocation;
+      } catch (error) {
+        console.error('Error in getUserLocation:', error);
+        resolve({
+          latitude: 17.385044,
+          longitude: 78.486671,
+        });
       }
-    } catch (error) {
-      console.error('Error getting user location:', error);
-
-      return defaultLocation;
-    }
+    });
   };
 
   const fetchStoreLocation = async storeId => {
@@ -454,7 +447,8 @@ const Cart = ({navigation}) => {
       let totalPackagingFee = 0;
 
       for (const store of stores) {
-        const storeLocation = await fetchStoreLocation(store.StoreID);
+        // const storeLocation = await fetchStoreLocation(store.StoreID);
+        const storeLocation = await getStoreLocation(store.StoreID);
         console.log('storeLocation', storeLocation);
 
         const distance = calculateDistance(
@@ -470,6 +464,7 @@ const Cart = ({navigation}) => {
         totalConvenienceFee += validateAmount(fees.convenienceFee);
         totalPackagingFee += validateAmount(fees.packagingFee);
       }
+      console.log('totalDeliveryFee>>>', totalDeliveryFee);
 
       return {
         totalDeliveryFee: roundToTwoDecimals(totalDeliveryFee),
@@ -535,8 +530,70 @@ const Cart = ({navigation}) => {
     );
   };
 
-  const fetchCartData = async (isCalculateDeliveryFee = false) => {
+  const fetchStoreList = async () => {
     try {
+      console.log('fetchStoreList');
+
+      // showLoading();
+      setState(prevState => ({...prevState, isLoading: true, error: null}));
+
+      const response = await axios.get(URL_key + 'api/ProductApi/gStoreList', {
+        headers: {
+          'content-type': `application/json`,
+        },
+      });
+
+      if (response.data && response.data.length > 0) {
+        const stores = response.data.map(store => ({
+          StoreID: store.StoreID,
+          StoreName: store.StoreName,
+          StoreLocation: {
+            latitude: store.Latitude,
+            longitude: store.Longitude,
+          },
+        }));
+        console.log('stores>>', stores.length);
+
+        setState(prevState => ({
+          ...prevState,
+          storeList: stores,
+        }));
+      } else {
+        setState(prevState => ({
+          ...prevState,
+          storeList: [],
+        }));
+      }
+      // hideLoading();
+    } catch (error) {
+      handleError(error, 'Fetching store list');
+    }
+  };
+
+  const getStoreLocation = async storeId => {
+    try {
+      console.log('state.storeList>>', state.storeList);
+
+      if (state.storeList && state.storeList.length > 0) {
+        const {StoreLocation} = state.storeList.find(
+          store => store.StoreID === storeId,
+        );
+        console.log('StoreLocat ion>>', StoreLocation);
+
+        return StoreLocation;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching store location:', error);
+    }
+  };
+
+  // Update fetchCartData to handle location properly
+  const fetchCartData = async (isLocationChange = false) => {
+    try {
+      console.log('fetchCartData');
+
       showLoading();
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
@@ -545,60 +602,30 @@ const Cart = ({navigation}) => {
         throw new Error('User not logged in');
       }
 
-      const addressResponse = await axios.get(
-        URL_key +
-          'api/AddressApi/gCustomerAddress?UserProfileID=' +
-          UserProfileID,
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
-      await Promise.all([fetchDeliveryCharges(), getUserLocation()]);
+      // Get user location first
+      const location = await getUserLocation();
 
-      const stateResponse = await axios.get(
-        URL_key + 'api/AddressApi/gStateDDL',
-        {
-          headers: {
-            'content-type': `application/json`,
-          },
-        },
-      );
+      // Fetch delivery charges
+      await fetchDeliveryCharges();
 
-      const preferredAddress = addressResponse.data.filter(
-        data => data.IsPreferred === true,
-      );
-      const stateData = stateResponse.data.filter(
-        data => data.StateID === preferredAddress[0]?.StateID,
-      );
-
+      // Fetch cart data
       const cartResponse = await axios.get(
-        `https://fybrappapi.benchstep.com/api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
+        `${URL_key}api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
         {headers: {'content-type': 'application/json'}},
       );
 
-      console.log('Cart API Response:', cartResponse.data);
-
-      // Handle the new API response format - array of cart objects
       let cartItems = [];
       if (Array.isArray(cartResponse.data)) {
-        // Extract all cart items from all carts
         cartResponse.data.forEach(cart => {
           if (cart.CartItems && Array.isArray(cart.CartItems)) {
             cartItems = cartItems.concat(cart.CartItems);
           }
         });
       } else if (cartResponse.data && cartResponse.data.CartItems) {
-        // Fallback for old format
         cartItems = cartResponse.data.CartItems;
       }
 
-      console.log('Processed cartItems:', cartItems);
-      console.log('Processing cartItems count:', cartItems.length);
-
       if (cartItems.length === 0) {
-        console.log('No cart items found, setting empty state');
         setState(prevState => ({
           ...prevState,
           Nearbystores: [],
@@ -615,52 +642,30 @@ const Cart = ({navigation}) => {
         return;
       }
 
-      // Map and enrich cart items with proper field mapping
-      const enrichedCartItems = cartItems.map(item => {
-        console.log('🔍 Processing cart item:', item);
+      // Process cart items and calculate fees
+      const enrichedCartItems = cartItems.map(item => ({
+        CartID: item.CartID,
+        CartItemID: item.CartItemID,
+        ProductID: item.ProductID,
+        ProductItemID: item.ProductItemID,
+        StoreID: item.StoreID,
+        Quantity: item.Quantity || 0,
+        UnitPrice: item.UnitPrice || 0,
+        TotalPrice: item.TotalPrice || 0,
+        ProductName: item.ProductName || item.ItemName || 'Product',
+        ProductImage: item.ProductImage || item.ItemImage || '',
+        ProductColor: item.Color || '',
+        ProductSize: item.Size || '',
+        StoreName: item.StoreName || 'Store',
+        StoreLocation: item.StoreLocation || 'Location',
+        DiscountedPrice: item.DiscountedPrice || 0,
+        Color: item.Color || '',
+        SizeID: item.Size || '',
+      }));
 
-        // Map the fields properly from the API response
-        return {
-          // Cart item fields
-          CartID: item.CartID,
-          CartItemID: item.CartItemID,
-          ProductID: item.ProductID,
-          ProductItemID: item.ProductItemID,
-          StoreID: item.StoreID,
-          Quantity: item.Quantity || 0,
-          UnitPrice: item.UnitPrice || 0,
-          TotalPrice: item.TotalPrice || 0,
-          ProductTotalDiscount: Number(item.DiscountedPrice)
-            ? Number(item.DiscountedPrice) * Number(item.Quantity)
-            : 0,
-
-          // Product details (from the new API structure)
-          ProductName: item.ProductName || item.ItemName || 'Product',
-          ProductImage: item.ProductImage || item.ItemImage || '',
-          ProductColor: item.Color || '',
-          ProductSize: item.Size || '',
-
-          // Store details
-          StoreName: item.StoreName || 'Store',
-          StoreLocation: item.StoreLocation || 'Location',
-
-          // Additional fields
-          DiscountedPrice: item.DiscountedPrice || 0,
-          Color: item.Color || '',
-          SizeID: item.Size || '',
-        };
-      });
-
-      console.log('📦 All enriched cart items:', enrichedCartItems);
-
-      // Create a simplified structure for the UI
-      // Group products by store for display purposes
+      // Group by store
       const storeMap = new Map();
-      console.log('storeMap', storeMap);
-
       enrichedCartItems.forEach(item => {
-        console.log('item.StoreID', item.StoreID);
-
         if (!storeMap.has(item.StoreID)) {
           storeMap.set(item.StoreID, {
             StoreName: item.StoreName,
@@ -669,102 +674,74 @@ const Cart = ({navigation}) => {
             Products: [],
           });
         }
-        console.log('storeMap', storeMap);
         storeMap.get(item.StoreID).Products.push(item);
       });
 
       const groupedArray = Array.from(storeMap.values());
 
       // Calculate totals
-      const totalUnitPrice = enrichedCartItems
-        .reduce(
+      const totalUnitPrice = validateAmount(
+        enrichedCartItems.reduce(
           (sum, product) => sum + (parseFloat(product.TotalPrice) || 0),
           0,
-        )
-        .toFixed(2);
+        ),
+      );
 
       const rawDiscountPrice = enrichedCartItems.reduce(
-        (sum, product) => sum + (parseFloat(product.ProductTotalDiscount) || 0),
+        (sum, product) =>
+          sum +
+          (parseFloat(product.UnitPrice) -
+            parseFloat(product.DiscountedPrice)) *
+            Number(product.Quantity),
         0,
       );
-      console.log('rawDiscountPrice', rawDiscountPrice);
 
-      // Validate discounted price - ensure it's not greater than original price
       const totalDiscountPrice = Math.min(
-        rawDiscountPrice,
-        parseFloat(totalUnitPrice),
-      ).toFixed(2);
-      console.log('totalDiscountPrice', totalDiscountPrice);
+        validateAmount(rawDiscountPrice),
+        totalUnitPrice,
+      );
 
-      const currentUserLocation = state.userLocation;
-      const currentCharges = state.deliveryCharges;
-      console.log('currentUserLocation', currentUserLocation);
-
-      // Initialize fee data
+      // Calculate delivery fees with the confirmed location
       let deliveryFeeData = {
-        totalDeliveryFee: 0,
-        totalConvenienceFee: 0,
-        totalPackagingFee: 0,
+        totalDeliveryFee: state.deliveryCharges.BaseDeliveryFee || 0,
+        totalConvenienceFee: state.deliveryCharges.ConvenienceFee || 0,
+        totalPackagingFee: state.deliveryCharges.PackagingFee || 0,
         grandTotalFees: 0,
       };
+      console.log('location>>', location);
 
-      // Calculate delivery fees if we have location and stores
-      if (currentUserLocation && groupedArray.length > 0) {
-        deliveryFeeData = await calculateTotalDeliveryFees(
-          groupedArray,
-          currentUserLocation,
-          currentCharges,
-        );
+      if (location && groupedArray.length > 0) {
+        try {
+          deliveryFeeData = await calculateTotalDeliveryFees(
+            groupedArray,
+            location,
+            state.deliveryCharges,
+          );
+        } catch (error) {
+          console.warn('Error calculating delivery fees:', error);
+        }
       }
 
-      // Ensure minimum fees are applied
-      deliveryFeeData.totalDeliveryFee = Math.max(
-        deliveryFeeData.totalDeliveryFee,
-        20,
-      );
-      deliveryFeeData.totalConvenienceFee = Math.max(
-        deliveryFeeData.totalConvenienceFee,
-        5,
-      );
-      deliveryFeeData.totalPackagingFee = Math.max(
-        deliveryFeeData.totalPackagingFee,
-        3,
-      );
+      // Update state with all calculated data
+      setState(prevState => ({
+        ...prevState,
+        userLocation: location,
+        Nearbystores: groupedArray,
+        Nearbystores1: groupedArray,
+        TotalUnitPrice: totalUnitPrice,
+        TotalDiscountPrice: totalDiscountPrice,
+        totalDeliveryFee: validateAmount(deliveryFeeData.totalDeliveryFee),
+        totalConvenienceFee: validateAmount(
+          deliveryFeeData.totalConvenienceFee,
+        ),
+        totalPackagingFee: validateAmount(deliveryFeeData.totalPackagingFee),
+        isLoading: false,
+        error: null,
+      }));
 
-      // Update state with all the calculated data
-      if (isCalculateDeliveryFee) {
-        setState(prevState => ({
-          ...prevState,
-          StreetName: addressResponse.data[0]?.StreetName || '',
-          Pincode: addressResponse.data[0]?.AddressCategory || '',
-          Nearbystores: groupedArray,
-          Nearbystores1: groupedArray,
-          TotalUnitPrice: parseFloat(totalUnitPrice),
-          TotalDiscountPrice: parseFloat(totalDiscountPrice),
-          totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
-          totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
-          totalPackagingFee: deliveryFeeData.totalPackagingFee,
-          isLoading: false,
-          error: null,
-        }));
-      } else {
-        setState(prevState => ({
-          ...prevState,
-          StreetName: addressResponse.data[0]?.StreetName || '',
-          Pincode: addressResponse.data[0]?.AddressCategory || '',
-          Nearbystores: groupedArray,
-          Nearbystores1: groupedArray,
-          TotalUnitPrice: parseFloat(totalUnitPrice),
-          TotalDiscountPrice: parseFloat(totalDiscountPrice),
-          // totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
-          totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
-          totalPackagingFee: deliveryFeeData.totalPackagingFee,
-          isLoading: false,
-          error: null,
-        }));
-      }
       hideLoading();
     } catch (error) {
+      hideLoading();
       handleError(error, 'Fetching cart data');
     }
   };
@@ -952,13 +929,13 @@ const Cart = ({navigation}) => {
       Alert.alert('Error', 'Failed to proceed to checkout. Please try again.');
     }
   };
-
-  const SearchFilterFunction = text => {
-    console.log('Search text:', text);
+  const fetchCartPageHandler = async () => {
+    await fetchStoreList();
+    await fetchCartData(true);
   };
 
   useEffect(() => {
-    fetchCartData(true);
+    fetchCartPageHandler();
   }, []);
 
   useEffect(() => {

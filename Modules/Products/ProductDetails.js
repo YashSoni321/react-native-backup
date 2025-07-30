@@ -163,48 +163,43 @@ const ProductDetails = ({navigation, route}) => {
     }));
   };
 
+  // Update the getPricingDetails function to handle products without variants
   const getPricingDetails = () => {
-    const {ProductsDetails, selectedSize} = state;
+    const {ProductsDetails} = state;
 
     if (!ProductsDetails) return {itemPrice: 0, discountedPrice: 0};
 
-    if (!selectedSize) {
+    // If no ProductItems, use main product price and discount
+    if (!ProductsDetails.ProductItems?.length) {
+      return {
+        itemPrice: ProductsDetails.ProductPrice || 0,
+        discountedPrice: ProductsDetails.DiscountedPrice || 0,
+      };
+    }
+
+    // Rest of the existing logic for products with variants
+    if (!state.selectedSize) {
       return {
         itemPrice: ProductsDetails.ProductPrice,
-        discountedPrice: 0,
+        discountedPrice: ProductsDetails.DiscountedPrice || 0,
       };
     }
 
     const matchedItem = ProductsDetails.ProductItems?.find(
-      item => item.Size === selectedSize,
+      item => item.Size === state.selectedSize,
     );
 
     if (!matchedItem) {
       return {
         itemPrice: ProductsDetails.ProductPrice,
-        discountedPrice: 0,
-      };
-    }
-
-    const {ItemPrice, DiscountedPrice} = matchedItem;
-
-    if (ItemPrice === 0 && DiscountedPrice === 0) {
-      return {
-        itemPrice: ProductsDetails.ProductPrice,
-        discountedPrice: 0,
-      };
-    }
-
-    if (ItemPrice === 0 && DiscountedPrice > 0) {
-      return {
-        itemPrice: 0,
-        discountedPrice: DiscountedPrice,
+        discountedPrice: ProductsDetails.DiscountedPrice || 0,
       };
     }
 
     return {
-      itemPrice: ItemPrice,
-      discountedPrice: DiscountedPrice < ItemPrice ? DiscountedPrice : 0,
+      itemPrice: matchedItem.ItemPrice || ProductsDetails.ProductPrice,
+      discountedPrice:
+        matchedItem.DiscountedPrice || ProductsDetails.DiscountedPrice || 0,
     };
   };
 
@@ -224,6 +219,7 @@ const ProductDetails = ({navigation, route}) => {
     return renderData;
   };
 
+  // Update the addToCart function to handle products without variants
   const addToCart = async () => {
     try {
       console.log('🛒 Starting add to cart process...');
@@ -238,7 +234,20 @@ const ProductDetails = ({navigation, route}) => {
         return;
       }
 
-      if (!state.selectedSize) {
+      if (!state.ProductsDetails) {
+        console.error('❌ Product details missing');
+        Alert.alert(
+          'Error',
+          'Product information is missing. Please try again.',
+        );
+        return;
+      }
+
+      // Only validate size if product has size variants
+      if (
+        state.ProductsDetails.ProductItems?.length > 0 &&
+        !state.selectedSize
+      ) {
         console.error('❌ Size not selected');
         Alert.alert('Error', 'Please select a size before adding to cart.');
         return;
@@ -250,27 +259,30 @@ const ProductDetails = ({navigation, route}) => {
         return;
       }
 
-      console.log('🛒 Cart validation data:', {
-        ProductID: state.ProductID,
-        ProductItemID: state.ProductItemID,
-        StoreID: state.StoreID,
-        selectedSize: state.selectedSize,
-        selectedColor: state.selectedColor,
-        quantity: state.quantity,
-        UnitPrice: state.UnitPrice,
-      });
-
-      // Use the new cart validation utility
+      // Prepare product data for cart
       const productData = {
         ProductID: state.ProductID,
-        ProductItemID: state.ProductItemID,
+        ProductItemID:
+          state.ProductsDetails.ProductItems?.length > 0
+            ? state.ProductItemID
+            : null,
         StoreID: state.StoreID,
-        SizeID: state.selectedSize,
-        Color: state.selectedColor,
+        SizeID:
+          state.ProductsDetails.ProductItems?.length > 0
+            ? state.selectedSize
+            : null,
+        Color:
+          state.ProductsDetails.ProductItems?.length > 0
+            ? state.selectedColor
+            : state.ProductsDetails.ProductColor,
         Quantity: state.quantity,
-        UnitPrice: state.UnitPrice,
+        UnitPrice:
+          state.ProductsDetails.ProductItems?.length > 0
+            ? state.UnitPrice
+            : state.ProductsDetails.ProductPrice,
         StoreName: state.ProductsDetails?.StoreName || 'this store',
       };
+
       console.log('🛒 Product data for cart:', productData);
 
       const result = await CartValidation.addToCartWithValidation(productData);
@@ -533,86 +545,92 @@ const ProductDetails = ({navigation, route}) => {
               </Text>
             )}
         </View>
-        {/* Size Selection */}
-        <Text
-          style={{
-            fontSize: 11,
-            fontFamily: 'Poppins-SemiBold',
-            color: '#333',
-            marginTop: hp('1.5%'),
-            marginLeft: wp('12%'),
-          }}>
-          Size
-        </Text>
-        <View
-          style={{
-            marginLeft: wp('8%'),
-            marginRight: wp('3%'),
-          }}>
-          <FlatList
-            data={
-              state.ProductsDetails == null
-                ? state.Size
-                : state.ProductsDetails.ProductItems
-            }
-            horizontal={true}
-            renderItem={({item}) => (
-              <TouchableOpacity
-                style={[
-                  styles.sizeButton,
-                  state.selectedSize === item.Size && styles.selectedSizeButton,
-                ]}
-                onPress={() => handleSizeSelect(item.Size)}>
-                <Text
-                  style={[
-                    styles.sizeButtonText,
-                    state.selectedSize === item.Size && styles.selectedSizeText,
-                  ]}>
-                  {item.Size}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
 
-        {/* Color Selection */}
-        <Text
-          style={{
-            fontSize: 11,
-            fontFamily: 'Poppins-SemiBold',
-            color: '#333',
-            marginTop: hp('1.5%'),
-            marginLeft: wp('12%'),
-          }}>
-          Colors
-        </Text>
-        <View style={{marginLeft: wp('8%'), marginRight: wp('3%')}}>
-          <FlatList
-            data={getUniqueColorItems()}
-            horizontal
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({item}) => {
-              const color = item?.ItemColor?.toLowerCase?.();
+        {/* Size Selection - Only show if product has size variants */}
+        {state.ProductsDetails?.ProductItems?.length > 0 && (
+          <>
+            <Text
+              style={{
+                fontSize: 11,
+                fontFamily: 'Poppins-SemiBold',
+                color: '#333',
+                marginTop: hp('1.5%'),
+                marginLeft: wp('12%'),
+              }}>
+              Size
+            </Text>
+            <View
+              style={{
+                marginLeft: wp('8%'),
+                marginRight: wp('3%'),
+              }}>
+              <FlatList
+                data={state.ProductsDetails.ProductItems}
+                horizontal={true}
+                renderItem={({item}) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.sizeButton,
+                      state.selectedSize === item.Size &&
+                        styles.selectedSizeButton,
+                    ]}
+                    onPress={() => handleSizeSelect(item.Size)}>
+                    <Text
+                      style={[
+                        styles.sizeButtonText,
+                        state.selectedSize === item.Size &&
+                          styles.selectedSizeText,
+                      ]}>
+                      {item.Size}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </>
+        )}
 
-              // Fallback color if invalid (optional)
-              if (!color) return null;
+        {/* Color Selection - Only show if product has color variants */}
+        {state.ProductsDetails?.ProductItems?.length > 0 &&
+          getUniqueColorItems().length > 0 && (
+            <>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'Poppins-SemiBold',
+                  color: '#333',
+                  marginTop: hp('1.5%'),
+                  marginLeft: wp('12%'),
+                }}>
+                Colors
+              </Text>
+              <View style={{marginLeft: wp('8%'), marginRight: wp('3%')}}>
+                <FlatList
+                  data={getUniqueColorItems()}
+                  horizontal
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({item}) => {
+                    const color = item?.ItemColor?.toLowerCase?.();
+                    if (!color) return null;
 
-              return (
-                <TouchableOpacity
-                  onPress={() => handleColorSelect(item.ItemColor)}
-                  style={[
-                    styles.colorButton,
-                    {backgroundColor: getColorHex(item.ItemColor)},
-                    state.selectedColor?.toLowerCase?.() === color &&
-                      styles.selectedColorButton,
-                  ]}
-                  aria-label="cocol">
-                  {color}
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
+                    return (
+                      <TouchableOpacity
+                        onPress={() => handleColorSelect(item.ItemColor)}
+                        style={[
+                          styles.colorButton,
+                          {backgroundColor: getColorHex(item.ItemColor)},
+                          state.selectedColor?.toLowerCase?.() === color &&
+                            styles.selectedColorButton,
+                        ]}
+                        aria-label={`Select color ${color}`}>
+                        {color}
+                      </TouchableOpacity>
+                    );
+                  }}
+                />
+              </View>
+            </>
+          )}
 
         {/* Delivery Info */}
         <Text
