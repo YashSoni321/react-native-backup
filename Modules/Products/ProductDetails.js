@@ -510,26 +510,28 @@ const ProductDetails = ({navigation, route}) => {
         <View>
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontFamily: 'Poppins-SemiBold',
               color: '#333',
               marginTop: hp('1.5%'),
+              fontWeight: 'bold',
               marginLeft: wp('12%'),
             }}>
             MRP ₹{itemPrice}
           </Text>
-          {discountedPrice > 0 && discountedPrice < itemPrice && (
-            <Text
-              style={{
-                fontSize: 11,
-                fontFamily: 'Poppins-SemiBold',
-                color: '#d32f2f',
-                marginTop: hp('0.5%'),
-                marginLeft: wp('12%'),
-              }}>
-              Discounted Price: ₹{discountedPrice}
-            </Text>
-          )}
+          {Number(discountedPrice) > 0 &&
+            Number(discountedPrice) <= Number(itemPrice) && (
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'Poppins-SemiBold',
+                  color: '#d32f2f',
+                  marginTop: hp('0.5%'),
+                  marginLeft: wp('12%'),
+                }}>
+                Discounted Price: ₹{discountedPrice}
+              </Text>
+            )}
         </View>
         {/* Size Selection */}
         <Text

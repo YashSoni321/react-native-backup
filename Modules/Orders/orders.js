@@ -228,7 +228,7 @@ const Orders = ({navigation}) => {
       // Reverse the order list
       const reversedOrders = updatedOrders.reverse();
 
-      console.log('Orders data:', JSON.stringify(reversedOrders));
+      // console.log('Orders data:', JSON.stringify(reversedOrders));
       setOrdersList(reversedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -263,7 +263,7 @@ const Orders = ({navigation}) => {
 
   // Render individual order item
   const renderOrderItem = useCallback(
-    ({item, index}) => (
+    ({item, index, orderId}) => (
       <View key={`order-item-${index}`}>
         <View style={styles.orderCard}>
           <View style={styles.orderHeader}>
@@ -289,7 +289,7 @@ const Orders = ({navigation}) => {
             <Text style={styles.buttonText}>Track Order</Text>
           </View>
           <TouchableOpacity
-            onPress={() => handleOrderDetail(item.OrderID)}
+            onPress={() => handleOrderDetail(orderId)}
             style={[styles.actionButton, styles.rightButton]}>
             <Text style={styles.buttonText}>Order Details</Text>
           </TouchableOpacity>
@@ -305,7 +305,11 @@ const Orders = ({navigation}) => {
       <View key={`order-group-${orderIndex}`}>
         {order.OrderItems && Array.isArray(order.OrderItems)
           ? order.OrderItems.map((orderItem, itemIndex) =>
-              renderOrderItem({item: orderItem, index: itemIndex}),
+              renderOrderItem({
+                item: orderItem,
+                index: itemIndex,
+                orderId: order.OrderID,
+              }),
             )
           : null}
       </View>

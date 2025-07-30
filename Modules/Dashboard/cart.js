@@ -347,6 +347,7 @@ const Cart = ({navigation}) => {
   const getUserLocation = async () => {
     try {
       const hasPermission = await requestLocationPermission();
+      console.log('hasPermission', hasPermission);
 
       if (hasPermission) {
         return new Promise((resolve, reject) => {
@@ -356,6 +357,7 @@ const Cart = ({navigation}) => {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
               };
+              console.log('currentLocation', currentLocation);
 
               setState(prevState => ({
                 ...prevState,
@@ -372,17 +374,6 @@ const Cart = ({navigation}) => {
                 'Failed to get your location. Using default location instead.',
               );
 
-              // Fallback to default location
-              const defaultLocation = {
-                latitude: 28.7041,
-                longitude: 79.0011,
-              };
-
-              setState(prevState => ({
-                ...prevState,
-                userLocation: defaultLocation,
-              }));
-
               resolve(defaultLocation);
             },
             {
@@ -398,32 +389,10 @@ const Cart = ({navigation}) => {
           'Location permission is required to calculate delivery fees accurately.',
         );
 
-        // Fallback to default location
-        const defaultLocation = {
-          latitude: 28.7041,
-          longitude: 79.0011,
-        };
-
-        setState(prevState => ({
-          ...prevState,
-          userLocation: defaultLocation,
-        }));
-
         return defaultLocation;
       }
     } catch (error) {
       console.error('Error getting user location:', error);
-
-      // Fallback to default location
-      const defaultLocation = {
-        latitude: 28.7041,
-        longitude: 79.0011,
-      };
-
-      setState(prevState => ({
-        ...prevState,
-        userLocation: defaultLocation,
-      }));
 
       return defaultLocation;
     }
@@ -486,6 +455,7 @@ const Cart = ({navigation}) => {
 
       for (const store of stores) {
         const storeLocation = await fetchStoreLocation(store.StoreID);
+        console.log('storeLocation', storeLocation);
 
         const distance = calculateDistance(
           userLocation.latitude,
@@ -565,7 +535,7 @@ const Cart = ({navigation}) => {
     );
   };
 
-  const fetchCartData = async () => {
+  const fetchCartData = async (isCalculateDeliveryFee = false) => {
     try {
       showLoading();
       setState(prevState => ({...prevState, isLoading: true, error: null}));
@@ -574,8 +544,6 @@ const Cart = ({navigation}) => {
       if (!UserProfileID) {
         throw new Error('User not logged in');
       }
-
-      await Promise.all([fetchDeliveryCharges(), getUserLocation()]);
 
       const addressResponse = await axios.get(
         URL_key +
@@ -587,6 +555,7 @@ const Cart = ({navigation}) => {
           },
         },
       );
+      await Promise.all([fetchDeliveryCharges(), getUserLocation()]);
 
       const stateResponse = await axios.get(
         URL_key + 'api/AddressApi/gStateDDL',
@@ -661,6 +630,9 @@ const Cart = ({navigation}) => {
           Quantity: item.Quantity || 0,
           UnitPrice: item.UnitPrice || 0,
           TotalPrice: item.TotalPrice || 0,
+          ProductTotalDiscount: Number(item.DiscountedPrice)
+            ? Number(item.DiscountedPrice) * Number(item.Quantity)
+            : 0,
 
           // Product details (from the new API structure)
           ProductName: item.ProductName || item.ItemName || 'Product',
@@ -684,8 +656,11 @@ const Cart = ({navigation}) => {
       // Create a simplified structure for the UI
       // Group products by store for display purposes
       const storeMap = new Map();
+      console.log('storeMap', storeMap);
 
       enrichedCartItems.forEach(item => {
+        console.log('item.StoreID', item.StoreID);
+
         if (!storeMap.has(item.StoreID)) {
           storeMap.set(item.StoreID, {
             StoreName: item.StoreName,
@@ -694,6 +669,7 @@ const Cart = ({navigation}) => {
             Products: [],
           });
         }
+        console.log('storeMap', storeMap);
         storeMap.get(item.StoreID).Products.push(item);
       });
 
@@ -708,18 +684,21 @@ const Cart = ({navigation}) => {
         .toFixed(2);
 
       const rawDiscountPrice = enrichedCartItems.reduce(
-        (sum, product) => sum + (parseFloat(product.DiscountedPrice) || 0),
+        (sum, product) => sum + (parseFloat(product.ProductTotalDiscount) || 0),
         0,
       );
+      console.log('rawDiscountPrice', rawDiscountPrice);
 
       // Validate discounted price - ensure it's not greater than original price
       const totalDiscountPrice = Math.min(
         rawDiscountPrice,
         parseFloat(totalUnitPrice),
       ).toFixed(2);
+      console.log('totalDiscountPrice', totalDiscountPrice);
 
       const currentUserLocation = state.userLocation;
       const currentCharges = state.deliveryCharges;
+      console.log('currentUserLocation', currentUserLocation);
 
       // Initialize fee data
       let deliveryFeeData = {
@@ -753,20 +732,37 @@ const Cart = ({navigation}) => {
       );
 
       // Update state with all the calculated data
-      setState(prevState => ({
-        ...prevState,
-        StreetName: addressResponse.data[0]?.StreetName || '',
-        Pincode: addressResponse.data[0]?.AddressCategory || '',
-        Nearbystores: groupedArray,
-        Nearbystores1: groupedArray,
-        TotalUnitPrice: parseFloat(totalUnitPrice),
-        TotalDiscountPrice: parseFloat(totalDiscountPrice),
-        totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
-        totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
-        totalPackagingFee: deliveryFeeData.totalPackagingFee,
-        isLoading: false,
-        error: null,
-      }));
+      if (isCalculateDeliveryFee) {
+        setState(prevState => ({
+          ...prevState,
+          StreetName: addressResponse.data[0]?.StreetName || '',
+          Pincode: addressResponse.data[0]?.AddressCategory || '',
+          Nearbystores: groupedArray,
+          Nearbystores1: groupedArray,
+          TotalUnitPrice: parseFloat(totalUnitPrice),
+          TotalDiscountPrice: parseFloat(totalDiscountPrice),
+          totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
+          totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
+          totalPackagingFee: deliveryFeeData.totalPackagingFee,
+          isLoading: false,
+          error: null,
+        }));
+      } else {
+        setState(prevState => ({
+          ...prevState,
+          StreetName: addressResponse.data[0]?.StreetName || '',
+          Pincode: addressResponse.data[0]?.AddressCategory || '',
+          Nearbystores: groupedArray,
+          Nearbystores1: groupedArray,
+          TotalUnitPrice: parseFloat(totalUnitPrice),
+          TotalDiscountPrice: parseFloat(totalDiscountPrice),
+          // totalDeliveryFee: deliveryFeeData.totalDeliveryFee,
+          totalConvenienceFee: deliveryFeeData.totalConvenienceFee,
+          totalPackagingFee: deliveryFeeData.totalPackagingFee,
+          isLoading: false,
+          error: null,
+        }));
+      }
       hideLoading();
     } catch (error) {
       handleError(error, 'Fetching cart data');
@@ -825,7 +821,7 @@ const Cart = ({navigation}) => {
 
         if (res.data.Result === 'UPDATED') {
           await AsyncStorage.setItem('CartID', res.data.CartID.toString());
-          await fetchCartData();
+          await fetchCartData(false);
         } else {
           throw new Error('Failed to update cart item');
         }
@@ -851,7 +847,7 @@ const Cart = ({navigation}) => {
         if (res.data === 'DELETED') {
           await AsyncStorage.removeItem('CartID');
           // Refresh cart data to recalculate totals
-          await fetchCartData();
+          await fetchCartData(false);
         } else {
           throw new Error('Failed to delete cart item');
         }
@@ -962,7 +958,7 @@ const Cart = ({navigation}) => {
   };
 
   useEffect(() => {
-    fetchCartData();
+    fetchCartData(true);
   }, []);
 
   useEffect(() => {

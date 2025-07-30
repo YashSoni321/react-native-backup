@@ -2,78 +2,37 @@ import React from 'react';
 import {
   StyleSheet,
   SafeAreaView,
-  FormInput,
   Text,
   View,
   Image,
-  Alert,
-  TextInput,
   TouchableOpacity,
   ScrollView,
-  Button,
-  Platform,
-  PermissionsAndroid,
   ImageBackground,
-  BackHandler,
-  ActivityIndicator,
-  TouchableHighlight,
-  DeviceEventEmitter,
   FlatList,
+  Linking,
 } from 'react-native';
-import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Normalize from '../Size/size';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {NavigationEvents} from 'react-navigation';
-import {SwiperFlatList} from 'react-native-swiper-flatlist';
-var date = moment().format('YYYY/MM/DD ');
-var time = moment().format('hh:mm A');
-import ImagePicker from 'react-native-image-crop-picker';
-import {CustomPicker} from 'react-native-custom-picker';
-import {API_KEY, URL_key} from '../Api/api';
+import {URL_key} from '../Api/api';
 import axios from 'axios';
-var RNFS = require('react-native-fs');
-import XLSX from 'xlsx';
-import publicIP from 'react-native-public-ip';
-import RBSheet from 'react-native-raw-bottom-sheet';
-import LinearGradient from 'react-native-linear-gradient';
-import MenuDrawer from 'react-native-side-drawer';
-import RNFetchBlob from 'rn-fetch-blob';
-import {image} from './image';
-import {alignSelf, marginBottom} from 'styled-system';
-import StepIndicator from 'react-native-step-indicator';
-import CheckBox from 'react-native-check-box';
 
-class Add extends React.Component {
+class OrderDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      categories1: [
-        {
-          name: 'Wallets',
-          Icon: 'wallet',
-          nav: 'Receivables',
-        },
-        {
-          name: 'Grocery',
-          Icon: 'color-filter',
-          nav: 'Receivables',
-        },
-      ],
       OrderID: this.props.route?.params?.data?.OrderID || null,
       orderslist: null,
+      selectedImageIndex: 0,
     };
   }
+
   async componentDidMount() {
     try {
-      // Get UserProfileID from AsyncStorage
-      const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-
       // Fetch Order List
       const orderResponse = await axios.get(
         `${URL_key}api/ProductApi/gOrderDetail?OrderID=${this.state.OrderID}`,
@@ -95,8 +54,13 @@ class Add extends React.Component {
               // Extract store and product details
               item.StoreName = productResponse.data.StoreName;
               item.StoreLocation = productResponse.data.StoreLocation;
+              item.GoogleMapLink = productResponse.data.GoogleMapLink;
               item.ProductName = productResponse.data.ProductName;
               item.ProductColor = productResponse.data.ProductColor;
+              item.ProductImage = productResponse.data.ProductImage;
+              item.ProductImages = productResponse.data.ProductImages;
+              item.IsReturnAvailable = productResponse.data.IsReturnAvailable;
+              item.ReturnDays = productResponse.data.ReturnDays;
 
               // Find matching ProductItem based on ProductItemID
               const matchingItem = productResponse.data.ProductItems.find(
@@ -118,9 +82,6 @@ class Add extends React.Component {
         }
       }
 
-      // Update state with enriched orders
-
-      // console.log(orders[0].OrderItems)
       this.setState({
         orderslist: orders,
         PaymentAmount: orders[0]?.PaymentAmount || '',
@@ -131,37 +92,39 @@ class Add extends React.Component {
         StateName: orders[0]?.StateName || '',
         CityName: orders[0]?.CityName || '',
         OrderDate: orders[0]?.OrderDate
-          ? moment(orders[0].OrderDate).format('dddd, MMMM DD, YYYY, hh.mm A')
+          ? moment(orders[0].OrderDate).format('dddd, MMMM DD, YYYY, hh:mm A')
           : '',
+        OrderStatus: orders[0]?.OrderStatus || '',
+        BaseDeliveryFee: orders[0]?.BaseDeliveryFee || 0,
+        AdditionDistanceFee: orders[0]?.AdditionDistanceFee || 0,
+        ConvenienceFee: orders[0]?.ConvenienceFee || 0,
+        PackagingFee: orders[0]?.PackagingFee || 0,
+        RainyWeatherBaseFee: orders[0]?.RainyWeatherBaseFee || 0,
       });
     } catch (error) {
       console.error('Error fetching orders or product details:', error);
     }
   }
 
+  openMap = googleMapLink => {
+    if (googleMapLink) {
+      Linking.openURL(googleMapLink);
+    }
+  };
+
   render() {
+    const {orderslist} = this.state;
+    const firstOrder = orderslist?.[0];
+
     return (
-      <SafeAreaView>
+      <SafeAreaView style={styles.container}>
         <ScrollView>
           <ImageBackground
             style={{width: wp('100%')}}
             activeOpacity={0.5}
             source={require('../Images/output-onlinepngtools1.png')}
             resizeMode="cover">
-            <Text
-              style={{
-                fontSize: 45,
-                textAlign: 'center',
-                //   justifyContent: 'center',
-                color: '#00afb5',
-                fontFamily: 'RedHatDisplay-Bold',
-                marginTop: hp('3%'),
-                // marginBottom: hp('2%'),
-                // marginRight: wp('20%'),
-                // marginRight: wp('5%'),
-              }}>
-              fybr
-            </Text>
+            <Text style={styles.headerTitle}>fybr</Text>
             <Icon
               onPress={() => {
                 this.props.navigation.push('Orders');
@@ -169,411 +132,170 @@ class Add extends React.Component {
               name="chevron-back"
               color={'#00afb5'}
               size={40}
-              style={{
-                marginLeft: wp('1%'),
-                padding: hp('1%'),
-                marginTop: hp('-9.0%'),
-                marginBottom: hp('2%'),
-              }}
+              style={styles.backButton}
             />
           </ImageBackground>
-          <View
-            style={{
-              // marginLeft: wp('2%'),
-              // marginRight: wp('2%'),
-              marginBottom: hp('2%'),
-              // marginTop: hp('2%'),
-            }}>
+
+          {/* Order Status */}
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusText}>
+              Order Status: {this.state.OrderStatus}
+            </Text>
+          </View>
+
+          {/* Products List */}
+          <View style={styles.productsContainer}>
             <FlatList
               data={this.state.orderslist}
-              // horizontal={true}
-              renderItem={({item, index}) => {
-                return (
-                  <>
-                    <FlatList
-                      data={item.OrderItems}
-                      // horizontal={true}
-                      renderItem={({item, index}) => {
-                        return (
-                          <>
-                            <View
-                              style={[
-                                {
-                                  width: wp('95%'),
-                                  alignSelf: 'center',
-                                  //   elevation: 10,
-                                  //   shadowColor: '#000',
-                                  //   shadowOffset: {width: 0, height: 3},
-                                  //   shadowOpacity: 0.5,
-                                  //   shadowRadius: 5,
+              renderItem={({item: order}) => (
+                <FlatList
+                  data={order.OrderItems}
+                  renderItem={({item}) => (
+                    <View style={styles.productCard}>
+                      <View style={styles.productRow}>
+                        <View style={styles.imageContainer}>
+                          {item.ProductImages && (
+                            <FlatList
+                              horizontal
+                              data={item.ProductImages}
+                              showsHorizontalScrollIndicator={false}
+                              pagingEnabled
+                              renderItem={({item: image}) => (
+                                <Image
+                                  style={styles.productImage}
+                                  source={{uri: image.ProductImage}}
+                                />
+                              )}
+                              keyExtractor={(item, index) => index.toString()}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.productDetails}>
+                          <Text style={styles.productName}>
+                            {item.ProductName}
+                          </Text>
+                          <Text style={styles.productColor}>
+                            {item.ProductColor}
+                          </Text>
+                          <Text style={styles.productSize}>
+                            Size: {item.Size}
+                          </Text>
+                          <Text style={styles.productPrice}>
+                            ₹ {item.TotalPrice}
+                          </Text>
 
-                                  // backgroundColor: '#ffff',
-                                  // borderRadius: wp('3%'),
-                                  borderRadius: wp('3%'),
-                                  // borderTopRightRadius: wp('3%'),
-                                  //   borderBottomRightRadius: wp('3%'),
-                                  // marginLeft: wp('0.5%'),
-                                  // justifyContent: 'center',
-                                  // alignItems: 'center',
-                                  // marginLeft: wp('1%'),
-                                  // marginRight: wp('1%'),
-                                  marginTop: hp('2%'),
-                                  // marginBottom: hp('2%'),
-                                  borderColor: '#00afb5',
-                                  // height: hp('7%'),
-                                  // alignItems: 'center',
-                                  // justifyContent: 'center',
+                          {/* Store Details */}
+                          <TouchableOpacity
+                            style={styles.storeContainer}
+                            onPress={() => this.openMap(item.GoogleMapLink)}>
+                            <Text style={styles.storeName}>
+                              {item.StoreName}
+                            </Text>
+                            <Text style={styles.storeLocation}>
+                              {item.StoreLocation}
+                            </Text>
+                            <Icon name="location" size={16} color="#00afb5" />
+                          </TouchableOpacity>
 
-                                  // borderWidth: 0.7,
-                                },
-                              ]}>
-                              <View style={{flexDirection: 'row'}}>
-                                <View>
-                                  <Image
-                                    style={{
-                                      width: wp('30%'),
-                                      height: hp('12%'),
-                                      resizeMode: 'stretch',
-                                      // resizeMode: 'stretch',s
-                                      // borderTopRightRadius: hp('1%'),
-                                      // borderTopLeftRadius: hp('1%'),
-                                      marginTop: hp('2%'),
-                                      marginLeft: wp('5%'),
-                                      marginRight: wp('5%'),
-                                      // borderRadius: wp('5%'),
-                                      // marginBottom: hp('2%'),
-                                      // marginLeft: wp('1.5%'),
-                                    }}
-                                    // resizeMode="center"
-                                    source={require('../Images/bb.jpg')}
-                                  />
-                                </View>
-                                <View>
-                                  <Text
-                                    style={{
-                                      fontSize: 13,
-                                      fontFamily: 'Poppins-SemiBold',
-                                      alignContent: 'center',
-                                      textAlign: 'left',
-                                      justifyContent: 'center',
-                                      color: '#333',
-                                      marginTop: hp('4%'),
-
-                                      marginLeft: wp('3%'),
-                                      marginRight: wp('2%'),
-                                      width: wp('25%'),
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    {item.ProductName}
-                                  </Text>
-
-                                  <Text
-                                    style={{
-                                      fontSize: 10,
-                                      fontFamily: 'Poppins-Light',
-                                      alignContent: 'center',
-                                      textAlign: 'left',
-                                      justifyContent: 'center',
-                                      color: 'gray',
-                                      marginTop: hp('0.5%'),
-
-                                      marginLeft: wp('3%'),
-                                      marginRight: wp('2%'),
-                                      width: wp('25%'),
-
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    {item.ProductColor}
-                                  </Text>
-                                  <Text
-                                    style={{
-                                      fontSize: 11,
-                                      fontFamily: 'Poppins-SemiBold',
-                                      alignContent: 'center',
-                                      textAlign: 'left',
-                                      justifyContent: 'center',
-                                      color: '#333',
-                                      marginTop: hp('1%'),
-
-                                      marginLeft: wp('3%'),
-                                      marginRight: wp('2%'),
-                                      width: wp('25%'),
-
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    🟡 {item.Size}
-                                  </Text>
-                                </View>
-                                <View>
-                                  <Text
-                                    style={{
-                                      fontSize: 11,
-                                      fontFamily: 'Poppins-SemiBold',
-                                      // alignContent: 'center',
-                                      // textAlign: 'left',
-                                      // justifyContent: 'center',
-                                      color: '#333',
-                                      marginTop: hp('7%'),
-
-                                      marginLeft: wp('3%'),
-                                      marginRight: wp('4%'),
-                                      // width: wp('74%'),
-
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    ₹ {item.TotalPrice}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          </>
-                        );
-                      }}
-                    />
-                  </>
-                );
-              }}
-              numColumns={1}
+                          {/* Return Policy */}
+                          {item.IsReturnAvailable && (
+                            <Text style={styles.returnPolicy}>
+                              {item.ReturnDays} days return available
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                  keyExtractor={(item, index) => index.toString()}
+                />
+              )}
+              keyExtractor={(item, index) => index.toString()}
             />
           </View>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('2%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            Mode of Payment
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#666',
-              fontFamily: 'Poppins-Light',
-              marginTop: hp('2%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            {this.state.PaymentMode}
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('2%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            Payment Summary
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              // textAlign: 'center',
-              //   justifyContent: 'center',
-              color: '#666',
-              fontFamily: 'Poppins-Light',
-              marginTop: hp('2%'),
-              // marginBottom: hp('-0.5%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('1%'),
-            }}>
-            Subtotal
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              textAlign: 'right',
-              //   justifyContent: 'center',
-              color: '#666',
-              fontFamily: 'Poppins-Light',
-              marginTop: hp('-2.5%'),
-              // marginBottom: hp('-0.5%'),
-              // marginLeft: wp('5%'),
-              marginRight: wp('5%'),
-            }}>
-            ₹ {this.state.PaymentAmount}
-          </Text>
 
-          <Text
-            style={{
-              fontSize: 12,
-              // textAlign: 'center',
-              //   justifyContent: 'center',
-              color: '#666',
-              fontFamily: 'Poppins-Light',
-              // marginTop: hp('1%'),
-              // marginBottom: hp('-0.5%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('1%'),
-            }}>
-            Charges & Fees
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              textAlign: 'right',
-              //   justifyContent: 'center',
-              color: '#666',
-              fontFamily: 'Poppins-Light',
-              marginTop: hp('-2.5%'),
-              // marginBottom: hp('-0.5%'),
-              // marginLeft: wp('5%'),
-              marginRight: wp('5%'),
-            }}>
-            ₹ 0.00
-          </Text>
-
-          <Text
-            style={{
-              fontSize: 12,
-              // textAlign: 'center',
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('3%'),
-              // marginBottom: hp('-0.5%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('1%'),
-            }}>
-            Total amount
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              textAlign: 'right',
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('-2.5%'),
-              // marginBottom: hp('-0.5%'),
-              // marginLeft: wp('5%'),
-              marginRight: wp('5%'),
-            }}>
-            ₹ {this.state.PaymentAmount}
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('3%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            Order Details
-          </Text>
-          <Text
-            style={{
-              fontSize: 11,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-Light',
-              marginTop: hp('2%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            {this.state.OrderDate}
-          </Text>
-          <Text
-            style={{
-              fontSize: 11,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-Light',
-              // marginTop: hp('2%'),
-              // marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            {this.state.StreetNumber}, {this.state.StreetName},{' '}
-            {this.state.CityName}, {this.state.StateName} - {this.state.Pincode}
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('3%'),
-              marginBottom: hp('1%'),
-              marginLeft: wp('10%'),
-              // marginRight: wp('10%'),
-            }}>
-            Need help with this order?
-          </Text>
-          <View
-            style={{
-              width: wp('80%`'),
-              borderWidth: 0.7,
-              alignSelf: 'center',
-              borderColor: '#666',
-              borderRadius: 5,
-            }}>
-            <TouchableOpacity
-              onPress={() => this.props.navigation.push('Contactsupport')}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  // textAlign: "center",
-                  //   justifyContent: 'center',
-                  color: '#333',
-                  fontFamily: 'Poppins-Light',
-                  marginTop: hp('1.5%'),
-                  // // marginBottom: hp('2%'),
-                  marginLeft: wp('4%'),
-                  // marginRight: wp('10%'),
-                }}>
-                Contact Support
-              </Text>
-            </TouchableOpacity>
-            <Text
-              style={{
-                fontSize: 11,
-                // textAlign: "center",
-                //   justifyContent: 'center',
-                color: '#666',
-                fontFamily: 'Poppins-Light',
-                // marginTop: hp('2%'),
-                marginBottom: hp('1.5%'),
-                marginLeft: wp('4%'),
-                // marginRight: wp('10%'),
-              }}>
-              Chat with our support team
+          {/* Payment Details */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Payment Details</Text>
+            <Text style={styles.paymentMode}>
+              Mode: {this.state.PaymentMode}
             </Text>
-            <Icon
-              onPress={() => {
-                this.props.navigation.push('Orders');
-              }}
-              name="chatbox-ellipses-outline"
-              color={'#00afb5'}
-              size={40}
-              style={{
-                marginRight: wp('1%'),
-                padding: hp('1%'),
-                marginTop: hp('-7%'),
-                alignSelf: 'flex-end',
-              }}
-            />
+
+            <View style={styles.feeContainer}>
+              <Text style={styles.feeLabel}>Base Delivery Fee</Text>
+              <Text style={styles.feeAmount}>
+                ₹ {this.state.BaseDeliveryFee}
+              </Text>
+            </View>
+
+            <View style={styles.feeContainer}>
+              <Text style={styles.feeLabel}>Additional Distance Fee</Text>
+              <Text style={styles.feeAmount}>
+                ₹ {this.state.AdditionDistanceFee}
+              </Text>
+            </View>
+
+            <View style={styles.feeContainer}>
+              <Text style={styles.feeLabel}>Convenience Fee</Text>
+              <Text style={styles.feeAmount}>
+                ₹ {this.state.ConvenienceFee}
+              </Text>
+            </View>
+
+            <View style={styles.feeContainer}>
+              <Text style={styles.feeLabel}>Packaging Fee</Text>
+              <Text style={styles.feeAmount}>₹ {this.state.PackagingFee}</Text>
+            </View>
+
+            {this.state.RainyWeatherBaseFee > 0 && (
+              <View style={styles.feeContainer}>
+                <Text style={styles.feeLabel}>Rainy Weather Fee</Text>
+                <Text style={styles.feeAmount}>
+                  ₹ {this.state.RainyWeatherBaseFee}
+                </Text>
+              </View>
+            )}
+
+            <View style={[styles.feeContainer, styles.totalContainer]}>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalAmount}>
+                ₹ {this.state.PaymentAmount}
+              </Text>
+            </View>
+          </View>
+
+          {/* Delivery Details */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Delivery Details</Text>
+            <Text style={styles.orderDate}>{this.state.OrderDate}</Text>
+            <Text style={styles.address}>
+              {this.state.StreetNumber}, {this.state.StreetName},{'\n'}
+              {this.state.CityName}, {this.state.StateName} -{' '}
+              {this.state.Pincode}
+            </Text>
+          </View>
+
+          {/* Support Section */}
+          <View style={styles.supportSection}>
+            <Text style={styles.supportTitle}>Need help with this order?</Text>
+            <TouchableOpacity
+              style={styles.supportButton}
+              onPress={() => this.props.navigation.push('Contactsupport')}>
+              <View style={styles.supportContent}>
+                <View>
+                  <Text style={styles.supportButtonText}>Contact Support</Text>
+                  <Text style={styles.supportSubtext}>
+                    Chat with our support team
+                  </Text>
+                </View>
+                <Icon
+                  name="chatbox-ellipses-outline"
+                  color={'#00afb5'}
+                  size={30}
+                  style={styles.supportIcon}
+                />
+              </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -584,9 +306,199 @@ class Add extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  headerTitle: {
+    fontSize: 45,
+    textAlign: 'center',
+    color: '#00afb5',
+    fontFamily: 'RedHatDisplay-Bold',
+    marginTop: hp('3%'),
+  },
+  backButton: {
+    marginLeft: wp('1%'),
+    padding: hp('1%'),
+    marginTop: hp('-9.0%'),
+    marginBottom: hp('2%'),
+  },
+  statusContainer: {
+    backgroundColor: '#f0f8ff',
+    padding: 10,
+    marginHorizontal: 10,
+    marginTop: 10,
+    borderRadius: 5,
+  },
+  statusText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#00afb5',
+    textAlign: 'center',
+  },
+  productsContainer: {
+    marginBottom: hp('2%'),
+  },
+  productCard: {
+    width: wp('95%'),
+    alignSelf: 'center',
+    borderRadius: wp('3%'),
+    marginTop: hp('2%'),
+    borderColor: '#00afb5',
+    backgroundColor: '#fff',
+    elevation: 2,
+    padding: 10,
+  },
+  productRow: {
+    flexDirection: 'row',
+  },
+  imageContainer: {
+    width: wp('40%'),
+    height: hp('15%'),
+  },
+  productImage: {
+    width: wp('35%'),
+    height: hp('15%'),
+    resizeMode: 'cover',
+    borderRadius: 8,
+  },
+  productDetails: {
+    flex: 1,
+    paddingLeft: 10,
+  },
+  productName: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+  },
+  productColor: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Light',
+    color: 'gray',
+  },
+  productSize: {
+    fontSize: 12,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+    marginTop: 4,
+  },
+  productPrice: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#00afb5',
+    marginTop: 4,
+  },
+  storeContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+  },
+  storeName: {
+    fontSize: 12,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#666',
+    marginRight: 5,
+  },
+  storeLocation: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+    marginRight: 5,
+  },
+  returnPolicy: {
+    fontSize: 11,
+    fontFamily: 'Poppins-Light',
+    color: '#00afb5',
+    marginTop: 4,
+  },
+  section: {
+    padding: 15,
+    backgroundColor: '#fff',
+    marginVertical: 5,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  feeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  feeLabel: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+  },
+  feeAmount: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+  },
+  totalContainer: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+  },
+  totalAmount: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#00afb5',
+  },
+  orderDate: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+    marginBottom: 5,
+  },
+  address: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+    lineHeight: 20,
+  },
+  supportSection: {
+    padding: 15,
+    backgroundColor: '#fff',
+    marginVertical: 5,
+  },
+  supportTitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  supportButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 15,
+  },
+  supportContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  supportButtonText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+  },
+  supportSubtext: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Light',
+    color: '#666',
+    marginTop: 2,
+  },
+  supportIcon: {
+    marginLeft: 10,
   },
 });
 
-export default Add;
+export default OrderDetail;

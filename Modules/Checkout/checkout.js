@@ -673,12 +673,13 @@ const Checkout = ({navigation, route}) => {
         SystemDate: SystemDate,
       };
 
-      BookingDebugger.trackApiCall(
-        '/api/ProductApi/sPayment',
-        paymentData,
-        {},
-        true,
-      );
+      // BookingDebugger.trackApiCall(
+      //   '/api/ProductApi/sPayment',
+      //   paymentData,
+      //   {},
+      //   true,
+      // );
+      console.log('💳 Regular payment data:', paymentData);
 
       const response = await axios.post(
         URL_key + 'api/ProductApi/sPayment',
