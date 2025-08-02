@@ -16,8 +16,6 @@ import {
   ImageBackground,
   BackHandler,
   ActivityIndicator,
-  TouchableHighlight,
-  DeviceEventEmitter,
   FlatList,
   Linking,
 } from 'react-native';
@@ -459,9 +457,15 @@ const Checkout = ({navigation, route}) => {
         fail: true,
       }));
 
-      Alert.alert(
+      showModal(
         'Payment Failed',
         'Unable to process payment. Please try again.',
+        'error',
+        'Back to Cart',
+        () => {
+          hideModal();
+          navigation.push('Cart');
+        },
       );
     }
   };
@@ -556,16 +560,6 @@ const Checkout = ({navigation, route}) => {
           console.log('PhonePe result:', transactionResult);
 
           if (transactionResultStatus?.status === 'SUCCESS') {
-            showModal(
-              'Payment Successful! 🎉',
-              'Your order has been placed successfully!',
-              'success',
-              'View Orders',
-              () => {
-                hideModal();
-                navigation.push('Orders');
-              },
-            );
             await savePaymentToBackend(orderId, {
               cartID: cartResponse.data.cartID,
               UserProfileID,
@@ -578,19 +572,17 @@ const Checkout = ({navigation, route}) => {
               TransactionID: orderId,
             });
 
-            setState(prevState => ({...prevState, loading: false}));
-            return;
-          } else {
             showModal(
-              'Payment Failed',
-              'Your payment could not be processed. Please try again.',
-              'error',
-              'Back to Cart',
+              'Payment Successful',
+              'Your order has been placed successfully!',
+              'success',
+              'View Orders',
               () => {
                 hideModal();
-                navigation.push('Cart');
+                navigation.push('Orders');
               },
             );
+            setState(prevState => ({...prevState, loading: false}));
             return;
           }
         }
@@ -646,10 +638,15 @@ const Checkout = ({navigation, route}) => {
       setState(prevState => ({...prevState, loading: false}));
 
       if (response.data === 'INSERTED' || response.data === 'UPDATED') {
-        Alert.alert(
+        showModal(
           'Order Placed Successfully',
           'Your order has been placed successfully!',
-          [{text: 'OK', onPress: () => navigation.push('Orders')}],
+          'success',
+          'View Orders',
+          () => {
+            hideModal();
+            navigation.push('Orders');
+          },
         );
       } else {
         setState(prevState => ({...prevState, fail: true}));
@@ -657,9 +654,15 @@ const Checkout = ({navigation, route}) => {
     } catch (error) {
       setState(prevState => ({...prevState, loading: false}));
       console.error('Payment error:', error);
-      Alert.alert(
+      showModal(
         'Payment Error',
         'Unable to process payment. Please try again.',
+        'error',
+        'Back to Cart',
+        () => {
+          hideModal();
+          navigation.push('Cart');
+        },
       );
     }
   };
