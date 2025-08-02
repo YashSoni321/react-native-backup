@@ -23,14 +23,29 @@ export const getUserLocation = (showModalCallback = null) => {
     const hasPermission = await requestLocationPermission();
 
     if (!hasPermission) {
-      if (showModalCallback) {
-        showModalCallback(
-          'Permission Denied',
-          'Location access is required to find nearby services.',
-          'error',
-        );
-      }
+      // if (showModalCallback) {
+      //   showModalCallback(
+      //     'Permission Denied',
+      //     'Location access is required to find nearby services.',
+      //     'error',
+      //   );
+      // }
       return reject(new Error('Location permission denied'));
+    } else {
+      if (showModalCallback) {
+        // showModalCallback(
+        //   'Location Permission',
+        //   'Location permission is required for the app to function properly!',
+        //   'info',
+        //   () => {
+        //     if (Platform.OS === 'android') {
+        //       Linking.openSettings(); // Opens App Settings
+        //     } else {
+        //       Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+        //     }
+        //   },
+        // );
+      }
     }
 
     const timeoutId = setTimeout(() => {
@@ -39,14 +54,14 @@ export const getUserLocation = (showModalCallback = null) => {
 
     Geolocation.getCurrentPosition(
       position => {
-        clearTimeout(timeoutId);
+        // clearTimeout(timeoutId);
         resolve({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         });
       },
       error => {
-        clearTimeout(timeoutId);
+        // clearTimeout(timeoutId);
 
         let message = 'Unable to fetch location.';
         switch (error.code) {
@@ -61,10 +76,10 @@ export const getUserLocation = (showModalCallback = null) => {
             break;
         }
 
-        if (showModalCallback) {
-          showModalCallback('Location Error', message, 'error');
-        }
-        reject(new Error(message));
+        // if (showModalCallback) {
+        //   showModalCallback('Location Error', message, 'error');
+        // }
+        // reject(new Error(message));
       },
       {
         enableHighAccuracy: true,

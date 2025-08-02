@@ -543,23 +543,13 @@ const Home = props => {
         try {
           const hasPermission = await requestLocationPermission();
           if (hasPermission) {
-            console.log(
-              '📍 Location permission granted, getting current position...',
-            );
-
-            // Add timeout to prevent hanging
-            const locationTimeout = setTimeout(() => {
-              console.log(
-                '📍 Location request timed out, continuing without location',
-              );
-              setIsLoadingStores(false);
-            }, 10000); // 10 second timeout
+            // Add timeout to prevent hangin // 10 second timeout
 
             try {
               Geolocation.getCurrentPosition(
                 async position => {
                   try {
-                    clearTimeout(locationTimeout);
+                    // clearTimeout(locationTimeout);
                     const newLocation = {
                       latitude: position.coords.latitude,
                       longitude: position.coords.longitude,
@@ -571,7 +561,7 @@ const Home = props => {
                     // Fetch nearby stores
                     await fetchNearbyStores(newLocation);
                   } catch (locationError) {
-                    clearTimeout(locationTimeout);
+                    // clearTimeout(locationTimeout);
                     console.error(
                       '📍 Location processing error:',
                       locationError,
@@ -580,7 +570,7 @@ const Home = props => {
                   }
                 },
                 error => {
-                  clearTimeout(locationTimeout);
+                  // clearTimeout(locationTimeout);
                   console.error('📍 Location error:', error);
 
                   // Provide user-friendly error message
@@ -598,13 +588,30 @@ const Home = props => {
                       break;
                   }
 
+                  // showModal(
+                  //   'Location Error',
+                  //   errorMessage,
+                  //   'error',
+                  //   'OK',
+                  //   () => {
+                  //     if (Platform.OS === 'android') {
+                  //       Linking.openSettings(); // Opens App Settings
+                  //     } else {
+                  //       Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                  //     }
+                  //   },
+                  // );
                   showModal(
                     'Location Error',
-                    errorMessage,
+                    errorMessageerrorMessage,
                     'error',
                     'OK',
                     () => {
-                      setIsLoadingStores(false);
+                      if (Platform.OS === 'android') {
+                        Linking.openSettings(); // Opens App Settings
+                      } else {
+                        Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                      }
                     },
                   );
                 },
@@ -616,31 +623,42 @@ const Home = props => {
                 },
               );
             } catch (geolocationError) {
-              clearTimeout(locationTimeout);
-              console.error(
-                '📍 Geolocation.getCurrentPosition error:',
-                geolocationError,
+              // clearTimeout(locationTimeout);
+              showModal(
+                'Location Error',
+                'Location permission denied. Please enable location access in settings.',
+                'error',
+                'OK',
+                () => {
+                  if (Platform.OS === 'android') {
+                    Linking.openSettings(); // Opens App Settings
+                  } else {
+                    Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                  }
+                },
               );
               // Continue without location
             }
           } else {
-            console.log(
-              '⚠️ Location permission not granted, using default location',
+            showModal(
+              'Location Error',
+              'Location permission denied. Please enable location access in settings.',
+              'error',
+              'OK',
+              () => {
+                if (Platform.OS === 'android') {
+                  Linking.openSettings(); // Opens App Settings
+                } else {
+                  Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                }
+              },
             );
-            // Use a default location (e.g., city center)
-            const defaultLocation = {
-              latitude: 28.7041, // Default to Delhi coordinates
-              longitude: 77.1025,
-            };
-            setCurrentLocation(defaultLocation);
-            await fetchNearbyStores(defaultLocation);
           }
         } catch (locationPermissionError) {
           console.error(
             '📍 Location permission error:',
             locationPermissionError,
           );
-          // Don't block the app for location permission issues
         }
 
         console.log('✅ Home component mounted successfully');
@@ -656,21 +674,6 @@ const Home = props => {
   // Function for debugging specific location
 
   // Test function for debugging specific location
-  const testSpecificLocation = async () => {
-    const testLocation = {
-      latitude: 26.907101631221334,
-      longitude: 75.78250122402882,
-    };
-
-    console.log('🧪 Testing specific location:', testLocation);
-    showModal(
-      'Testing Location',
-      `Testing with your location:\nLat: ${testLocation.latitude}\nLng: ${testLocation.longitude}`,
-      'info',
-    );
-
-    await fetchNearbyStores(testLocation);
-  };
 
   // Refresh location manually
   const refreshLocation = async () => {
@@ -705,9 +708,17 @@ const Home = props => {
           },
         );
       } else {
-        Alert.alert(
-          'Permission Required',
-          'Location permission is required to refresh your location.',
+        showModal(
+          'Permission Denied',
+          'Location permission is required for the app to function properly!',
+          'error',
+          () => {
+            if (Platform.OS === 'android') {
+              Linking.openSettings(); // Opens App Settings
+            } else {
+              Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+            }
+          },
         );
         setIsLoadingStores(false);
       }
@@ -1060,7 +1071,7 @@ const Home = props => {
                   </View>
                 </ImageBackground>
 
-                {banner == 'false' ? (
+                {banner == 'true' ? (
                   <></>
                 ) : (
                   <>
@@ -1080,7 +1091,7 @@ const Home = props => {
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           padding: wp('4%'),
-                          marginTop: hp('2%'),
+                          marginTop: hp('1%'),
                         }}>
                         {/* Left side: Text content */}
                         <View style={{flex: 1, paddingRight: wp('2%')}}>

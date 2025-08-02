@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Linking,
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -201,6 +202,13 @@ const Landing = ({navigation}) => {
                     'Permission Denied',
                     'Location permission is required for the app to function properly!',
                     'error',
+                    () => {
+                      if (Platform.OS === 'android') {
+                        Linking.openSettings(); // Opens App Settings
+                      } else {
+                        Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                      }
+                    },
                   );
                 }
               } catch (error) {

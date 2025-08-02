@@ -7,11 +7,11 @@
 #define TIMEOUT_SECONDS 600
 #define TEXT_TO_LOOK_FOR @"Welcome to React"
 
-@interface MyNewFybrAppTests : XCTestCase
+@interface FybrTests : XCTestCase
 
 @end
 
-@implementation MyNewFybrAppTests
+@implementation FybrTests
 
 - (BOOL)findSubviewInView:(UIView *)view matching:(BOOL (^)(UIView *view))test
 {

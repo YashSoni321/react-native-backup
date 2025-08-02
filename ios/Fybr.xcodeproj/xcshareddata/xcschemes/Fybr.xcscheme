@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "MyNewFybrApp.app"
-               BlueprintName = "MyNewFybrApp"
-               ReferencedContainer = "container:MyNewFybrApp.xcodeproj">
+               BuildableName = "Fybr.app"
+               BlueprintName = "Fybr"
+               ReferencedContainer = "container:Fybr.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "MyNewFybrAppTests.xctest"
-               BlueprintName = "MyNewFybrAppTests"
-               ReferencedContainer = "container:MyNewFybrApp.xcodeproj">
+               BuildableName = "FybrTests.xctest"
+               BlueprintName = "FybrTests"
+               ReferencedContainer = "container:Fybr.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "MyNewFybrApp.app"
-            BlueprintName = "MyNewFybrApp"
-            ReferencedContainer = "container:MyNewFybrApp.xcodeproj">
+            BuildableName = "Fybr.app"
+            BlueprintName = "Fybr"
+            ReferencedContainer = "container:Fybr.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "MyNewFybrApp.app"
-            BlueprintName = "MyNewFybrApp"
-            ReferencedContainer = "container:MyNewFybrApp.xcodeproj">
+            BuildableName = "Fybr.app"
+            BlueprintName = "Fybr"
+            ReferencedContainer = "container:Fybr.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
