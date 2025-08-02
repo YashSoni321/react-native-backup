@@ -171,7 +171,6 @@ const ProductDetails = ({navigation, route}) => {
   }
 
 useEffect(() => {
-  
   fetchDeliveryLocationTime()
 }, [])
 
