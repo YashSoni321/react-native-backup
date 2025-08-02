@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Alert} from 'react-native';
 import apiService from '../Modules/Api/api';
 
 /**
@@ -16,11 +15,18 @@ class CartValidation {
   static async canAddFromStore(
     currentStoreID,
     currentStoreName = 'this store',
+    showModalCallback = null,
   ) {
     try {
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       if (!UserProfileID) {
-        Alert.alert('Error', 'Please login to add items to cart.');
+        if (showModalCallback) {
+          showModalCallback(
+            'Login Required',
+            'Please login to add items to cart.',
+            'warning',
+          );
+        }
         return false;
       }
 
@@ -39,41 +45,43 @@ class CartValidation {
         // Different store detected
         const existingStoreName = cartItems[0].StoreName || 'another store';
 
-        return new Promise(resolve => {
-          Alert.alert(
-            'Different Store',
-            `You have items in your cart from ${existingStoreName}. You can only order from one store at a time.`,
-            [
-              {
-                text: 'Cancel',
-                style: 'cancel',
-                onPress: () => resolve(false),
+        if (showModalCallback) {
+          return new Promise(resolve => {
+            showModalCallback(
+              'Different Store',
+              `You have items in your cart from ${existingStoreName}. You can only order from one store at a time.`,
+              'warning',
+              'Clear Cart & Add',
+              async () => {
+                try {
+                  await this.clearCart(UserProfileID, cartItems);
+                  resolve(true);
+                } catch (error) {
+                  console.error('Error clearing cart:', error);
+                  showModalCallback(
+                    'Error',
+                    'Failed to clear cart. Please try again.',
+                    'error',
+                  );
+                  resolve(false);
+                }
               },
-              {
-                text: 'Clear Cart & Add',
-                onPress: async () => {
-                  try {
-                    await this.clearCart(UserProfileID, cartItems);
-                    resolve(true);
-                  } catch (error) {
-                    console.error('Error clearing cart:', error);
-                    Alert.alert(
-                      'Error',
-                      'Failed to clear cart. Please try again.',
-                    );
-                    resolve(false);
-                  }
-                },
-              },
-            ],
-          );
-        });
+            );
+          });
+        }
+        return false;
       }
 
       return true;
     } catch (error) {
       console.error('Error checking store validation:', error);
-      Alert.alert('Error', 'Failed to validate cart. Please try again.');
+      if (showModalCallback) {
+        showModalCallback(
+          'Error',
+          'Failed to validate cart. Please try again.',
+          'error',
+        );
+      }
       return false;
     }
   }
@@ -139,12 +147,13 @@ class CartValidation {
    * @param {string} productData.StoreName - Store name for validation
    * @returns {Promise<Object>} - Result object with success status and message
    */
-  static async addToCartWithValidation(productData) {
+  static async addToCartWithValidation(productData, showModalCallback = null) {
     try {
       // Step 1: Validate store
       const canAdd = await this.canAddFromStore(
         productData.StoreID,
         productData.StoreName,
+        showModalCallback,
       );
       if (!canAdd) {
         return {

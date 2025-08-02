@@ -6,7 +6,6 @@ import {
   Text,
   View,
   Image,
-  Alert,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -38,13 +37,42 @@ import CheckBox from 'react-native-check-box';
 import Geolocation from '@react-native-community/geolocation';
 import {getDistance} from 'geolib';
 import {useLoading} from '../../shared/LoadingContext';
+import CustomModal from '../../shared/CustomModal';
 
 const DISTANCE_THRESHOLD = 3000; // 3km in meters
 const BATCH_SIZE = 50; // Process stores in batches
 
 const Home = props => {
+  const showModal = (
+    title,
+    message,
+    type = 'info',
+    primaryButtonText = 'OK',
+    onPrimaryPress = null,
+  ) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      primaryButtonText,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
   const {showLoading, hideLoading} = useLoading();
   const [deliveryTime, setDeliveryTime] = useState('');
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    primaryButtonText: 'OK',
+    onPrimaryPress: null,
+  });
 
   const [brand, setBrand] = useState([
     {
@@ -570,12 +598,15 @@ const Home = props => {
                       break;
                   }
 
-                  Alert.alert('Location Error', errorMessage, [
-                    {
-                      text: 'OK',
-                      onPress: () => setIsLoadingStores(false),
+                  showModal(
+                    'Location Error',
+                    errorMessage,
+                    'error',
+                    'OK',
+                    () => {
+                      setIsLoadingStores(false);
                     },
-                  ]);
+                  );
                 },
                 {
                   enableHighAccuracy: true,
@@ -632,10 +663,10 @@ const Home = props => {
     };
 
     console.log('🧪 Testing specific location:', testLocation);
-    Alert.alert(
+    showModal(
       'Testing Location',
       `Testing with your location:\nLat: ${testLocation.latitude}\nLng: ${testLocation.longitude}`,
-      [{text: 'OK'}],
+      'info',
     );
 
     await fetchNearbyStores(testLocation);
@@ -660,9 +691,10 @@ const Home = props => {
           },
           error => {
             console.error('📍 Refresh location error:', error);
-            Alert.alert(
+            showModal(
               'Error',
               'Failed to refresh location. Please try again.',
+              'error',
             );
             setIsLoadingStores(false);
           },
@@ -751,6 +783,16 @@ const Home = props => {
   // Replace render method with return statement
   return (
     <SafeAreaView>
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        primaryButtonText={modalConfig.primaryButtonText}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
       <ScrollView>
         {showcategory ? (
           <>
@@ -1504,9 +1546,10 @@ const Home = props => {
                       props.navigation.push('Tabs');
                     } catch (error) {
                       console.error('❌ Navigation error:', error);
-                      Alert.alert(
+                      showModal(
                         'Navigation Error',
                         'Unable to navigate. Please try again.',
+                        'error',
                       );
                     }
                   }}

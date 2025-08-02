@@ -10,7 +10,6 @@ import {
   ScrollView,
   ImageBackground,
   FlatList,
-  Alert,
   Platform,
   PermissionsAndroid,
   Modal,
@@ -39,6 +38,7 @@ import CartValidation from '../../shared/CartValidation';
 import CenteredView from '../Common/CenteredView';
 import Geolocation from '@react-native-community/geolocation';
 import {SummaryRow} from '../Common/SummaryRow';
+import CustomModal from '../../shared/CustomModal';
 
 const Cart = ({navigation}) => {
   const {showLoading, hideLoading} = useLoading();
@@ -48,6 +48,14 @@ const Cart = ({navigation}) => {
   const [storeList, setStoreList] = useState([]);
   const [isCouponValid, setIsCouponValid] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    primaryButtonText: 'OK',
+    onPrimaryPress: null,
+  });
   // Update initial state
   const [state, setState] = useState({
     categories1: [
@@ -114,6 +122,27 @@ const Cart = ({navigation}) => {
   const validateAmount = (amount, min = 0) => {
     const num = parseFloat(amount);
     return isNaN(num) ? min : Math.max(min, roundToTwoDecimals(num));
+  };
+
+  const showModal = (
+    title,
+    message,
+    type = 'info',
+    primaryButtonText = 'OK',
+    onPrimaryPress = null,
+  ) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      primaryButtonText,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
   };
 
   const handleError = (error, context = 'Unknown operation') => {
@@ -871,9 +900,10 @@ const Cart = ({navigation}) => {
     try {
       // Validate cart items
       if (!state.Nearbystores1?.length) {
-        Alert.alert(
-          'Error',
+        showModal(
+          'Empty Cart',
           'Your cart is empty. Please add items before checkout.',
+          'warning',
         );
         return;
       }
@@ -895,7 +925,11 @@ const Cart = ({navigation}) => {
       );
 
       if (totalAmount <= 0) {
-        Alert.alert('Error', 'Invalid order total. Please check your cart.');
+        showModal(
+          'Error',
+          'Invalid order total. Please check your cart.',
+          'error',
+        );
         return;
       }
 
@@ -926,7 +960,11 @@ const Cart = ({navigation}) => {
       navigation.push('Checkout', {data: checkoutData});
     } catch (error) {
       console.error('Checkout error:', error);
-      Alert.alert('Error', 'Failed to proceed to checkout. Please try again.');
+      showModal(
+        'Error',
+        'Failed to proceed to checkout. Please try again.',
+        'error',
+      );
     }
   };
   const fetchCartPageHandler = async () => {
@@ -951,17 +989,24 @@ const Cart = ({navigation}) => {
 
   useEffect(() => {
     if (state.error) {
-      Alert.alert('Error', state.error, [
-        {
-          text: 'OK',
-          onPress: () => setState(prevState => ({...prevState, error: null})),
-        },
-      ]);
+      showModal('Error', state.error, 'error', 'OK', () => {
+        setState(prevState => ({...prevState, error: null}));
+      });
     }
   }, [state.error]);
 
   return (
     <SafeAreaView>
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        primaryButtonText={modalConfig.primaryButtonText}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
       <ScrollView>
         <Dialog
           visible={state.fail}

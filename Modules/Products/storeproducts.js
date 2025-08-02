@@ -6,7 +6,6 @@ import {
   Text,
   View,
   Image,
-  Alert,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -54,9 +53,17 @@ import MenuDrawer from 'react-native-side-drawer';
 
 import NoProducts from './NoProducts';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
+import CustomModal from '../../shared/CustomModal';
 
 const StoreProducts = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onPrimaryPress: null,
+  });
 
   const [state, setState] = useState({
     categories1: [
@@ -127,6 +134,21 @@ const StoreProducts = ({navigation, route}) => {
     isLoading: false,
     error: null,
   });
+
+  // Modal functions
+  const showModal = (title, message, type = 'info', onPrimaryPress = null) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
 
   // Error handling function
   const handleError = (error, context = 'Unknown operation') => {
@@ -307,10 +329,10 @@ const StoreProducts = ({navigation, route}) => {
             'vs',
             state.StoreName,
           );
-          Alert.alert(
+          showModal(
             'Different Store',
             `You have ${currentCartStore.ItemCount} item(s) in your cart from ${currentCartStore.StoreName}. You can browse products but will need to clear your cart before adding items from this store.`,
-            [{text: 'OK', style: 'default'}],
+            'warning',
           );
         }
       } catch (cartError) {
@@ -825,6 +847,15 @@ const StoreProducts = ({navigation, route}) => {
           )}
         </View>
       </ScrollView>
+
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
     </SafeAreaView>
   );
 };

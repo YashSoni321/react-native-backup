@@ -7,7 +7,6 @@ import {
   Text,
   View,
   Image,
-  Alert,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -43,6 +42,7 @@ import CenteredView from '../Common/CenteredView';
 import GetLocation from 'react-native-get-location';
 import {useLoading} from '../../shared/LoadingContext';
 import BookingDebugger from '../../shared/BookingDebugger';
+import CustomModal from '../../shared/CustomModal';
 const reg2 = /^[0-9]+$/;
 
 export const MERCHANT_ID = 'PGTESTPAYUAT86';
@@ -52,6 +52,14 @@ const Checkout = ({navigation, route}) => {
   // Add error boundary
   const {showLoading, hideLoading} = useLoading();
   const [hasError, setHasError] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    primaryButtonText: 'OK',
+    onPrimaryPress: null,
+  });
 
   // State management
   const [state, setState] = useState({
@@ -87,6 +95,27 @@ const Checkout = ({navigation, route}) => {
     return (baseAmount + tipAmount).toFixed(2);
   };
 
+  const showModal = (
+    title,
+    message,
+    type = 'info',
+    primaryButtonText = 'OK',
+    onPrimaryPress = null,
+  ) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      primaryButtonText,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
+
   // Input change handler
   const handleInputChange = useCallback(
     (inputName, inputValue) => {
@@ -108,12 +137,16 @@ const Checkout = ({navigation, route}) => {
   useEffect(() => {
     // Validate that we have the required data
     if (!route?.params?.data?.TotalUnitPrice) {
-      Alert.alert('Error', 'Invalid checkout data. Please return to cart.', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
+      showModal(
+        'Error',
+        'Invalid checkout data. Please return to cart.',
+        'error',
+        'Go Back',
+        () => {
+          hideModal();
+          navigation.goBack();
         },
-      ]);
+      );
       return;
     }
 
@@ -171,12 +204,16 @@ const Checkout = ({navigation, route}) => {
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       loadUserCurrentLocation();
       if (!UserProfileID) {
-        Alert.alert('Error', 'Please login to continue with checkout.', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
+        showModal(
+          'Login Required',
+          'Please login to continue with checkout.',
+          'warning',
+          'Login',
+          () => {
+            hideModal();
+            navigation.navigate('Login');
           },
-        ]);
+        );
         return;
       }
 
@@ -350,7 +387,7 @@ const Checkout = ({navigation, route}) => {
           validation,
           'error',
         );
-        Alert.alert('Error', validation.message);
+        showModal('Error', validation.message, 'error');
         return;
       }
 
@@ -519,10 +556,15 @@ const Checkout = ({navigation, route}) => {
           console.log('PhonePe result:', transactionResult);
 
           if (transactionResultStatus?.status === 'SUCCESS') {
-            Alert.alert(
-              'Payment Successful',
+            showModal(
+              'Payment Successful! 🎉',
               'Your order has been placed successfully!',
-              [{text: 'OK', onPress: () => navigation.push('Orders')}],
+              'success',
+              'View Orders',
+              () => {
+                hideModal();
+                navigation.push('Orders');
+              },
             );
             await savePaymentToBackend(orderId, {
               cartID: cartResponse.data.cartID,
@@ -539,10 +581,15 @@ const Checkout = ({navigation, route}) => {
             setState(prevState => ({...prevState, loading: false}));
             return;
           } else {
-            Alert.alert(
+            showModal(
               'Payment Failed',
               'Your payment could not be processed. Please try again.',
-              [{text: 'OK', onPress: () => navigation.push('Cart')}],
+              'error',
+              'Back to Cart',
+              () => {
+                hideModal();
+                navigation.push('Cart');
+              },
             );
             return;
           }
@@ -714,10 +761,15 @@ const Checkout = ({navigation, route}) => {
           'success',
         );
 
-        Alert.alert(
-          'Order Placed Successfully',
+        showModal(
+          'Order Placed Successfully! 🎉',
           'Your order has been placed successfully!',
-          [{text: 'OK', onPress: () => navigation.push('Orders')}],
+          'success',
+          'View Orders',
+          () => {
+            hideModal();
+            navigation.push('Orders');
+          },
         );
       } else {
         throw new Error('Payment failed: ' + response.data);
@@ -740,9 +792,10 @@ const Checkout = ({navigation, route}) => {
         fail: true,
       }));
 
-      Alert.alert(
+      showModal(
         'Payment Failed',
         'Payment processing failed. Please try again.',
+        'error',
       );
     }
   };
@@ -752,18 +805,28 @@ const Checkout = ({navigation, route}) => {
       try {
         if (paymentStatus === 'SUCCESS') {
           await savePaymentToBackend(transactionId, paymentData);
-          Alert.alert(
-            'Payment Successful',
+          showModal(
+            'Payment Successful! 🎉',
             'Your order has been placed successfully!',
-            [{text: 'OK', onPress: () => navigation.push('Orders')}],
+            'success',
+            'View Orders',
+            () => {
+              hideModal();
+              navigation.push('Orders');
+            },
           );
         } else if (paymentStatus === 'FAILED') {
-          Alert.alert(
+          showModal(
             'Payment Failed',
             'Your payment could not be processed. Please try again.',
+            'error',
           );
         } else if (paymentStatus === 'CANCELLED') {
-          Alert.alert('Payment Cancelled', 'You have cancelled the payment.');
+          showModal(
+            'Payment Cancelled',
+            'You have cancelled the payment.',
+            'warning',
+          );
         }
       } catch (error) {
         console.error('Payment result handling error:', error);
@@ -1028,6 +1091,16 @@ const Checkout = ({navigation, route}) => {
   try {
     return (
       <SafeAreaView>
+        {/* Custom Modal */}
+        <CustomModal
+          visible={modalConfig.visible}
+          onClose={hideModal}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          primaryButtonText={modalConfig.primaryButtonText}
+          onPrimaryPress={modalConfig.onPrimaryPress}
+        />
         <ScrollView>
           {state.error && (
             <View

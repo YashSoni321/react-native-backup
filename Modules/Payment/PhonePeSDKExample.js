@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
@@ -14,10 +13,32 @@ import {
 } from 'react-native-responsive-screen';
 import PhonePePaymentSDK from 'react-native-phonepe-pg';
 import {MERCHANT_ID, SALT_KEY} from '../Checkout/checkout';
+import CustomModal from '../../shared/CustomModal';
 
 const PhonePeSDKExample = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [isPhonePeAvailable, setIsPhonePeAvailable] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onPrimaryPress: null,
+  });
+
+  const showModal = (title, message, type = 'info', onPrimaryPress = null) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
 
   useEffect(() => {
     checkPhonePeAvailability();
@@ -56,7 +77,7 @@ const PhonePeSDKExample = ({navigation}) => {
       return result;
     } catch (error) {
       console.error('PhonePe SDK initialization error:', error);
-      Alert.alert('Error', 'Failed to initialize PhonePe SDK');
+      showModal('Error', 'Failed to initialize PhonePe SDK', 'error');
       return false;
     }
   };
@@ -109,20 +130,32 @@ const PhonePeSDKExample = ({navigation}) => {
         console.log('Payment response:', response);
 
         if (response.success) {
-          Alert.alert(
+          showModal(
             'Payment Successful',
             `Transaction ID: ${response.data.merchantTransactionId}`,
-            [{text: 'OK', onPress: () => navigation.goBack()}],
+            'success',
+            () => {
+              navigation.goBack();
+              hideModal();
+            },
           );
         } else {
-          Alert.alert('Payment Failed', response.message || 'Payment failed');
+          showModal(
+            'Payment Failed',
+            response.message || 'Payment failed',
+            'error',
+          );
         }
       } else {
-        Alert.alert('Payment Cancelled', 'Payment was cancelled by user');
+        showModal(
+          'Payment Cancelled',
+          'Payment was cancelled by user',
+          'warning',
+        );
       }
     } catch (error) {
       console.error('PhonePe payment error:', error);
-      Alert.alert('Error', 'Payment failed. Please try again.');
+      showModal('Error', 'Payment failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -133,10 +166,10 @@ const PhonePeSDKExample = ({navigation}) => {
     try {
       const upiApps = await PhonePePaymentSDK.getUPIApps();
       console.log('Available UPI apps:', upiApps);
-      Alert.alert('UPI Apps', JSON.stringify(upiApps, null, 2));
+      showModal('UPI Apps', JSON.stringify(upiApps, null, 2), 'info');
     } catch (error) {
       console.error('Error getting UPI apps:', error);
-      Alert.alert('Error', 'Failed to get UPI apps');
+      showModal('Error', 'Failed to get UPI apps', 'error');
     }
   };
 
@@ -145,10 +178,10 @@ const PhonePeSDKExample = ({navigation}) => {
     try {
       const signature = await PhonePePaymentSDK.getPackageSignature();
       console.log('Package signature:', signature);
-      Alert.alert('Package Signature', signature);
+      showModal('Package Signature', signature, 'info');
     } catch (error) {
       console.error('Error getting package signature:', error);
-      Alert.alert('Error', 'Failed to get package signature');
+      showModal('Error', 'Failed to get package signature', 'error');
     }
   };
 
@@ -213,6 +246,15 @@ const PhonePeSDKExample = ({navigation}) => {
           </Text>
         </View>
       </View>
+
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
     </SafeAreaView>
   );
 };

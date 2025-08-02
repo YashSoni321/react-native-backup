@@ -5,7 +5,6 @@ import {
   Text,
   View,
   Image,
-  Alert,
   TouchableOpacity,
   ScrollView,
   Linking,
@@ -44,9 +43,32 @@ import NoResults from './NoResults';
 import ErrorMessage from '../../shared/ErrorMessage';
 import {useLoading} from '../../shared/LoadingContext';
 import {getUserLocation} from '../Common/locationHelper';
+import CustomModal from '../../shared/CustomModal';
 
 const Store = ({navigation}) => {
   const {showLoading, hideLoading, isLoading} = useLoading();
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onPrimaryPress: null,
+  });
+
+  const showModal = (title, message, type = 'info', onPrimaryPress = null) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
+
   const [state, setState] = useState({
     categories1: [
       {
@@ -327,12 +349,10 @@ const Store = ({navigation}) => {
   // Error alert
   useEffect(() => {
     if (state.error) {
-      Alert.alert('Error', state.error, [
-        {
-          text: 'OK',
-          onPress: () => setState(prevState => ({...prevState, error: null})),
-        },
-      ]);
+      showModal('Error', state.error, 'error', () => {
+        setState(prevState => ({...prevState, error: null}));
+        hideModal();
+      });
     }
   }, [state.error]);
 
@@ -631,6 +651,15 @@ const Store = ({navigation}) => {
           happy shopping!
         </Text>
       </ScrollView>
+
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
     </SafeAreaView>
   );
 };

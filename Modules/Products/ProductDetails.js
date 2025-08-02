@@ -5,7 +5,6 @@ import {
   Text,
   View,
   Image,
-  Alert,
   TouchableOpacity,
   ScrollView,
   FlatList,
@@ -17,7 +16,6 @@ import {
 } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {Dialog} from 'react-native-simple-dialogs';
 import {CustomPicker} from 'react-native-custom-picker';
 import {API_KEY, URL_key} from '../Api/api';
 import apiService, {
@@ -35,9 +33,18 @@ import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
+import CustomModal from '../../shared/CustomModal';
 
 const ProductDetails = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    primaryButtonText: 'OK',
+    onPrimaryPress: null,
+  });
   const [state, setState] = useState({
     Size: [
       {
@@ -240,18 +247,20 @@ const ProductDetails = ({navigation, route}) => {
       // Validate required data
       if (!state.ProductID) {
         console.error('❌ ProductID is missing');
-        Alert.alert(
+        showModal(
           'Error',
           'Product information is missing. Please try again.',
+          'error',
         );
         return;
       }
 
       if (!state.ProductsDetails) {
         console.error('❌ Product details missing');
-        Alert.alert(
+        showModal(
           'Error',
           'Product information is missing. Please try again.',
+          'error',
         );
         return;
       }
@@ -262,13 +271,21 @@ const ProductDetails = ({navigation, route}) => {
         !state.selectedSize
       ) {
         console.error('❌ Size not selected');
-        Alert.alert('Error', 'Please select a size before adding to cart.');
+        showModal(
+          'Error',
+          'Please select a size before adding to cart.',
+          'warning',
+        );
         return;
       }
 
       if (!state.StoreID) {
         console.error('❌ StoreID is missing');
-        Alert.alert('Error', 'Store information is missing. Please try again.');
+        showModal(
+          'Error',
+          'Store information is missing. Please try again.',
+          'error',
+        );
         return;
       }
 
@@ -298,23 +315,35 @@ const ProductDetails = ({navigation, route}) => {
 
       console.log('🛒 Product data for cart:', productData);
 
-      const result = await CartValidation.addToCartWithValidation(productData);
+      const result = await CartValidation.addToCartWithValidation(
+        productData,
+        showModal,
+      );
 
       if (result.success) {
         console.log('✅ Cart operation successful:', result.message);
-        Alert.alert('Success', result.message, [
-          {text: 'OK', onPress: () => navigation.push('TabC')},
-        ]);
+        showModal('Success! 🎉', result.message, 'success', 'View Cart', () => {
+          hideModal();
+          navigation.push('TabC');
+        });
       } else {
         console.error('❌ Cart operation failed:', result.message);
         if (result.action !== 'cancelled') {
-          Alert.alert('Error', result.message || 'Failed to add item to cart.');
+          showModal(
+            'Error',
+            result.message || 'Failed to add item to cart.',
+            'error',
+          );
           setState(prev => ({...prev, fail: true}));
         }
       }
     } catch (err) {
       console.error('❌ Error in addToCart:', err);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      showModal(
+        'Error',
+        'An unexpected error occurred. Please try again.',
+        'error',
+      );
       setState(prev => ({...prev, fail: true}));
     }
   };
@@ -326,7 +355,11 @@ const ProductDetails = ({navigation, route}) => {
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       if (!UserProfileID) {
         console.error('❌ User not logged in');
-        Alert.alert('Error', 'Please login to add items to wishlist.');
+        showModal(
+          'Login Required',
+          'Please login to add items to wishlist.',
+          'warning',
+        );
         return;
       }
 
@@ -349,76 +382,71 @@ const ProductDetails = ({navigation, route}) => {
 
       if (response === 'INSERTED') {
         console.log('✅ Item added to wishlist successfully');
-        navigation.push('Wishlist');
+        showModal(
+          'Added to Wishlist! ❤️',
+          'Item has been successfully added to your wishlist.',
+          'success',
+          'View Wishlist',
+          () => {
+            hideModal();
+            navigation.push('Wishlist');
+          },
+        );
       } else {
         console.error('❌ Failed to add to wishlist:', response);
+        showModal(
+          'Error',
+          'Failed to add item to wishlist. Please try again.',
+          'error',
+        );
         setState(prev => ({...prev, fail: true}));
       }
     } catch (err) {
       console.error('❌ Error adding to wishlist:', err);
+      showModal(
+        'Error',
+        'An unexpected error occurred while adding to wishlist.',
+        'error',
+      );
       setState(prev => ({...prev, fail: true}));
     }
   };
 
   const {itemPrice, discountedPrice} = getPricingDetails();
 
+  const showModal = (
+    title,
+    message,
+    type = 'info',
+    primaryButtonText = 'OK',
+    onPrimaryPress = null,
+  ) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      primaryButtonText,
+      onPrimaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
+
   return (
     <SafeAreaView>
-      {/* NavigationEvents removed - using useFocusEffect instead */}
-      <Dialog
-        visible={state.fail}
-        dialogStyle={{
-          borderRadius: wp('5%'),
-          width: wp('75%'),
-          alignSelf: 'center',
-        }}
-        onTouchOutside={() => console.log('no')}>
-        <View
-          style={{
-            alignItems: 'center',
-            marginTop: hp('2%'),
-            marginBottom: hp('0.5%'),
-          }}>
-          <Image
-            style={{
-              height: hp('6%'),
-              width: hp('6%'),
-              borderRadius: hp('100%'),
-              alignSelf: 'center',
-              justifyContent: 'center',
-            }}
-            resizeMode="contain"
-            source={require('../Images/1024px-Cross_red_circle.svg-removebg-preview.png')}
-          />
-        </View>
-        <Text
-          style={{
-            color: 'red',
-            fontSize: 15,
-            fontFamily: 'Poppins-Light',
-            textAlign: 'center',
-            marginTop: hp('2%'),
-            marginBottom: hp('1%'),
-            lineHeight: hp('2.5%'),
-          }}>
-          Error !! Please Try Again.
-        </Text>
-        <TouchableOpacity
-          style={styles.SubmitButtonStyledd}
-          activeOpacity={0.5}
-          onPress={() => setState(prev => ({...prev, fail: false}))}>
-          <Text
-            style={{
-              textAlign: 'center',
-              color: 'white',
-              fontFamily: 'Poppins-SemiBold',
-              fontSize: 16,
-            }}>
-            {' '}
-            OK{' '}
-          </Text>
-        </TouchableOpacity>
-      </Dialog>
+      {/* Custom Modal */}
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        primaryButtonText={modalConfig.primaryButtonText}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+      />
       <ScrollView>
         <Text
           style={{
@@ -792,16 +820,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  SubmitButtonStyledd: {
-    paddingTop: hp('0.5%'),
-    paddingBottom: hp('0.5%'),
-    backgroundColor: 'red',
-    borderRadius: wp('5%'),
-    width: wp('25%'),
-    alignSelf: 'center',
-    marginTop: hp('2%'),
-    marginBottom: hp('3%'),
   },
   quantityContainer: {
     marginTop: hp('1.5%'),

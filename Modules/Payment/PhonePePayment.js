@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   SafeAreaView,
-  Alert,
   BackHandler,
   ActivityIndicator,
   Text,
@@ -17,12 +16,42 @@ import {
 } from 'react-native-responsive-screen';
 import PhonePeService from '../Services/PhonePeService';
 import {PHONEPE_CONFIG} from '../Config/phonepe-config';
+import CustomModal from '../../shared/CustomModal';
 
 const PhonePePayment = ({navigation, route}) => {
   const [loading, setLoading] = useState(true);
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onPrimaryPress: null,
+    onSecondaryPress: null,
+  });
+
+  const showModal = (
+    title,
+    message,
+    type = 'info',
+    onPrimaryPress = null,
+    onSecondaryPress = null,
+  ) => {
+    setModalConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onPrimaryPress,
+      onSecondaryPress,
+    });
+  };
+
+  const hideModal = () => {
+    setModalConfig(prev => ({...prev, visible: false}));
+  };
 
   const {paymentUrl, transactionId, orderData, onPaymentResult} = route.params;
 
@@ -37,13 +66,17 @@ const PhonePePayment = ({navigation, route}) => {
 
   const handleBackPress = useCallback(() => {
     if (!paymentCompleted) {
-      Alert.alert(
+      showModal(
         'Cancel Payment',
         'Are you sure you want to cancel the payment?',
-        [
-          {text: 'No', style: 'cancel'},
-          {text: 'Yes', onPress: () => handlePaymentCancel()},
-        ],
+        'warning',
+        () => {
+          handlePaymentCancel();
+          hideModal();
+        },
+        () => {
+          hideModal();
+        },
       );
       return true;
     }
@@ -91,10 +124,14 @@ const PhonePePayment = ({navigation, route}) => {
       if (onPaymentResult) {
         onPaymentResult('FAILED', txnId, {error});
       }
-      Alert.alert(
+      showModal(
         'Payment Failed',
         error || 'Your payment could not be processed. Please try again.',
-        [{text: 'OK', onPress: () => navigation.goBack()}],
+        'error',
+        () => {
+          navigation.goBack();
+          hideModal();
+        },
       );
     },
     [onPaymentResult, navigation],
@@ -286,23 +323,43 @@ const PhonePePayment = ({navigation, route}) => {
         onError={syntheticEvent => {
           const {nativeEvent} = syntheticEvent;
           console.error('WebView error:', nativeEvent);
-          Alert.alert(
+          showModal(
             'Payment Error',
             'Failed to load payment page. Please try again.',
-            [{text: 'OK', onPress: () => navigation.goBack()}],
+            'error',
+            () => {
+              navigation.goBack();
+              hideModal();
+            },
           );
         }}
         onHttpError={syntheticEvent => {
           const {nativeEvent} = syntheticEvent;
           console.error('WebView HTTP error:', nativeEvent);
           if (nativeEvent.statusCode >= 400) {
-            Alert.alert(
+            showModal(
               'Payment Error',
               `Payment service temporarily unavailable (${nativeEvent.statusCode}). Please try again later.`,
-              [{text: 'OK', onPress: () => navigation.goBack()}],
+              'error',
+              () => {
+                navigation.goBack();
+                hideModal();
+              },
             );
           }
         }}
+      />
+
+      <CustomModal
+        visible={modalConfig.visible}
+        onClose={hideModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onPrimaryPress={modalConfig.onPrimaryPress}
+        onSecondaryPress={modalConfig.onSecondaryPress}
+        primaryButtonText="Yes"
+        secondaryButtonText="No"
       />
     </SafeAreaView>
   );

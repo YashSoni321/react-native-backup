@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Dimensions,
   Linking,
-  Alert,
   Platform,
   BackHandler,
 } from 'react-native';
@@ -17,6 +16,7 @@ import {
 } from 'react-native-responsive-screen';
 import Modal from 'react-native-modal';
 import {Dialog} from 'react-native-simple-dialogs';
+import CustomModal from './CustomModal';
 
 // Color scheme based on project analysis
 const COLORS = {
@@ -214,14 +214,11 @@ const ErrorMessage = ({
       errorType === 'LOCATION_PERMISSION_REGISTRATION' &&
       secondaryAction === 'Exit App'
     ) {
-      Alert.alert('Exit App', 'Are you sure you want to exit?', [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Exit',
-          style: 'destructive',
-          onPress: () => BackHandler.exitApp(),
-        },
-      ]);
+      // For exit app confirmation, we'll use the existing modal structure
+      // since this is a critical action that needs special handling
+      if (onSecondaryAction) {
+        onSecondaryAction();
+      }
     } else if (onSecondaryAction) {
       onSecondaryAction();
     }

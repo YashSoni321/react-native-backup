@@ -1,4 +1,4 @@
-import {Alert, Platform} from 'react-native';
+import {Platform} from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import {PermissionsAndroid} from 'react-native';
 
@@ -18,15 +18,18 @@ export const requestLocationPermission = async () => {
   }
 };
 
-export const getUserLocation = () => {
+export const getUserLocation = (showModalCallback = null) => {
   return new Promise(async (resolve, reject) => {
     const hasPermission = await requestLocationPermission();
 
     if (!hasPermission) {
-      Alert.alert(
-        'Permission Denied',
-        'Location access is required to find nearby services.',
-      );
+      if (showModalCallback) {
+        showModalCallback(
+          'Permission Denied',
+          'Location access is required to find nearby services.',
+          'error',
+        );
+      }
       return reject(new Error('Location permission denied'));
     }
 
@@ -58,7 +61,9 @@ export const getUserLocation = () => {
             break;
         }
 
-        Alert.alert('Location Error', message);
+        if (showModalCallback) {
+          showModalCallback('Location Error', message, 'error');
+        }
         reject(new Error(message));
       },
       {
