@@ -572,7 +572,8 @@ const StoreProducts = ({navigation, route}) => {
                   width: wp('74%'),
                 }}>
                 {/* ⏰ {state.Timing} ₹{state.DeliveryCharges} */}
-                🚚 Delivery in {state.DeliveryTime || '30 mins'} •{' '}
+                {/* 🚚 Delivery in {state.DeliveryTime || '30 mins'} •{' '} */}
+                Delivery in 23 mins
                 {state.Distance || '0.0'} km away
               </Text>
             </View>
