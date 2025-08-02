@@ -53,8 +53,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import MenuDrawer from 'react-native-side-drawer';
 
 import NoProducts from './NoProducts';
+import {getUserDeliveryTime} from '../Common/CalculateDistance';
 
 const StoreProducts = ({navigation, route}) => {
+  const [deliveryTime, setDeliveryTime] = useState(null);
+
   const [state, setState] = useState({
     categories1: [
       {
@@ -366,6 +369,15 @@ const StoreProducts = ({navigation, route}) => {
   useEffect(() => {
     fetchData();
   }, []);
+  useEffect(() => {
+    const fetchDeliveryLocationTime = async () => {
+      const time = await getUserDeliveryTime(state.StoreID);
+      setDeliveryTime(time);
+    };
+    if (state.StoreID) {
+      fetchDeliveryLocationTime();
+    }
+  }, [state.StoreID]);
 
   // Error alert
   // useEffect(() => {
@@ -571,10 +583,11 @@ const StoreProducts = ({navigation, route}) => {
                   marginRight: wp('2%'),
                   width: wp('74%'),
                 }}>
-                {/* ⏰ {state.Timing} ₹{state.DeliveryCharges} */}
+                ⏰ {state.Timing} ₹{state.DeliveryCharges}
                 {/* 🚚 Delivery in {state.DeliveryTime || '30 mins'} •{' '} */}
-                Delivery in 23 mins
-                {state.Distance || '0.0'} km away
+                Delivery in{' '}
+                {deliveryTime === null ? 'Calculating...' : deliveryTime}
+                {/* {state.Distance || '0.0'} km away */}
               </Text>
             </View>
           </View>

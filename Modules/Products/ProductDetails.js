@@ -34,10 +34,10 @@ import apiService, {
 import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
-import { getUserDeliveryTime } from '../Common/CalculateDistance';
+import {getUserDeliveryTime} from '../Common/CalculateDistance';
 
 const ProductDetails = ({navigation, route}) => {
-  const [deliveryTime, setDeliveryTime] = useState("")
+  const [deliveryTime, setDeliveryTime] = useState('');
   const [state, setState] = useState({
     Size: [
       {
@@ -165,14 +165,16 @@ const ProductDetails = ({navigation, route}) => {
     }));
   };
 
-  const fetchDeliveryLocationTime = async () => {
-    const time = await getUserDeliveryTime();
-    setDeliveryTime(time)
-  }
+  // const fetchDeliveryLocationTime = async () => {
+  //   const time = await getUserDeliveryTime(state.StoreID);
+  //   setDeliveryTime(time);
+  // };
 
-useEffect(() => {
-  fetchDeliveryLocationTime()
-}, [])
+  // useEffect(() => {
+  //   if (state.StoreID) {
+  //     fetchDeliveryLocationTime();
+  //   }
+  // }, [state.StoreID]);
 
   // Update the getPricingDetails function to handle products without variants
   const getPricingDetails = () => {

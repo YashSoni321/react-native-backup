@@ -2,122 +2,124 @@ import Geolocation from "@react-native-community/geolocation";
 import axios from "axios";
 import { Alert } from "react-native";
 
+// Constants
+const EARTH_RADIUS_KM = 6371;
+const AVERAGE_SPEED_KMPH = 25;
+const BASE_PREP_TIME_MIN = 15;
+
+// Utility: Haversine Distance Calculation
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    try {
-      const R = 6371; // Radius of Earth in KM
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  try {
+    const toRadians = (deg) => (deg * Math.PI) / 180;
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
 
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) ** 2;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) ** 2;
 
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    } catch (e) {
-    //   handleError(e, 'Distance calc error');
-      return 0;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return EARTH_RADIUS_KM * c;
+  } catch (e) {
+    console.error("Distance Calculation Error:", e);
+    return 0;
+  }
+};
+
+// Utility: Estimate Delivery Time based on Distance
+export const estimateDeliveryTime = (distanceKm) => {
+  try {
+    const travelTime = (distanceKm / AVERAGE_SPEED_KMPH) * 60;
+    const totalMinutes = Math.ceil(BASE_PREP_TIME_MIN + travelTime);
+
+    if (totalMinutes < 60) {
+      return `${totalMinutes} mins`;
+    } else {
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return minutes === 0
+        ? `${hours} hour${hours > 1 ? "s" : ""}`
+        : `${hours}h ${minutes}m`;
     }
-  };
+  } catch (error) {
+    console.error("Delivery Time Estimation Error:", error);
+    return "30 mins";
+  }
+};
 
-export const estimateDeliveryTime = distanceKm => {
-    try {
-      // Base delivery time: 15 minutes for preparation
-      let baseTime = 15;
+// API: Fetch Store Location
+export const fetchStoreDetailsLocation = async (storeId) => {
+  try {
+    const response = await axios.get(
+      `https://fybrappapi.benchstep.com/api/ProductApi/gStoreDetails?StoreID=${storeId}`
+    );
+    const store = response.data[0];
+    return { latitude: store.Latitude, longitude: store.Longitude };
+  } catch (error) {
+    console.error("Failed to fetch store location:", error);
+    throw error;
+  }
+};
 
-      // Add time based on distance
-      // Assume average speed of 25 km/h in city traffic
-      const travelTimeMinutes = (distanceKm / 25) * 60;
+// Geolocation: Get User's Current Location
+export const getUserLocation = () => {
+  return new Promise((resolve, reject) => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error("Location Error:", error);
 
-      const totalMinutes = Math.ceil(baseTime + travelTimeMinutes);
+        let errorMessage = "Unable to get your location.";
+        if (error.PERMISSION_DENIED) {
+          errorMessage = "Location permission denied. Enable location access.";
+        } else if (error.POSITION_UNAVAILABLE) {
+          errorMessage = "Location information unavailable.";
+        } else if (error.TIMEOUT) {
+          errorMessage = "Location request timed out.";
+        }
 
-      if (totalMinutes < 60) {
-        return `${totalMinutes} mins`;
-      } else {
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        return minutes === 0
-          ? `${hours} hour${hours > 1 ? 's' : ''}`
-          : `${hours}h ${minutes}m`;
+        Alert.alert("Location Error", errorMessage);
+        reject(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 300000,
+        distanceFilter: 10,
       }
-    } catch (error) {
-    //   handleError(error, 'Delivery time estimation');
-      return '30 mins';
-    }
-  };
+    );
+  });
+};
 
+// Main Function: Calculate User's Delivery Time
+export const getUserDeliveryTime = async (storeId) => {
+  try {
+    const [storeLocation, userLocation] = await Promise.all([
+      fetchStoreDetailsLocation(storeId),
+      getUserLocation(),
+    ]);
 
-export const getActualDeliveryTime = (lat1, lon1, lat2, lon2) => {
-    const distance = calculateDistance(lat1, lon1, lat2, lon2);
-    const finalDistance = estimateDeliveryTime(distance);
-    return finalDistance
-}
+    const distance = calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      storeLocation.latitude,
+      storeLocation.longitude
+    );
 
-export const fetchStoreDetailsLocation = async () => {
-    const result = await axios.get("https://fybrappapi.benchstep.com/api/ProductApi/gStoreDetails?StoreID=1")
-    console.log('storeDetails', result?.data);
-    const storedetails = result?.data[0]
-    const storeLocation = {
-        latitude : storedetails.Latitude,
-        longitude : storedetails.Longitude
-    }
-    console.log('storeLocation', storeLocation);
+    const deliveryTime = estimateDeliveryTime(distance);
 
-    return storeLocation;
-}
+    console.log(`Distance: ${distance.toFixed(2)} km, Estimated Delivery: ${deliveryTime}`);
 
-export const getUserLocation = async () => {
-    const location = await new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-          position => {
-            const newLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            };
-            console.log('📍 Current location:', newLocation);
-            resolve(newLocation);
-          },
-          error => {
-            console.error('📍 Location error:', error);
-  
-            let errorMessage = 'Unable to get your location.';
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = 'Location permission denied. Please enable location access in settings.';
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = 'Location information unavailable.';
-                break;
-              case error.TIMEOUT:
-                errorMessage = 'Location request timed out.';
-                break;
-            }
-  
-            Alert.alert('Location Error', errorMessage);
-            reject(error);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 300000,
-            distanceFilter: 10,
-          }
-        );
-      });
-  
-      return location;
-}
-
-export const getUserDeliveryTime = async  () => {
-    console.log("getUserDeliveryTimegetUserDeliveryTime");
-    const storeLocation = await fetchStoreDetailsLocation();
-    const userLocation = await getUserLocation();
-    console.log("storeLocation",storeLocation);
-    
-    console.log("userLocation",userLocation);
-    
-    const newLocation = await getActualDeliveryTime(userLocation.latitude, userLocation.longitude, storeLocation.latitude, storeLocation.longitude);
-    console.log("newLocation in KMS>>>>>>",newLocation);
-    return newLocation
-}
+    return deliveryTime;
+  } catch (error) {
+    console.error("Error calculating delivery time:", error);
+    return "Unable to estimate delivery time.";
+  }
+};
