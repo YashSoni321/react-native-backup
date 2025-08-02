@@ -45,9 +45,9 @@ const Cart = ({navigation}) => {
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState([]);
   const [couponCode, setCouponCode] = useState('');
+  const [storeList, setStoreList] = useState([]);
   const [isCouponValid, setIsCouponValid] = useState(false);
   const [couponMessage, setCouponMessage] = useState('');
-  const [discountAmount, setDiscountAmount] = useState(0);
   // Update initial state
   const [state, setState] = useState({
     categories1: [
@@ -81,7 +81,6 @@ const Cart = ({navigation}) => {
     fail: false,
     StreetName: '',
     Pincode: '',
-    storeList: [],
     Nearbystores: null,
     Nearbystores1: null,
     TotalUnitPrice: 0,
@@ -98,6 +97,7 @@ const Cart = ({navigation}) => {
       RainyWeatherBaseFee: 48.0,
       AdditionalDistanceKM: 3.0,
     },
+
     userLocation: null,
     storeLocations: {},
     isLoading: false,
@@ -118,7 +118,6 @@ const Cart = ({navigation}) => {
 
   const handleError = (error, context = 'Unknown operation') => {
     hideLoading();
-    console.error(`Error in ${context}:`, error);
     setState(prevState => ({
       ...prevState,
       error: `${context} failed. Please try again.`,
@@ -448,6 +447,8 @@ const Cart = ({navigation}) => {
 
       for (const store of stores) {
         // const storeLocation = await fetchStoreLocation(store.StoreID);
+        console.log('store.StoreID', store.StoreID, storeList);
+
         const storeLocation = await getStoreLocation(store.StoreID);
         console.log('storeLocation', storeLocation);
 
@@ -544,7 +545,7 @@ const Cart = ({navigation}) => {
       });
 
       if (response.data && response.data.length > 0) {
-        const stores = response.data.map(store => ({
+        const stores = await response.data.map(store => ({
           StoreID: store.StoreID,
           StoreName: store.StoreName,
           StoreLocation: {
@@ -554,15 +555,15 @@ const Cart = ({navigation}) => {
         }));
         console.log('stores>>', stores.length);
 
-        setState(prevState => ({
-          ...prevState,
-          storeList: stores,
-        }));
+        // setState(prevState => ({
+        //   ...prevState,
+        //   storeList: stores,
+        // }));
+        console.log('stores>>', stores);
+
+        setStoreList(stores);
       } else {
-        setState(prevState => ({
-          ...prevState,
-          storeList: [],
-        }));
+        setStoreList([]);
       }
       // hideLoading();
     } catch (error) {
@@ -572,11 +573,9 @@ const Cart = ({navigation}) => {
 
   const getStoreLocation = async storeId => {
     try {
-      console.log('state.storeList>>', state.storeList);
-
-      if (state.storeList && state.storeList.length > 0) {
-        const {StoreLocation} = state.storeList.find(
-          store => store.StoreID === storeId,
+      if (storeList && storeList.length > 0) {
+        const {StoreLocation} = storeList.find(
+          store => store.StoreID == storeId,
         );
         console.log('StoreLocat ion>>', StoreLocation);
 
@@ -593,7 +592,6 @@ const Cart = ({navigation}) => {
   const fetchCartData = async (isLocationChange = false) => {
     try {
       console.log('fetchCartData');
-
       showLoading();
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
@@ -605,8 +603,10 @@ const Cart = ({navigation}) => {
       // Get user location first
       const location = await getUserLocation();
 
-      // Fetch delivery charges
-      await fetchDeliveryCharges();
+      // Ensure we have delivery charges
+      if (!state.deliveryCharges) {
+        await fetchDeliveryCharges();
+      }
 
       // Fetch cart data
       const cartResponse = await axios.get(
@@ -708,7 +708,7 @@ const Cart = ({navigation}) => {
         totalPackagingFee: state.deliveryCharges.PackagingFee || 0,
         grandTotalFees: 0,
       };
-      console.log('location>>', location);
+      console.log('location>>', location, groupedArray.length);
 
       if (location && groupedArray.length > 0) {
         try {
@@ -930,13 +930,24 @@ const Cart = ({navigation}) => {
     }
   };
   const fetchCartPageHandler = async () => {
-    await fetchStoreList();
-    await fetchCartData(true);
+    try {
+      showLoading();
+      await fetchStoreList();
+      await fetchDeliveryCharges();
+      await fetchStoreList();
+    } catch (error) {
+      handleError(error, 'Loading cart page');
+    } finally {
+      hideLoading();
+    }
   };
 
   useEffect(() => {
     fetchCartPageHandler();
   }, []);
+  useEffect(() => {
+    if (storeList && storeList.length > 0) fetchCartData(true);
+  }, [storeList]);
 
   useEffect(() => {
     if (state.error) {
@@ -1620,6 +1631,7 @@ const Cart = ({navigation}) => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   width: 'auto',
+                  marginBottom: hp('2%'),
                   marginHorizontal: wp('8%'),
                   marginTop: hp('3%'),
                 }}>
@@ -1653,8 +1665,6 @@ const Cart = ({navigation}) => {
     </SafeAreaView>
   );
 };
-
-const Separator = () => <View style={styles.separator} />;
 
 const styles = StyleSheet.create({
   separator: {

@@ -1347,151 +1347,14 @@ const Checkout = ({navigation, route}) => {
           )}
 
           {/* Order Summary */}
-          {/* <View
+          <View
             style={{
               marginTop: hp('3%'),
               marginHorizontal: wp('7%'),
-              backgroundColor: '#f8f8f8',
-              borderRadius: 8,
-              padding: 15,
             }}>
-            <Text
-              style={{
-                fontSize: 15,
-                color: '#333',
-                fontFamily: 'Poppins-SemiBold',
-                marginBottom: hp('2%'),
-              }}>
-              Order Summary
-            </Text>
-
             <View style={{marginBottom: hp('1%')}}>
               <View
                 style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginBottom: hp('1%'),
-                }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  Subtotal
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  ₹ {state.Subtotal.toFixed(2)}
-                </Text>
-              </View>
-
-              {state.DiscountedPrice > 0 && (
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    marginBottom: hp('1%'),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: '#e74c3c',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    Discount
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: '#e74c3c',
-                      fontFamily: 'Poppins-Light',
-                    }}>
-                    - ₹ {state.DiscountedPrice.toFixed(2)}
-                  </Text>
-                </View>
-              )}
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginBottom: hp('1%'),
-                }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  Delivery Fee
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  ₹ {state.DeliveryFee.toFixed(2)}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginBottom: hp('1%'),
-                }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  Convenience Fee
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  ₹ {state.ConvenienceFee.toFixed(2)}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginBottom: hp('1%'),
-                }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  Packaging Fee
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: '#333',
-                    fontFamily: 'Poppins-Light',
-                  }}>
-                  ₹ {state.PackagingFee.toFixed(2)}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  borderTopWidth: 1,
-                  borderTopColor: '#ddd',
                   paddingTop: hp('1%'),
                   marginTop: hp('1%'),
                 }}>
@@ -1519,7 +1382,7 @@ const Checkout = ({navigation, route}) => {
                 </View>
               </View>
             </View>
-          </View> */}
+          </View>
 
           <Text
             style={{
