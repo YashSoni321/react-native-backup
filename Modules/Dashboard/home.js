@@ -38,14 +38,13 @@ import CheckBox from 'react-native-check-box';
 import Geolocation from '@react-native-community/geolocation';
 import {getDistance} from 'geolib';
 import {useLoading} from '../../shared/LoadingContext';
-import { fetchStoreDetailsLocation, getUserDeliveryTime } from '../Common/CalculateDistance';
 
 const DISTANCE_THRESHOLD = 3000; // 3km in meters
 const BATCH_SIZE = 50; // Process stores in batches
 
 const Home = props => {
   const {showLoading, hideLoading} = useLoading();
-  const [deliveryTime, setDeliveryTime] = useState("")
+  const [deliveryTime, setDeliveryTime] = useState('');
 
   const [brand, setBrand] = useState([
     {
@@ -457,9 +456,6 @@ const Home = props => {
   const [Pincode, setPincode] = useState('');
   const [CategoryName, setCategoryName] = useState('');
 
-
-
-
   // Replace componentDidMount with useEffect
   useEffect(() => {
     const initializeComponent = async () => {
@@ -501,7 +497,6 @@ const Home = props => {
               },
             },
           );
-          
 
           setStreetName(addressResponse.data[0]?.StreetName || '');
           setPincode(addressResponse.data[0]?.AddressCategory || '');
