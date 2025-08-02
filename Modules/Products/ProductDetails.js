@@ -37,7 +37,7 @@ import {getColorHex} from '../../shared/ColorUtils';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
 
 const ProductDetails = ({navigation, route}) => {
-  const [deliveryTime, setDeliveryTime] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState(null);
   const [state, setState] = useState({
     Size: [
       {
@@ -165,16 +165,16 @@ const ProductDetails = ({navigation, route}) => {
     }));
   };
 
-  // const fetchDeliveryLocationTime = async () => {
-  //   const time = await getUserDeliveryTime(state.StoreID);
-  //   setDeliveryTime(time);
-  // };
+  const fetchDeliveryLocationTime = async () => {
+    const time = await getUserDeliveryTime(state.StoreID);
+    setDeliveryTime(time);
+  };
 
-  // useEffect(() => {
-  //   if (state.StoreID) {
-  //     fetchDeliveryLocationTime();
-  //   }
-  // }, [state.StoreID]);
+  useEffect(() => {
+    if (state.StoreID) {
+      fetchDeliveryLocationTime();
+    }
+  }, [state.StoreID]);
 
   // Update the getPricingDetails function to handle products without variants
   const getPricingDetails = () => {
@@ -654,7 +654,8 @@ const ProductDetails = ({navigation, route}) => {
             marginTop: hp('1.5%'),
             textAlign: 'center',
           }}>
-          Delivering in {deliveryTime}
+          Delivering in{' '}
+          {deliveryTime === null ? 'Calculating...' : deliveryTime}
         </Text>
         <Text
           style={{
