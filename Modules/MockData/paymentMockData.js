@@ -10,16 +10,18 @@ export const PAYMENT_MOCK_DATA = {
       PaymentMethodID: 4,
       Description: 'Pay in cash when order is delivered',
     },
+    
+    
   ],
   TipAmountList: [
     {
-      TipAmount: 0,
-      TipLabel: 'No Tip',
+      TipAmount: 10,
+      TipLabel: '₹10',
       TipID: 0,
     },
     {
-      TipAmount: 10,
-      TipLabel: '₹10',
+      TipAmount: 15,
+      TipLabel: '₹15',
       TipID: 1,
     },
     {
@@ -28,8 +30,8 @@ export const PAYMENT_MOCK_DATA = {
       TipID: 2,
     },
     {
-      TipAmount: 50,
-      TipLabel: '₹50',
+      TipAmount: 25,
+      TipLabel: '₹',
       TipID: 3,
     },
   ],

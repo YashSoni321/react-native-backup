@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
+// import Icon from 'react-native-vector-icons/';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Normalize from '../Size/size';
@@ -43,6 +44,7 @@ import BookingDebugger from '../../shared/BookingDebugger';
 import CustomModal from '../../shared/CustomModal';
 import AddressSelector from '../Common/ShowUserLocation';
 import HeaderWithAddress from '../Common/HeaderWithCommon';
+import CheckoutAddress from './checkoutaddress';
 const reg2 = /^[0-9]+$/;
 
 export const MERCHANT_ID = 'PGTESTPAYUAT86';
@@ -981,7 +983,7 @@ const Checkout = ({navigation, route}) => {
     <TouchableOpacity onPress={() => handleTipAmountSelection(item)}>
       <View
         style={{
-          borderRadius: wp('50%'),
+          borderRadius: wp('2%'),
           borderWidth: 1,
           borderColor: '#00afb5',
           marginTop: hp('1%'),
@@ -989,6 +991,11 @@ const Checkout = ({navigation, route}) => {
           width: wp('8%'),
           height: wp('8%'),
           marginLeft: wp('1%'),
+          alignItems:"center",
+          marginRight:wp("2%"),
+          display:"flex",
+          justifyContent:"center"
+
         }}>
         <Text
           style={{
@@ -996,7 +1003,7 @@ const Checkout = ({navigation, route}) => {
             textAlign: 'center',
             color: item.isCheck ? '#ffff' : '#333',
             fontFamily: 'Poppins-SemiBold',
-            marginTop: hp('1.2%'),
+            // marginTop: hp('1.2%'),
           }}>
           {item.TipAmount}
         </Text>
@@ -1006,7 +1013,7 @@ const Checkout = ({navigation, route}) => {
 
   const renderPaymentMethodItem = ({item}) => (
     <TouchableOpacity onPress={() => handlePaymentMethodSelection(item)}>
-      <View style={{flexDirection: 'row', width: wp('43%')}}>
+      <View style={{ display:"flex",flexDirection: 'row', width: wp('25%')}}>
         <View
           style={{
             width: hp('2%'),
@@ -1014,7 +1021,7 @@ const Checkout = ({navigation, route}) => {
             borderRadius: wp('100%'),
             borderColor: '#00afb5',
             borderWidth: 1,
-            marginLeft: wp('5%'),
+            // marginLeft: wp('5%'),
             marginTop: hp('3%'),
             backgroundColor: item.isCheck ? '#00afb5' : 'transparent',
           }}
@@ -1025,7 +1032,7 @@ const Checkout = ({navigation, route}) => {
           color={'#00afb5'}
           size={20}
           style={{
-            marginLeft: wp('3%'),
+            // marginLeft: wp('1%'),
             padding: hp('1%'),
             marginTop: hp('2%'),
           }}
@@ -1033,10 +1040,10 @@ const Checkout = ({navigation, route}) => {
 
         <Text
           style={{
-            fontSize: 15,
+            fontSize: 14,
             color: '#333',
             fontFamily: 'Poppins-SemiBold',
-            marginLeft: wp('3%'),
+            // marginLeft: wp('1%'),
             marginTop: hp('2.7%'),
           }}>
           {item.PaymentMethod === 'UPI' ? 'PhonePe' : item.PaymentMethod}
@@ -1201,8 +1208,22 @@ const Checkout = ({navigation, route}) => {
 
           <HeaderWithAddress
             navigation={navigation}
+            isCheckoutPage={true}
             handleBackPress={() => navigation.push('Tab')}
           />
+
+          <View>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '500',
+                color: '#333', // You can change the color as needed
+                marginTop: 30, // Optional spacing
+                marginLeft: 42,
+              }}>
+              Confirming your location
+            </Text>
+          </View>
 
           {/* Map View with Error Handling */}
           <View style={{marginTop: hp('2%')}}>
@@ -1262,7 +1283,7 @@ const Checkout = ({navigation, route}) => {
                   alignItems: 'center',
                   borderRadius: 8,
                 }}>
-                <Icon name="location" color="#00afb5" size={40} />
+                <Icon name="location" color="#00afb5" size={20} />
                 <Text
                   style={{
                     color: '#666',
@@ -1278,71 +1299,69 @@ const Checkout = ({navigation, route}) => {
               </View>
             )}
           </View>
-          <CenteredView>
+          <View
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              marginTop: hp('2%'),
+              width: wp('80%'),
+              alignItems: 'center',
+              justifyContent: 'space-evenly',
+            }}>
             <View
               style={{
                 display: 'flex',
                 flexDirection: 'row',
-
-                width: wp('90%'),
                 alignItems: 'center',
-                margin: 'auto',
-                justifyContent: 'space-between',
-                // marginTop: hp('2%'),
-                // width: '100%',
+                width: '100%',
+                marginLeft: wp('10%'),
               }}>
               <Icon
                 name="location"
                 color={'#00afb5'}
-                size={40}
+                size={20}
                 style={{
-                  // marginLeft: wp('7%'),
-                  padding: hp('1%'),
-                  marginTop: hp('2%'),
+                  marginRight: wp('2%'),
                 }}
               />
 
-              <Text
-                style={{
-                  fontSize: 17,
-                  color: '#333',
-                  fontFamily: 'Poppins-SemiBold',
-                  // marginLeft: wp('18%'),
-                  // marginTop: hp('-7%'),
-                }}>
-                Delivery Address
-              </Text>
-
+              <CheckoutAddress navigation={navigation} />
+            </View>
+            <View
+              style={{
+                // alignSelf: 'flex-end',
+                marginRight: wp('20%'),
+              }}>
               <Icon
                 onPress={() => navigation.push('AddressList')}
                 name="chevron-forward-outline"
                 color={'#00afb5'}
-                size={40}
+                size={20}
                 style={{
-                  alignSelf: 'flex-end',
-                  padding: hp('1%'),
-                  marginTop: hp('-7.5%'),
-                  marginRight: wp('3%'),
+                  // alignSelf: 'flex-end',
+                  marginRight: wp('10%'),
                 }}
               />
             </View>
-          </CenteredView>
+          </View>
 
           {/* Debug button to toggle MapView */}
 
           <Text
             style={{
               fontSize: 15,
-              color: '#333',
+              fontWeight: 'bold',
+              color: '#1c1a1a',
               fontFamily: 'Poppins-SemiBold',
               marginLeft: wp('7%'),
               marginTop: hp('3%'),
             }}>
-            Tip Amount
+            Tip your delivery
           </Text>
 
+          {/* <View style={{display:"flex", width:"100%",height:"100%",alignItems:"center",justifyContent:"space-between"}}> */}
           <TextInput
-            placeholder="Enter tip amount"
+            placeholder="Enter Amount >"
             placeholderTextColor="#999"
             keyboardType="numeric"
             fontSize={11}
@@ -1360,7 +1379,7 @@ const Checkout = ({navigation, route}) => {
             style={{
               flexDirection: 'row',
               alignSelf: 'flex-end',
-              marginLeft: wp('40'),
+              marginLeft: wp('50'),
               marginTop: hp('-5%'),
             }}>
             <FlatList
@@ -1370,6 +1389,7 @@ const Checkout = ({navigation, route}) => {
               keyExtractor={(item, index) => index.toString()}
             />
           </View>
+          {/* </View> */}
 
           {state.TipAmountErrior && (
             <Text
@@ -1383,6 +1403,33 @@ const Checkout = ({navigation, route}) => {
               Please enter valid tip amount
             </Text>
           )}
+
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: 'bold',
+              color: '#333',
+              fontFamily: 'Poppins-SemiBold',
+              marginLeft: wp('7%'),
+              marginTop: hp('3%'),
+            }}>
+            Pay with
+          </Text>
+          <FlatList
+            data={state.PaymentMethodList}
+            renderItem={renderPaymentMethodItem}
+            keyExtractor={(item, index) => index.toString()}
+            numColumns={2} // 👈 Shows items in rows with 2 columns
+            columnWrapperStyle={{
+              justifyContent: 'space-between',
+              width:"80%",
+              padding:0,
+              margin:"auto",
+              marginLeft:wp("7%"),
+
+              // paddingHorizontal: wp('2%'), // Optional spacing between columns
+            }}
+          />
 
           {/* Order Summary */}
           <View
@@ -1401,14 +1448,30 @@ const Checkout = ({navigation, route}) => {
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                   }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: '#333',
-                      fontFamily: 'Poppins-Medium',
-                    }}>
-                    Total Amount
-                  </Text>
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        color: '#333',
+                        fontFamily: 'Poppins-Medium',
+                      }}>
+                      Total Amount
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => navigation.push("Cart")}>
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          color: '#000000', // Customize as needed
+                          textDecorationLine: 'underline', // Underlines the text
+                          fontFamily: 'Poppins-Medium', // Optional: your preferred font
+                          // marginTop: 10, // Optional spacing
+                        }}>
+                        Breakdown
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text
                     style={{
                       fontSize: 14,
@@ -1421,23 +1484,6 @@ const Checkout = ({navigation, route}) => {
               </View>
             </View>
           </View>
-
-          <Text
-            style={{
-              fontSize: 15,
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginLeft: wp('7%'),
-              marginTop: hp('3%'),
-            }}>
-            Payment Method
-          </Text>
-
-          <FlatList
-            data={state.PaymentMethodList}
-            renderItem={renderPaymentMethodItem}
-            keyExtractor={(item, index) => index.toString()}
-          />
 
           {state.PaymentMethodIDerror && (
             <Text
@@ -1452,42 +1498,54 @@ const Checkout = ({navigation, route}) => {
             </Text>
           )}
 
-          <TouchableOpacity
-            activeOpacity={0.5}
-            disabled={
-              state.loading || !state.TotalUnitPrice || state.paymentProcessing
-            }
-            onPress={processPayment}>
-            <View
-              style={{
-                backgroundColor:
-                  state.loading || state.paymentProcessing
-                    ? '#cccccc'
-                    : '#00afb5',
-                width: wp('80%'),
-                height: hp('5%'),
-                alignSelf: 'center',
-                marginTop: hp('5%'),
-                marginBottom: hp('2%'),
-                borderRadius: wp('2%'),
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-              {state.loading || state.paymentProcessing ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text
-                  style={{
-                    color: '#ffff',
-                    textAlign: 'center',
-                    fontSize: 15,
-                    fontFamily: 'Poppins-SemiBold',
-                  }}>
-                  Get it delivered - ₹{calculateFinalAmount()}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
+<View style={{ flex: 1 , height:"100%" }}>
+  {/* Your screen content goes here */}
+
+  <View
+    style={{
+      position: 'absolute',
+      bottom: 0,
+      height:"100%",
+      top:"100%",
+      width: '100%',
+      // paddingBottom: hp('2%'),
+      backgroundColor: '#fff', // optional: to prevent overlap with transparent backgrounds
+    }}>
+    <TouchableOpacity
+      activeOpacity={0.5}
+      disabled={
+        state.loading || !state.TotalUnitPrice || state.paymentProcessing
+      }
+      onPress={processPayment}>
+      <View
+        style={{
+          backgroundColor:
+            state.loading || state.paymentProcessing ? '#cccccc' : '#00afb5',
+          width: wp('80%'),
+          height: hp('5%'),
+          alignSelf: 'center',
+          borderRadius: wp('2%'),
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        {state.loading || state.paymentProcessing ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <Text
+            style={{
+              color: '#ffff',
+              textAlign: 'center',
+              fontSize: 15,
+              fontFamily: 'Poppins-SemiBold',
+            }}>
+            Get it delivered
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  </View>
+</View>
+
         </ScrollView>
       </SafeAreaView>
     );

@@ -14,6 +14,7 @@ const HeaderWithAddress = ({
   showBackButton = true,
   showFybrText = true,
   fybrText = 'fybr',
+  isCheckoutPage = false
 }) => {
   return !showbackGroundImage ? (
     <></>
@@ -55,7 +56,9 @@ const HeaderWithAddress = ({
           )}
 
           {/* Address Selector */}
-          <AddressSelector navigation={navigation} />
+          <AddressSelector navigation={navigation}
+          isCheckoutPage = {isCheckoutPage}
+          />
         </View>
 
         {/* Right Section: Fybr Text */}
