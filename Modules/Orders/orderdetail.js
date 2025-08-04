@@ -113,12 +113,12 @@ class OrderDetail extends React.Component {
   };
 
   render() {
-    const {orderslist} = this.state;
-    const firstOrder = orderslist?.[0];
-
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView>
+        <ScrollView
+          style={{width: '80%', margin: 'auto', shadowOpacity: 0}}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}>
           <ImageBackground
             style={{width: wp('100%')}}
             activeOpacity={0.5}
@@ -136,10 +136,23 @@ class OrderDetail extends React.Component {
             />
           </ImageBackground>
 
-          {/* Order Status */}
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusText}>
-              Order Status: {this.state.OrderStatus}
+          <View>
+            <Text
+              style={{
+                color: 'black',
+                marginLeft: wp('5%'),
+                marginTop: wp('13%'),
+              }}>
+              From{' '}
+              <Text
+                style={{
+                  color: 'black',
+                  fontWeight: '600',
+                  fontSize: 18,
+                  marginLeft: wp('5%'),
+                }}>
+                Westside
+              </Text>
             </Text>
           </View>
 
@@ -170,22 +183,55 @@ class OrderDetail extends React.Component {
                             />
                           )}
                         </View>
-                        <View style={styles.productDetails}>
-                          <Text style={styles.productName}>
-                            {item.ProductName}
-                          </Text>
-                          <Text style={styles.productColor}>
-                            {item.ProductColor}
-                          </Text>
-                          <Text style={styles.productSize}>
-                            Size: {item.Size}
-                          </Text>
-                          <Text style={styles.productPrice}>
-                            ₹ {item.TotalPrice}
-                          </Text>
+                        <View
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            // width: '60%',
+                          }}>
+                          <View style={styles.productDetails}>
+                            {' '}
+                            <Text style={styles.productName}>
+                              {item.ProductName}
+                            </Text>
+                            <Text style={styles.productColor}>
+                              {item.ProductColor}
+                            </Text>
+                            <View
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'row',
+                                alignContent: 'center',
+                                width: '30%',
+                                marginTop: hp('1%'),
+                                // justifyContent: 'space-between'
+                              }}>
+                              <View
+                                style={{
+                                  height: hp('2%'),
+                                  width: hp('2%'),
+                                  borderRadius: wp('100%'),
+                                  borderWidth: 1,
+                                  borderColor: '#00afb5',
+                                  // marginLeft: wp('3%'),
+                                  marginRight: wp('2%'),
+                                  backgroundColor:
+                                    item.ProductColor.toLowerCase(),
+                                  // marginTop: hp('1%'),
+                                }}></View>
+                              <Text style={styles.productSize}>
+                                {item.Size}
+                              </Text>
+                            </View>
+                          </View>
+                          <View>
+                            <Text style={styles.productPrice}>
+                              ₹ {item.TotalPrice}
+                            </Text>
+                          </View>
 
                           {/* Store Details */}
-                          <TouchableOpacity
+                          {/* <TouchableOpacity
                             style={styles.storeContainer}
                             onPress={() => this.openMap(item.GoogleMapLink)}>
                             <Text style={styles.storeName}>
@@ -195,7 +241,7 @@ class OrderDetail extends React.Component {
                               {item.StoreLocation}
                             </Text>
                             <Icon name="location" size={16} color="#00afb5" />
-                          </TouchableOpacity>
+                          </TouchableOpacity> */}
 
                           {/* Return Policy */}
                           {item.IsReturnAvailable && (
@@ -355,17 +401,23 @@ const styles = StyleSheet.create({
     height: hp('15%'),
   },
   productImage: {
-    width: wp('35%'),
-    height: hp('15%'),
-    resizeMode: 'cover',
-    borderRadius: 8,
+    // width: wp('25%'),
+    // height: hp('15%'),
+    // resizeMode: 'cover',
+    // borderRadius: 8,
+    width: wp('30%'),
+    height: hp('14%'),
+    resizeMode: 'stretch',
+    marginLeft: wp('5%'),
+    // marginRight: wp('2%'),
   },
   productDetails: {
     flex: 1,
     paddingLeft: 10,
+    display: 'flex',
   },
   productName: {
-    fontSize: 16,
+    fontSize: 12,
     fontFamily: 'Poppins-SemiBold',
     color: '#333',
   },
@@ -378,7 +430,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins-SemiBold',
     color: '#333',
-    marginTop: 4,
+    // marginTop: 4,
   },
   productPrice: {
     fontSize: 14,

@@ -608,7 +608,7 @@ const Home = props => {
                   // );
                   showModal(
                     'Location Error',
-                    errorMessageerrorMessage,
+                    errorMessage,
                     'error',
                     'OK',
                     () => {
