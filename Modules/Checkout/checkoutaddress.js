@@ -8,7 +8,7 @@ import {
 } from 'react-native-responsive-screen';
 import {URL_key} from '../Api/api';
 
-const AddressSelector = ({navigation, onPress, isCheckoutPage=false}) => {
+const CheckoutAddress = ({navigation, onPress}) => {
   const [userAddress, setUserAddress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -16,7 +16,7 @@ const AddressSelector = ({navigation, onPress, isCheckoutPage=false}) => {
   const fetchUserAddress = async () => {
     try {
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-      console.log('IN AddressSelector UserProfileID:', UserProfileID);
+      console.log('IN CheckoutAddress UserProfileID:', UserProfileID);
 
       const addressResponse = await axios.get(
         URL_key +
@@ -79,21 +79,12 @@ const AddressSelector = ({navigation, onPress, isCheckoutPage=false}) => {
     <TouchableOpacity
       style={{marginLeft: wp('2')}}
       onPress={onPress ? onPress : () => navigation.push('AddAddress')}>
-      <Text
-        style={{
-          color: '#333',
-          fontSize: 11,
-          fontFamily: 'Poppins-Medium',
-          //   marginTop: hp('5%'),
-          //   marginLeft: wp('1%'),
-        }}>
-        {isCheckoutPage ? `Checkout from >` :  `Delivering to >`}
-      </Text>
 
       {userAddress?.AddressCategory && (
         <Text
           style={{
-            color: '#00afb5',
+            color: '#000000',
+            fontWeight: 'bold',
             fontSize: 12,
             fontFamily: 'Poppins-SemiBold',
             // marginLeft: wp('10.5%'),
@@ -101,7 +92,17 @@ const AddressSelector = ({navigation, onPress, isCheckoutPage=false}) => {
           {userAddress.AddressCategory}
         </Text>
       )}
-
+   {userAddress?.StreetNumber && (
+        <Text
+          style={{
+            color: 'black',
+            fontSize: 11,
+            fontFamily: 'Poppins-SemiBold',
+            // marginLeft: wp('10.5%'),
+          }}>
+      {userAddress?.StreetNumber ?? ""}
+        </Text>
+      )}
       {userAddress?.StreetName && (
         <Text
           style={{
@@ -113,8 +114,9 @@ const AddressSelector = ({navigation, onPress, isCheckoutPage=false}) => {
           {userAddress.StreetName}
         </Text>
       )}
+    
     </TouchableOpacity>
   );
 };
 
-export default AddressSelector;
+export default CheckoutAddress;
