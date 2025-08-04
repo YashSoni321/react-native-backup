@@ -462,7 +462,7 @@ const Login = ({navigation}) => {
         enableOnAndroid={true}
         extraScrollHeight={Platform.OS === 'ios' ? 80 : 100}
         keyboardShouldPersistTaps="handled">
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white'}}>
           <SafeAreaView>
             <Dialog
               visible={state.fail}

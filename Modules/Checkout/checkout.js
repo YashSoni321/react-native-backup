@@ -41,6 +41,8 @@ import GetLocation from 'react-native-get-location';
 import {useLoading} from '../../shared/LoadingContext';
 import BookingDebugger from '../../shared/BookingDebugger';
 import CustomModal from '../../shared/CustomModal';
+import AddressSelector from '../Common/ShowUserLocation';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
 const reg2 = /^[0-9]+$/;
 
 export const MERCHANT_ID = 'PGTESTPAYUAT86';
@@ -1104,7 +1106,7 @@ const Checkout = ({navigation, route}) => {
           primaryButtonText={modalConfig.primaryButtonText}
           onPrimaryPress={modalConfig.onPrimaryPress}
         />
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
           {state.error && (
             <View
               style={{
@@ -1197,34 +1199,10 @@ const Checkout = ({navigation, route}) => {
             </View>
           </Dialog>
 
-          <ImageBackground
-            style={{width: wp('100%')}}
-            activeOpacity={0.5}
-            source={require('../Images/output-onlinepngtools1.png')}>
-            <Text
-              style={{
-                fontSize: 20,
-                color: '#00afb5',
-                fontFamily: 'Poppins-SemiBold',
-                marginTop: hp('5%'),
-                marginLeft: wp('17%'),
-              }}>
-              Delivering to {'>'}
-            </Text>
-
-            <Icon
-              onPress={() => navigation.push('Tab')}
-              name="chevron-back"
-              color={'#00afb5'}
-              size={40}
-              style={{
-                marginLeft: wp('1%'),
-                padding: hp('1%'),
-                marginTop: hp('-10%'),
-                marginBottom: hp('4%'),
-              }}
-            />
-          </ImageBackground>
+          <HeaderWithAddress
+            navigation={navigation}
+            handleBackPress={() => navigation.push('Tab')}
+          />
 
           {/* Map View with Error Handling */}
           <View style={{marginTop: hp('2%')}}>
@@ -1279,7 +1257,7 @@ const Checkout = ({navigation, route}) => {
                   height: hp('20%'),
                   width: wp('80%'),
                   alignSelf: 'center',
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: '#ffffff',
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderRadius: 8,
@@ -1351,22 +1329,6 @@ const Checkout = ({navigation, route}) => {
           </CenteredView>
 
           {/* Debug button to toggle MapView */}
-          <TouchableOpacity
-            onPress={() => BookingDebugger.showDebugInfo()}
-            style={{
-              position: 'absolute',
-              top: hp('15%'),
-              right: wp('5%'),
-              backgroundColor: '#00afb5',
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 1000,
-            }}>
-            <Icon name="bug" color="white" size={20} />
-          </TouchableOpacity>
 
           <Text
             style={{

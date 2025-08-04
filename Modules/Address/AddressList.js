@@ -397,7 +397,7 @@ class AddressList extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white'}}>
           <Dialog
             visible={this.state.showeditaddress}
             dialogStyle={{
@@ -1283,7 +1283,7 @@ class AddressList extends React.Component {
                 // alignItems: "center"
               },
             }}>
-            <ScrollView>
+            <ScrollView style={{backgroundColor: 'white'}}>
               <Icon
                 style={{
                   // width: wp('10%'),

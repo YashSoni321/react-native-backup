@@ -47,7 +47,7 @@ const Orders = ({navigation}) => {
           fontSize: 20,
           color: '#00afb5',
           fontFamily: 'Poppins-SemiBold',
-          marginLeft: wp('15%'),
+          // marginLeft: wp('15%'),
           flex: 1,
         },
         emptyContainer: {
@@ -398,7 +398,9 @@ const Orders = ({navigation}) => {
         <Text style={styles.title}>Your Orders</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{backgroundColor: 'white'}}
+        showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>This Month</Text>
 
         <FlatList

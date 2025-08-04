@@ -34,6 +34,7 @@ import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
 import CustomModal from '../../shared/CustomModal';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
 
 const ProductDetails = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
@@ -447,58 +448,10 @@ const ProductDetails = ({navigation, route}) => {
         primaryButtonText={modalConfig.primaryButtonText}
         onPrimaryPress={modalConfig.onPrimaryPress}
       />
-      <ScrollView>
-        <Text
-          style={{
-            color: '#333',
-            fontSize: 11,
-            fontFamily: 'Poppins-Medium',
-            marginTop: hp('5%'),
-            marginLeft: wp('17%'),
-          }}>
-          Delivering to {'>'}
-        </Text>
-        <Text
-          style={{
-            color: '#00afb5',
-            fontSize: 12,
-            fontFamily: 'Poppins-Medium',
-            marginLeft: wp('17%'),
-          }}>
-          {state.Pincode}
-        </Text>
-        <Text
-          style={{
-            color: '#333',
-            fontSize: 10,
-            fontFamily: 'Poppins-Light',
-            marginLeft: wp('17%'),
-          }}>
-          {state.StreetName}
-        </Text>
-        <Text
-          style={{
-            fontSize: 40,
-            textAlign: 'right',
-            color: '#00afb5',
-            fontFamily: 'RedHatDisplay-SemiBold',
-            marginTop: hp('-8%'),
-            marginBottom: hp('1.5%'),
-            marginRight: wp('7%'),
-          }}>
-          fybr
-        </Text>
-        <Icon
-          onPress={() => navigation.navigate(state.Pagename)}
-          name="chevron-back"
-          color={'#00afb5'}
-          size={40}
-          style={{
-            marginLeft: wp('1%'),
-            padding: hp('1%'),
-            marginTop: hp('-10%'),
-            marginBottom: hp('4%'),
-          }}
+      <ScrollView style={{backgroundColor: 'white'}}>
+        <HeaderWithAddress
+          handleBackPress={() => navigation.push('Tabs')}
+          navigation={navigation}
         />
 
         {/* Product Images */}

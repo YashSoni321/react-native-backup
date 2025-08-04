@@ -52,7 +52,7 @@ class Add extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white'}}>
           <View
             style={{
               backgroundColor: '#ffff',

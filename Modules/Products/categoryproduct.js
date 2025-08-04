@@ -147,7 +147,7 @@ class CategoryProduct extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white'}}>
           <ImageBackground
             style={{width: wp('100%')}}
             activeOpacity={0.5}

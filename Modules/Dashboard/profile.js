@@ -236,7 +236,7 @@ class Profile extends React.Component {
     return (
       <SafeAreaView>
         {/* NavigationEvents removed - not used in this component */}
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white', height: hp('100%')}}>
           <ImageBackground
             style={{width: wp('100%')}}
             activeOpacity={0.5}
@@ -251,8 +251,6 @@ class Profile extends React.Component {
                 fontFamily: 'RedHatDisplay-SemiBold',
                 marginTop: hp('2.5%'),
                 marginBottom: hp('2.5%'),
-                // marginLeft: wp('10%'),
-                // marginRight: wp('1%'),
               }}>
               fybr
             </Text>
@@ -299,6 +297,7 @@ class Profile extends React.Component {
                     fontFamily: 'Poppins-Medium',
                     marginTop: hp('3.5%'),
                     marginRight: wp('43%'),
+                    fontWeight: 'bold',
                     // marginBottom: hp('2%'),
                     // marginLeft: wp('10%'),
                     // marginRight: wp('1%'),
@@ -894,7 +893,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: wp('0.5%'),
-    borderColor: '#f5f5f5',
+    borderColor: '#ffffff',
     borderWidth: 0.7,
   },
   row2: {
@@ -904,7 +903,7 @@ const styles = StyleSheet.create({
 
     justifyContent: 'center',
     // marginLeft: wp('0.5%'),
-    borderColor: '#f5f5f5',
+    borderColor: '#ffffff',
     borderWidth: 0.7,
   },
   row3: {
@@ -914,7 +913,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
 
-    borderColor: '#f5f5f5',
+    borderColor: '#ffffff',
     borderWidth: 0.7,
   },
   row4: {
@@ -924,7 +923,7 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     justifyContent: 'center',
 
-    borderColor: '#f5f5f5',
+    borderColor: '#ffffff',
     borderWidth: 0.7,
   },
   horizontal: {

@@ -38,6 +38,7 @@ import Geolocation from '@react-native-community/geolocation';
 import {getDistance} from 'geolib';
 import {useLoading} from '../../shared/LoadingContext';
 import CustomModal from '../../shared/CustomModal';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
 
 const DISTANCE_THRESHOLD = 3000; // 3km in meters
 const BATCH_SIZE = 50; // Process stores in batches
@@ -356,7 +357,7 @@ const Home = props => {
   // Main function to fetch and process nearby stores
   const fetchNearbyStores = async (userLocation, searchTerm = '') => {
     try {
-      // showLoading('fetchNearbyStores', 'Loading nearby stores...');
+      showLoading('fetchNearbyStores', 'Loading nearby stores...');
       console.log('🚀 Starting fetchNearbyStores...');
       console.log('📍 User Location:', userLocation);
 
@@ -432,10 +433,10 @@ const Home = props => {
       setNearbystores1(groupedStores);
       setIsLoadingStores(false);
       setLoadingProgress(100);
-      // hideLoading('fetchNearbyStores');
+      hideLoading('fetchNearbyStores');
       console.log('✅ fetchNearbyStores completed successfully');
     } catch (error) {
-      // hideLoading('fetchNearbyStores');
+      hideLoading('fetchNearbyStores');
       console.error('💥 Error fetching nearby stores:', error);
       console.error('Error details:', {
         message: error.message,
@@ -482,6 +483,7 @@ const Home = props => {
   const [banner, setBanner] = useState(null);
   const [StreetName, setStreetName] = useState('');
   const [Pincode, setPincode] = useState('');
+  const [userAddress, setUserAddress] = useState('');
   const [CategoryName, setCategoryName] = useState('');
 
   // Replace componentDidMount with useEffect
@@ -525,9 +527,12 @@ const Home = props => {
               },
             },
           );
-
-          setStreetName(addressResponse.data[0]?.StreetName || '');
-          setPincode(addressResponse.data[0]?.AddressCategory || '');
+          console.log('🏠 AddressResponse:', addressResponse.data[0]);
+          if (addressResponse && addressResponse.data[0]) {
+            setUserAddress(addressResponse.data[0]);
+            setStreetName(addressResponse.data[0]?.StreetName || '');
+            setPincode(addressResponse.data[0]?.AddressCategory || '');
+          }
           console.log('✅ Address loaded successfully');
         } catch (err) {
           console.log('⚠️ Address fetch error:', err);
@@ -804,7 +809,7 @@ const Home = props => {
         primaryButtonText={modalConfig.primaryButtonText}
         onPrimaryPress={modalConfig.onPrimaryPress}
       />
-      <ScrollView>
+      <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
         {showcategory ? (
           <>
             <Text
@@ -823,10 +828,9 @@ const Home = props => {
               color={'#00afb5'}
               size={40}
               style={{
-                marginLeft: wp('4%'),
+                marginLeft: wp('1%'),
                 padding: hp('1%'),
-                marginTop: hp('-5.3%'),
-                marginBottom: hp('2%'),
+                marginTop: hp('5%'),
               }}
             />
             <FlatList
@@ -985,40 +989,12 @@ const Home = props => {
               </>
             ) : (
               <>
-                <ImageBackground
+                {/* <ImageBackground
                   style={{width: wp('100%')}}
                   activeOpacity={0.5}
                   source={require('../Images/output-onlinepngtools1.png')}
                   resizeMode="cover">
-                  <Text
-                    style={{
-                      color: '#333',
-                      fontSize: 11,
-                      fontFamily: 'Poppins-Medium',
-                      marginTop: hp('5%'),
-                      marginLeft: wp('10%'),
-                    }}>
-                    Delivering to
-                  </Text>
-                  <Text
-                    style={{
-                      color: '#00afb5',
-                      fontSize: 12,
-                      fontFamily: 'Poppins-SemiBold',
-                      marginLeft: wp('10.5%'),
-                    }}>
-                    {Pincode}
-                  </Text>
-                  <Text
-                    style={{
-                      color: '#333',
-                      fontSize: 10,
-                      fontFamily: 'Poppins-Light',
-                      marginLeft: wp('10%'),
-                      width: wp('52%'),
-                    }}>
-                    {StreetName}
-                  </Text>
+                  <AddressSelector navigation={props.navigation} />
 
                   <Text
                     style={{
@@ -1069,7 +1045,12 @@ const Home = props => {
                       />
                     </View>
                   </View>
-                </ImageBackground>
+                </ImageBackground> */}
+                <HeaderWithAddress
+                  showBackButton={false}
+                  handleBackPress={() => {}}
+                  navigation={props.navigation}
+                />
 
                 {banner == 'true' ? (
                   <></>

@@ -2,58 +2,31 @@ import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
-  FormInput,
   Text,
   View,
   Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Button,
-  Platform,
-  PermissionsAndroid,
   ImageBackground,
-  BackHandler,
   ActivityIndicator,
-  TouchableHighlight,
-  DeviceEventEmitter,
   FlatList,
 } from 'react-native';
-import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
-import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Normalize from '../Size/size';
+
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import {NavigationEvents} from 'react-navigation';
-import {SwiperFlatList} from 'react-native-swiper-flatlist';
-var date = moment().format('YYYY/MM/DD ');
-var time = moment().format('hh:mm A');
-import ImagePicker from 'react-native-image-crop-picker';
-import {CustomPicker} from 'react-native-custom-picker';
-import {API_KEY, URL_key} from '../Api/api';
-import apiService, {
-  getProductListByStore,
-  getProductCartList,
-  getCategoryList,
-  getSubCategoryList,
-  getCustomerAddress,
-  getStateDDL,
-  testConnection,
-} from '../Api/api';
-import axios from 'axios';
+import apiService, {testConnection} from '../Api/api';
 import CartValidation from '../../shared/CartValidation';
-var RNFS = require('react-native-fs');
-import GetLocation from 'react-native-get-location';
-import LinearGradient from 'react-native-linear-gradient';
-import MenuDrawer from 'react-native-side-drawer';
 
 import NoProducts from './NoProducts';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
 import CustomModal from '../../shared/CustomModal';
+import AddressSelector from '../Common/ShowUserLocation';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
 
 const StoreProducts = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
@@ -401,122 +374,13 @@ const StoreProducts = ({navigation, route}) => {
     }
   }, [state.StoreID]);
 
-  // Error alert
-  // useEffect(() => {
-  //   if (state.error) {
-  //     Alert.alert('Error', state.error, [
-  //       {
-  //         text: 'OK',
-  //         onPress: () => setState(prevState => ({...prevState, error: null})),
-  //       },
-  //     ]);
-  //   }
-  // }, [state.error]);
-
   return (
     <SafeAreaView>
-      <ScrollView>
-        <ImageBackground
-          style={{width: wp('100%')}}
-          activeOpacity={0.5}
-          source={require('../Images/output-onlinepngtools1.png')}
-          resizeMode="cover">
-          <Text
-            style={{
-              color: '#333',
-              fontSize: 11,
-              fontFamily: 'Poppins-Medium',
-              marginTop: hp('4%'),
-              marginLeft: wp('15%'),
-            }}>
-            Delivering to &gt;
-          </Text>
-          <Text
-            style={{
-              color: '#00afb5',
-              fontSize: 12,
-              fontFamily: 'Poppins-SemiBold',
-              marginLeft: wp('15.5%'),
-            }}>
-            {state.Pincode}
-          </Text>
-          <Text
-            style={{
-              color: '#333',
-              fontSize: 10,
-              fontFamily: 'Poppins-Light',
-              marginLeft: wp('15%'),
-              width: wp('52%'),
-            }}>
-            {state.StreetName}
-          </Text>
-
-          <Text
-            style={{
-              fontSize: 40,
-              textAlign: 'right',
-              color: '#00afb5',
-              fontFamily: 'RedHatDisplay-SemiBold',
-              marginTop: hp('-8%'),
-              marginBottom: hp('1.5%'),
-              marginRight: wp('7%'),
-            }}>
-            fybr
-          </Text>
-
-          <Icon
-            onPress={() => {
-              navigation.push('Tabs');
-            }}
-            name="chevron-back"
-            color={'#00afb5'}
-            size={30}
-            style={{
-              marginLeft: wp('1%'),
-              padding: hp('1%'),
-              marginTop: hp('-7.5%'),
-              marginBottom: hp('6%'),
-            }}
-          />
-          <View style={{flexDirection: 'row'}}>
-            <View
-              style={{
-                justifyContent: 'center',
-                borderRadius: wp('3%'),
-                height: hp('5.2%'),
-                borderColor: '#00afb5',
-                backgroundColor: '#ffff',
-                width: wp('85%'),
-                alignSelf: 'center',
-                flexDirection: 'row',
-                marginBottom: hp('1%'),
-                textAlignVertical: 'top',
-                marginLeft: wp('7%'),
-                borderWidth: 0.5,
-              }}>
-              <TextInput
-                placeholder={'Search for products in ' + state.StoreName}
-                fontFamily={'Poppins-Light'}
-                placeholderTextColor={'#00afb5'}
-                color={'black'}
-                fontSize={10}
-                value={state.search}
-                onChangeText={SearchFilterFunction}
-                style={{
-                  padding: hp('1%'),
-                  width: wp('65%'),
-                }}
-              />
-              <Icon
-                style={{marginLeft: wp('1%'), padding: hp('1%')}}
-                onPress={() => {}}
-                name="search"
-                color={'gray'}
-                size={20}
-              />
-            </View>
-          </View>
-        </ImageBackground>
+      <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
+        <HeaderWithAddress
+          navigation={navigation}
+          handleBackPress={() => navigation.push('Tabs')}
+        />
 
         <View
           style={[
@@ -599,13 +463,15 @@ const StoreProducts = ({navigation, route}) => {
                   alignContent: 'center',
                   textAlign: 'left',
                   justifyContent: 'center',
-                  color: '#00afb5',
+                  color: '#232423',
+                  fontWeight: 'bold',
                   marginTop: hp('1%'),
                   marginLeft: wp('1%'),
                   marginRight: wp('2%'),
                   width: wp('74%'),
                 }}>
-                ⏰ {state.Timing} ₹{state.DeliveryCharges}
+                {/* ⏰ {state.Timing}{' '} */}
+                {state.DeliveryCharges ? '₹ ' + state.DeliveryCharges : ''}
                 {/* 🚚 Delivery in {state.DeliveryTime || '30 mins'} •{' '} */}
                 Delivery in{' '}
                 {deliveryTime === null ? 'Calculating...' : deliveryTime}

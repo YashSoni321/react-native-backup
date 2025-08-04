@@ -39,6 +39,8 @@ import CenteredView from '../Common/CenteredView';
 import Geolocation from '@react-native-community/geolocation';
 import {SummaryRow} from '../Common/SummaryRow';
 import CustomModal from '../../shared/CustomModal';
+import AddressSelector from '../Common/ShowUserLocation';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
 
 const Cart = ({navigation}) => {
   const {showLoading, hideLoading} = useLoading();
@@ -1007,7 +1009,7 @@ const Cart = ({navigation}) => {
         primaryButtonText={modalConfig.primaryButtonText}
         onPrimaryPress={modalConfig.onPrimaryPress}
       />
-      <ScrollView>
+      <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
         <Dialog
           visible={state.fail}
           dialogStyle={{
@@ -1064,74 +1066,18 @@ const Cart = ({navigation}) => {
           </TouchableOpacity>
         </Dialog>
 
-        <ImageBackground
-          style={{width: wp('100%')}}
-          activeOpacity={0.5}
-          source={require('../Images/output-onlinepngtools1.png')}
-          resizeMode="cover">
-          <Text
-            style={{
-              color: '#333',
-              fontSize: 11,
-              fontFamily: 'Poppins-Medium',
-              marginTop: hp('5%'),
-              marginLeft: wp('17%'),
-            }}>
-            Delivering to
-          </Text>
-          <Text
-            style={{
-              color: '#00afb5',
-              fontSize: 12,
-              fontFamily: 'Poppins-Medium',
-              marginLeft: wp('17%'),
-            }}>
-            {state.Pincode}
-          </Text>
-          <Text
-            style={{
-              color: '#333',
-              fontSize: 10,
-              fontFamily: 'Poppins-Light',
-              marginLeft: wp('17%'),
-            }}>
-            {state.StreetName}
-          </Text>
-          <Text
-            style={{
-              fontSize: 40,
-              textAlign: 'right',
-              color: '#00afb5',
-              fontFamily: 'RedHatDisplay-SemiBold',
-              marginTop: hp('-8%'),
-              marginBottom: hp('1.5%'),
-              marginRight: wp('7%'),
-            }}>
-            fybr
-          </Text>
-
-          <Icon
-            onPress={() => {
-              navigation.push('Tab');
-            }}
-            name="chevron-back"
-            color={'#00afb5'}
-            size={40}
-            style={{
-              marginLeft: wp('1%'),
-              padding: hp('1%'),
-              marginTop: hp('-10%'),
-              marginBottom: hp('4%'),
-            }}
-          />
-        </ImageBackground>
+        <HeaderWithAddress
+          navigation={navigation}
+          showBackButton={true}
+          handleBackPress={() => navigation.push('Tab')}
+        />
 
         {state.Nearbystores1 == null ||
         state.Nearbystores == undefined ||
         state.Nearbystores1?.length === 0 ? (
           <EmptyCart navigation={navigation} />
         ) : (
-          <>
+          <View style={{backgroundColor: 'white'}}>
             <FlatList
               data={state.Nearbystores1}
               renderItem={({item, index}) => {
@@ -1144,7 +1090,7 @@ const Cart = ({navigation}) => {
                       }}>
                       <View
                         style={{
-                          backgroundColor: '#f5f5f5',
+                          backgroundColor: '#ffffff',
                           padding: 15,
                           marginHorizontal: 10,
                           borderRadius: 8,
@@ -1704,7 +1650,7 @@ const Cart = ({navigation}) => {
                 </TouchableOpacity>
               </View>
             </CenteredView>
-          </>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

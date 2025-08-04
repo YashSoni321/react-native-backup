@@ -141,7 +141,7 @@ export const getColorHex = colorName => {
     tomato: '#ff6347',
     transparent: 'transparent',
     violet: '#ee82ee',
-    whitesmoke: '#f5f5f5',
+    whitesmoke: '#ffffff',
     yellowgreen: '#9acd32',
   };
 

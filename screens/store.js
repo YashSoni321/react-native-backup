@@ -22,13 +22,13 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Switch } from 'react-native-switch';
+import {Switch} from 'react-native-switch';
 import axios from 'axios';
-import { NavigationEvents } from 'react-navigation';
+import {NavigationEvents} from 'react-navigation';
 import ToggleSwitch from 'toggle-switch-react-native';
-import { Dialog } from 'react-native-simple-dialogs';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
+import {Dialog} from 'react-native-simple-dialogs';
+import {CustomPicker} from 'react-native-custom-picker';
+import {API_KEY, URL_key} from './api';
 import ImagePicker from 'react-native-image-crop-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
@@ -40,6 +40,7 @@ import {
   Android,
 } from 'react-native-firebase-push-notifications';
 import Normalize from './size';
+import HeaderWithAddress from '../Modules/Common/HeaderWithCommon';
 
 class Store extends React.Component {
   constructor(props) {
@@ -56,7 +57,7 @@ class Store extends React.Component {
           Icon: 'woman',
           nav: 'protab',
         },
-        { name: 'Shoes', Icon: 'file-tray-sharp', nav: 'payments' },
+        {name: 'Shoes', Icon: 'file-tray-sharp', nav: 'payments'},
         // {name: 'Leads', Icon: 'ios-magnet-outline', nav: 'leads'},
 
         {
@@ -85,7 +86,7 @@ class Store extends React.Component {
           onWillBlur={this._onBlurr}
         />
         <ScrollView>
-          <ImageBackground
+          {/* <ImageBackground
             style={{ width: wp('100%') }}
             activeOpacity={0.5}
             source={require('../assets/output-onlinepngtools.png')}
@@ -109,7 +110,12 @@ class Store extends React.Component {
               resizeMode="contain"
               source={require('../assets/FYBR-Logo-removebg-preview.png')}
             />
-          </ImageBackground>
+          </ImageBackground> */}
+          <HeaderWithAddress
+            navigation={this.props.navigation}
+            showBackButton={true}
+            handleBackPress={() => this.props.navigation.push('Tabs')}
+          />
           <View
             style={{
               backgroundColor: '#ffff',
@@ -137,7 +143,7 @@ class Store extends React.Component {
               ALL STORES
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+          <View style={{flexDirection: 'row', justifyContent: 'center'}}>
             <View
               style={{
                 // justifyContent: 'center',
@@ -221,7 +227,7 @@ class Store extends React.Component {
             <FlatList
               data={this.state.categories1}
               // horizontal={true}
-              renderItem={({ item, index }) => {
+              renderItem={({item, index}) => {
                 return (
                   <>
                     <TouchableOpacity
@@ -260,7 +266,7 @@ class Store extends React.Component {
                             // borderWidth: 0.7,
                           },
                         ]}>
-                        <View style={{ flexDirection: 'row' }}>
+                        <View style={{flexDirection: 'row'}}>
                           <View>
                             <Image
                               style={{

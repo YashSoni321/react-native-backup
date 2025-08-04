@@ -209,7 +209,7 @@ class Signup extends React.Component {
           enableOnAndroid={true}
           extraScrollHeight={Platform.OS === 'ios' ? 80 : 100}
           keyboardShouldPersistTaps="handled">
-          <ScrollView>
+          <ScrollView style={{backgroundColor: 'white'}}>
             <SafeAreaView>
               {/* NavigationEvents replaced with useFocusEffect in functional components */}
               <Dialog

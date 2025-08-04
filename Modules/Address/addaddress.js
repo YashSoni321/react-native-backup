@@ -340,7 +340,7 @@ const AddAddress = ({navigation}) => {
         AddressCategory: AddressCategory,
       };
 
-      console.log(addressData);
+      console.log('addressData', addressData);
 
       const response = await axios.post(
         URL_key + 'api/AddressApi/sCustomerAddress',
@@ -431,7 +431,7 @@ const AddAddress = ({navigation}) => {
   }
 
   return (
-    <ScrollView>
+    <ScrollView style={{backgroundColor: 'white'}}>
       <SafeAreaView>
         <Dialog
           visible={fail}

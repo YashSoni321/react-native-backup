@@ -82,7 +82,7 @@ const Landing = ({navigation}) => {
   };
   return (
     <SafeAreaView>
-      <ScrollView>
+      <ScrollView style={{backgroundColor: 'white'}}>
         <View style={{backgroundColor: '#ffffff'}}>
           <Text
             style={{

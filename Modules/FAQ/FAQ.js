@@ -75,7 +75,7 @@ class FAQ extends React.Component {
   render() {
     return (
       <SafeAreaView>
-        <ScrollView>
+        <ScrollView style={{backgroundColor: 'white'}}>
           <Icon
             onPress={() => {
               this.props.navigation.push('TabP');

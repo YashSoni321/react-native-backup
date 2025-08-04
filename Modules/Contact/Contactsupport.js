@@ -68,7 +68,7 @@ const Contactsupport = ({navigation}) => {
 
   return (
     <SafeAreaView>
-      <ScrollView>
+      <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
         {/* <Icon
           onPress={() => navigation.push('TabP')}
           name="chevron-back"
@@ -87,9 +87,9 @@ const Contactsupport = ({navigation}) => {
             color={'#00afb5'}
             size={40}
             style={{
-              marginLeft: wp('4%'),
+              marginLeft: wp('1%'),
               padding: hp('1%'),
-              marginTop: hp('3%'),
+              marginTop: hp('5%'),
             }}
           />
         </TouchableOpacity>
@@ -97,11 +97,12 @@ const Contactsupport = ({navigation}) => {
         <Text
           style={{
             fontSize: 20,
-            textAlign: 'center',
+            // textAlign: 'center',
             color: '#00afb5',
             fontFamily: 'Poppins-SemiBold',
             marginTop: hp('-5.5%'),
             marginBottom: hp('2%'),
+            marginLeft: wp('13%'),
           }}>
           Contact Support
         </Text>

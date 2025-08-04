@@ -41,6 +41,7 @@ import {
 } from 'react-native-firebase-push-notifications';
 import Normalize from './size';
 import CustomModal from '../shared/CustomModal';
+import HeaderWithAddress from '../Modules/Common/HeaderWithCommon';
 
 const StoreDetails = ({navigation}) => {
   const [modalConfig, setModalConfig] = useState({
@@ -137,54 +138,9 @@ const StoreDetails = ({navigation}) => {
     <SafeAreaView>
       {/* NavigationEvents removed - not used in this component */}
       <ScrollView>
-        <ImageBackground
-          style={{width: wp('100%')}}
-          activeOpacity={0.5}
-          source={require('../assets/output-onlinepngtools.png')}
-          resizeMode="cover">
-          <Image
-            style={{
-              //  borderWidth: 1,
-              height: hp('12%'),
-              width: wp('80%'),
-              // borderColor: 'forestgreen',
-              // borderRadius: hp('100%'),
-              alignSelf: 'center',
-              justifyContent: 'center',
-              marginTop: hp('2%'),
-              marginBottom: hp('2%'),
-              // backgroundColor:"lightgrey"s
-              // marginTop: hp('15%'),
-              // marginBottom: hp('1%'),
-              //   marginLeft:wp('17.5%')
-            }}
-            resizeMode="contain"
-            source={require('../assets/FYBR-Logo-removebg-preview.png')}
-          />
-          <Icon
-            onPress={() => {
-              try {
-                console.log('🔄 Navigating back to Tabs screen...');
-                this.props.navigation.navigate('Tabs');
-              } catch (error) {
-                console.error('❌ Navigation error:', error);
-                showModal(
-                  'Navigation Error',
-                  'Unable to navigate. Please try again.',
-                  'error',
-                );
-              }
-            }}
-            name={'chevron-back'}
-            color="#333"
-            size={35}
-            style={{
-              marginTop: hp('-11.0%'),
-              marginLeft: wp('2%'),
-              marginBottom: hp('6%'),
-            }}
-          />
-        </ImageBackground>
+        <HeaderWithAddress
+          handleBackPress={() => this.props.navigation.navigate('Tabs')}
+        />
         <View
           style={{
             backgroundColor: '#ffff',
