@@ -28,7 +28,13 @@ class OrderDetail extends React.Component {
       OrderID: this.props.route?.params?.data?.OrderID || null,
       orderslist: null,
       selectedImageIndex: 0,
+      storeDetails: null,
     };
+  }
+
+  safeNumber(value) {
+    const num = parseFloat(value);
+    return isNaN(num) ? 0 : num;
   }
 
   async componentDidMount() {
@@ -49,8 +55,15 @@ class OrderDetail extends React.Component {
               `${URL_key}api/ProductApi/gProductDetails?ProductID=${item.ProductID}`,
               {headers: {'content-type': 'application/json'}},
             );
-
+            console.log('productResponse', productResponse.data);
+            const storeDetails = {
+              storeId: productResponse.data.StoreID,
+              storeName: productResponse.data.StoreName,
+              storeLocation: productResponse.data.StoreLocation,
+            };
+            this.setState({storeDetails: storeDetails});
             if (productResponse.data) {
+              // this.setState({ StoreDetails: productResponse,})
               // Extract store and product details
               item.StoreName = productResponse.data.StoreName;
               item.StoreLocation = productResponse.data.StoreLocation;
@@ -81,6 +94,7 @@ class OrderDetail extends React.Component {
           }
         }
       }
+      console.log('OrderItems', JSON.stringify(orders));
 
       this.setState({
         orderslist: orders,
@@ -116,11 +130,11 @@ class OrderDetail extends React.Component {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView
-          style={{width: '80%', margin: 'auto', shadowOpacity: 0}}
+          style={{width: '90%', margin: 'auto', shadowOpacity: 0}}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}>
           <ImageBackground
-            style={{width: wp('100%')}}
+            style={{width: wp('100%'), height: hp('15%')}}
             activeOpacity={0.5}
             source={require('../Images/output-onlinepngtools1.png')}
             resizeMode="cover">
@@ -140,6 +154,7 @@ class OrderDetail extends React.Component {
             <Text
               style={{
                 color: 'black',
+                fontSize: 14,
                 marginLeft: wp('5%'),
                 marginTop: wp('13%'),
               }}>
@@ -148,16 +163,33 @@ class OrderDetail extends React.Component {
                 style={{
                   color: 'black',
                   fontWeight: '600',
-                  fontSize: 18,
+                  fontSize: 17,
                   marginLeft: wp('5%'),
                 }}>
-                Westside
+                {/* Westside */}
+                {this.state.storeDetails?.storeName || 'Store Name'}{' '}
+              </Text>
+              <Text
+                style={{
+                  color: 'black',
+                  fontSize: 12,
+                  marginLeft: wp('5%'),
+                }}>
+                {/* Westside */}
+                {this.state.storeDetails?.storeLocation || 'Store Location'}
               </Text>
             </Text>
           </View>
 
           {/* Products List */}
           <View style={styles.productsContainer}>
+            {/* <FlatList
+              data={this.state.orderslist}
+              renderItem={({item: order}) => (
+               
+              )}
+              keyExtractor={(item, index) => index.toString()}
+            /> */}
             <FlatList
               data={this.state.orderslist}
               renderItem={({item: order}) => (
@@ -179,76 +211,66 @@ class OrderDetail extends React.Component {
                                   source={{uri: image.ProductImage}}
                                 />
                               )}
-                              keyExtractor={(item, index) => index.toString()}
+                              keyExtractor={(_, index) => index.toString()}
                             />
                           )}
                         </View>
                         <View
                           style={{
                             display: 'flex',
-                            flexDirection: 'row',
-                            // width: '60%',
+                            // flexDirection: 'row',
+                            // justifyContent: 'space-between',
+                            alignItems: 'center',
+                            // marginHorizontal: wp('5%'),
+                            // marginVertical: hp('2%'),
                           }}>
-                          <View style={styles.productDetails}>
-                            {' '}
+                          {/* Left Section - Product Details */}
+                          <View style={{flex: 1}}>
                             <Text style={styles.productName}>
                               {item.ProductName}
                             </Text>
-                            <Text style={styles.productColor}>
-                              {item.ProductColor}
-                            </Text>
-                            <View
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                alignContent: 'center',
-                                width: '30%',
-                                marginTop: hp('1%'),
-                                // justifyContent: 'space-between'
-                              }}>
+                            <View>
+                              <Text style={styles.productColor}>
+                                {item.ProductColor}
+                              </Text>
                               <View
                                 style={{
-                                  height: hp('2%'),
-                                  width: hp('2%'),
-                                  borderRadius: wp('100%'),
-                                  borderWidth: 1,
-                                  borderColor: '#00afb5',
-                                  // marginLeft: wp('3%'),
-                                  marginRight: wp('2%'),
-                                  backgroundColor:
-                                    item.ProductColor.toLowerCase(),
-                                  // marginTop: hp('1%'),
-                                }}></View>
-                              <Text style={styles.productSize}>
-                                {item.Size}
-                              </Text>
+                                  display: 'flex',
+                                  flexDirection: 'row',
+                                  justifyContent: 'space-between',
+                                }}>
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    marginTop: hp('1%'),
+                                  }}>
+                                  <View
+                                    style={{
+                                      height: hp('2%'),
+                                      width: hp('2%'),
+                                      borderRadius: wp('100%'),
+                                      borderWidth: 1,
+                                      borderColor: '#00afb5',
+                                      marginRight: wp('2%'),
+                                      backgroundColor:
+                                        item.ProductColor.toLowerCase(),
+                                    }}
+                                  />
+                                  <Text style={styles.productSize}>
+                                    {item.Size}
+                                  </Text>
+                                </View>
+                                <View>
+                                  <Text style={styles.productPrice}>
+                                    ₹ {item.TotalPrice}
+                                  </Text>
+                                </View>
+                              </View>
                             </View>
                           </View>
-                          <View>
-                            <Text style={styles.productPrice}>
-                              ₹ {item.TotalPrice}
-                            </Text>
-                          </View>
 
-                          {/* Store Details */}
-                          {/* <TouchableOpacity
-                            style={styles.storeContainer}
-                            onPress={() => this.openMap(item.GoogleMapLink)}>
-                            <Text style={styles.storeName}>
-                              {item.StoreName}
-                            </Text>
-                            <Text style={styles.storeLocation}>
-                              {item.StoreLocation}
-                            </Text>
-                            <Icon name="location" size={16} color="#00afb5" />
-                          </TouchableOpacity> */}
-
-                          {/* Return Policy */}
-                          {item.IsReturnAvailable && (
-                            <Text style={styles.returnPolicy}>
-                              {item.ReturnDays} days return available
-                            </Text>
-                          )}
+                          {/* Right Section - Total Price */}
                         </View>
                       </View>
                     </View>
@@ -259,88 +281,120 @@ class OrderDetail extends React.Component {
               keyExtractor={(item, index) => index.toString()}
             />
           </View>
-
-          {/* Payment Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Payment Details</Text>
-            <Text style={styles.paymentMode}>
-              Mode: {this.state.PaymentMode}
+          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+            <Text style={{fontWeight: '600', fontSize: 14}}>
+              Mode of Payment
+            </Text>
+            <Text style={{marginTop: hp('0.5%'), fontSize: 13}}>
+              {/* Cash on Delivery */} {this.state.PaymentMode}
+            </Text>
+          </View>
+          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+            <Text style={{fontWeight: '600', fontSize: 14}}>
+              Payment Summary
             </Text>
 
-            <View style={styles.feeContainer}>
-              <Text style={styles.feeLabel}>Base Delivery Fee</Text>
-              <Text style={styles.feeAmount}>
-                ₹ {this.state.BaseDeliveryFee}
+            {/* <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: hp('1%'),
+              }}>
+              <Text>Subtotal</Text>
+              <Text>
+                ₹{' '}
+                {Number(this.state.PaymentAmount) -
+                  Number(this.state.ConvenienceFee) +
+                  Number(this.state.PackagingFee) +
+                  Number(this.state.BaseDeliveryFee) +
+                  Number(this.state.AdditionDistanceFee)}
+              </Text>
+            </View> */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: hp('1%'),
+              }}>
+              <Text>Subtotal</Text>
+              <Text>
+                ₹{' '}
+                {(
+                  this.safeNumber(this.state.PaymentAmount) -
+                  this.safeNumber(this.state.ConvenienceFee) +
+                  this.safeNumber(this.state.PackagingFee) +
+                  this.safeNumber(this.state.BaseDeliveryFee) +
+                  this.safeNumber(this.state.AdditionDistanceFee)
+                ).toFixed(2)}{' '}
+                {/* Rounds to 2 decimal places */}
               </Text>
             </View>
 
-            <View style={styles.feeContainer}>
-              <Text style={styles.feeLabel}>Additional Distance Fee</Text>
-              <Text style={styles.feeAmount}>
-                ₹ {this.state.AdditionDistanceFee}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: hp('1%'),
+              }}>
+              <Text>Charges & Fees</Text>
+              <Text>
+                ₹{' '}
+                {Number(this.state.ConvenienceFee) +
+                  Number(this.state.PackagingFee) +
+                  Number(this.state.BaseDeliveryFee) +
+                  Number(this.state.AdditionDistanceFee)}
               </Text>
             </View>
 
-            <View style={styles.feeContainer}>
-              <Text style={styles.feeLabel}>Convenience Fee</Text>
-              <Text style={styles.feeAmount}>
-                ₹ {this.state.ConvenienceFee}
-              </Text>
-            </View>
-
-            <View style={styles.feeContainer}>
-              <Text style={styles.feeLabel}>Packaging Fee</Text>
-              <Text style={styles.feeAmount}>₹ {this.state.PackagingFee}</Text>
-            </View>
-
-            {this.state.RainyWeatherBaseFee > 0 && (
-              <View style={styles.feeContainer}>
-                <Text style={styles.feeLabel}>Rainy Weather Fee</Text>
-                <Text style={styles.feeAmount}>
-                  ₹ {this.state.RainyWeatherBaseFee}
-                </Text>
-              </View>
-            )}
-
-            <View style={[styles.feeContainer, styles.totalContainer]}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalAmount}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: hp('2%'),
+              }}>
+              <Text style={{fontWeight: '600'}}>Total Amount</Text>
+              <Text style={{fontWeight: '600'}}>
                 ₹ {this.state.PaymentAmount}
               </Text>
             </View>
           </View>
 
-          {/* Delivery Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Delivery Details</Text>
-            <Text style={styles.orderDate}>{this.state.OrderDate}</Text>
-            <Text style={styles.address}>
+          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+            <Text style={{fontWeight: '600', fontSize: 14}}>Order Details</Text>
+            <Text style={{marginTop: hp('1%'), fontSize: 13}}>
+              {/* Monday, October 14, 2024, 07:04 PM */}
+              {this.state.OrderDate}
+            </Text>
+            <Text style={{fontSize: 14}}>
+              {/* Delivered to 8-1-363/50 Aditya Nagar Colony, Tolichowki */}
               {this.state.StreetNumber}, {this.state.StreetName},{'\n'}
               {this.state.CityName}, {this.state.StateName} -{' '}
               {this.state.Pincode}
             </Text>
           </View>
 
-          {/* Support Section */}
-          <View style={styles.supportSection}>
-            <Text style={styles.supportTitle}>Need help with this order?</Text>
+          <View style={{marginHorizontal: wp('5%'), marginTop: hp('3%')}}>
+            <Text style={{fontWeight: '600', fontSize: 14}}>
+              Need help with this order?
+            </Text>
+
             <TouchableOpacity
-              style={styles.supportButton}
+              style={{
+                marginTop: hp('2%'),
+                borderWidth: 1,
+                borderColor: '#ccc',
+                borderRadius: 8,
+                padding: hp('2%'),
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
               onPress={() => this.props.navigation.push('Contactsupport')}>
-              <View style={styles.supportContent}>
-                <View>
-                  <Text style={styles.supportButtonText}>Contact Support</Text>
-                  <Text style={styles.supportSubtext}>
-                    Chat with our support team
-                  </Text>
-                </View>
-                <Icon
-                  name="chatbox-ellipses-outline"
-                  color={'#00afb5'}
-                  size={30}
-                  style={styles.supportIcon}
-                />
+              <View>
+                <Text style={{fontWeight: '600'}}>Contact Support</Text>
+                <Text style={{color: 'grey'}}>Chat with our support team</Text>
               </View>
+              <Icon name="chatbox-ellipses-outline" size={30} color="#00afb5" />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -384,21 +438,18 @@ const styles = StyleSheet.create({
     marginBottom: hp('2%'),
   },
   productCard: {
-    width: wp('95%'),
-    alignSelf: 'center',
     borderRadius: wp('3%'),
     marginTop: hp('2%'),
-    borderColor: '#00afb5',
     backgroundColor: '#fff',
-    elevation: 2,
-    padding: 10,
   },
   productRow: {
     flexDirection: 'row',
   },
   imageContainer: {
-    width: wp('40%'),
+    width: wp('30%'),
     height: hp('15%'),
+    marginRight: wp('2%'),
+    marginLeft: wp('1%'),
   },
   productImage: {
     // width: wp('25%'),
@@ -408,8 +459,8 @@ const styles = StyleSheet.create({
     width: wp('30%'),
     height: hp('14%'),
     resizeMode: 'stretch',
-    marginLeft: wp('5%'),
-    // marginRight: wp('2%'),
+    marginLeft: wp('1%'),
+    marginRight: wp('2%'),
   },
   productDetails: {
     flex: 1,
@@ -417,26 +468,23 @@ const styles = StyleSheet.create({
     display: 'flex',
   },
   productName: {
-    fontSize: 12,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
   },
   productColor: {
     fontSize: 12,
-    fontFamily: 'Poppins-Light',
-    color: 'gray',
+    color: 'grey',
+    marginTop: hp('0.5%'),
   },
   productSize: {
-    fontSize: 12,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#333',
-    // marginTop: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000',
   },
   productPrice: {
     fontSize: 14,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#00afb5',
-    marginTop: 4,
+    color: '#000',
   },
   storeContainer: {
     marginTop: 8,

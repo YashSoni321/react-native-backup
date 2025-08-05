@@ -48,8 +48,12 @@ import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
 import {Marker} from 'react-native-maps';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import CheckBox from 'react-native-check-box';
+import HeaderWithAddress from '../Common/HeaderWithCommon';
+import NoProducts from './NoProducts';
+import CategoryProductsNotFound from './NoCategoryProductsFound';
 class CategoryProduct extends React.Component {
   constructor(props) {
+    super(props);
     super(props);
     this.state = {
       latitude: 18.1124,
@@ -67,26 +71,48 @@ class CategoryProduct extends React.Component {
       SubCategoryID: this.props.route?.params?.data?.SubCategoryID || null,
       ChildSubCategoryID:
         this.props.route?.params?.data?.ChildSubCategoryID || null,
-
       categories: null,
       categories1: null,
+      categoryList: null,
+      isLoading: true,
     };
   }
   async componentDidMount() {
-    var UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-    const a = {
-      CategoryID: this.state.CategoryID,
-      SubCategoryID: this.state.SubCategoryID,
-      ChildSubCategoryID: this.state.ChildSubCategoryID,
-    };
-    console.log(a);
-    axios
-      .post(URL_key + 'api/ProductApi/gProductList', a, {
-        headers: {
-          'content-type': `application/json`,
+    try {
+      var UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+
+      // Fetch categories first
+      const categoriesResponse = await axios.get(
+        URL_key + 'api/CategoryApi/gCategoryList',
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
         },
-      })
-      .then(response => {
+      );
+      this.setState({categoryList: categoriesResponse.data});
+
+      // Fetch products
+      const a = {
+        CategoryID: this.state.CategoryID,
+        SubCategoryID: this.state.SubCategoryID,
+        ChildSubCategoryID: this.state.ChildSubCategoryID,
+      };
+      console.log('Fetching products with params:', a);
+
+      const response = await axios.post(
+        URL_key + 'api/ProductApi/gProductList',
+        a,
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+        },
+      );
+
+      console.log('Products response:', response.data);
+
+      if (response.data && response.data.length > 0) {
         const groupedProducts = response.data.reduce((acc, product) => {
           const key = `${product.StoreName} - ${product.StoreLocation}`;
 
@@ -104,14 +130,26 @@ class CategoryProduct extends React.Component {
         // Convert object to an array
         const groupedArray = Object.values(groupedProducts);
 
-        console.log(groupedArray);
-        this.setState({categories1: groupedArray});
-        this.setState({categories: groupedArray});
-        // console.log(response.data)
-      })
-      .catch(err => {
-        console.log(err);
+        this.setState({
+          categories1: groupedArray,
+          categories: groupedArray,
+          isLoading: false,
+        });
+      } else {
+        this.setState({
+          categories1: [],
+          categories: [],
+          isLoading: false,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      this.setState({
+        categories1: [],
+        categories: [],
+        isLoading: false,
       });
+    }
   }
   SearchFilterFunction(text) {
     if (text) {
@@ -148,222 +186,50 @@ class CategoryProduct extends React.Component {
     return (
       <SafeAreaView>
         <ScrollView style={{backgroundColor: 'white'}}>
-          <ImageBackground
-            style={{width: wp('100%')}}
-            activeOpacity={0.5}
-            source={require('../Images/output-onlinepngtools1.png')}
-            resizeMode="cover">
-            {/* <TouchableOpacity
-                            onPress={() => {
-                                this.props.navigation.push("tab")
-                            }}>
-                            <Icon
-                                onPress={() => {
-                                    this.props.navigation.push("tab")
-                                }}
-                                name="chevron-back"
-                                color={'#00afb5'}
-                                size={40}
-                                style={{ marginLeft: wp('1%'), padding: hp('1%'), marginTop: hp('5%'), }}
-                            />
-                        </TouchableOpacity> */}
+          <HeaderWithAddress
+            navigation={this.props.navigation}
+            navigateToHome={true}
+          />
 
-            {/* <Text
-                            style={{
-                                color: '#333',
-                                fontSize: 12,
-                                fontFamily: 'Poppins-SemiBold',
-                                // textAlign: 'center',
-                                marginTop: hp('-6%'),
-                                // marginBottom: hp('1%'),
-                                marginLeft: wp('17%'),
-                            }}>
-                                  Delivering to >
-                        </Text>
-                        <Text
-                            style={{
-                                color: '#00afb5',
-                                fontSize: 14,
-                                fontFamily: 'Poppins-SemiBold',
-                                // textAlign: 'center',
-                                // marginTop: hp('4%'),
-                                // marginBottom: hp('1%'),
-                                marginLeft: wp('17%'),
-                            }}>
-                            {this.state.StateName}
-                        </Text>
-                        <Text
-                            style={{
-                                color: '#333',
-                                fontSize: 12,
-                                fontFamily: 'Poppins-Light',
-                                // textAlign: 'center',
-                                // marginTop: hp('4%'),
-                                // marginBottom: hp('1%'),
-                                marginLeft: wp('17%'), width: wp('52%')
-                            }}>
-                            {this.state.StreetName}
-                        </Text> */}
-            <Text
+          {this.state.isLoading ? (
+            <View
               style={{
-                fontSize: 45,
-                textAlign: 'right',
-                //   justifyContent: 'center',
-                color: '#00afb5',
-                fontFamily: 'RedHatDisplay-Bold',
-                marginTop: hp('5%'),
-                // marginBottom: hp('1.5%'),
-                // marginRight: wp('20%'),
-                marginRight: wp('5%'),
+                alignItems: 'center',
+                marginTop: hp('20%'),
+                height: hp('100%'),
               }}>
-              fybr
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                this.props.navigation.navigate('Tab');
-              }}>
-              <Icon
-                onPress={() => {
-                  this.props.navigation.navigate('Tab');
-                }}
-                name="chevron-back"
-                color={'#00afb5'}
-                size={40}
+              <ActivityIndicator size="large" color="#00afb5" />
+              <Text
                 style={{
-                  marginLeft: wp('3%'),
-                  padding: hp('1%'),
-                  marginTop: hp('-9%'),
-                }}
-              />
-            </TouchableOpacity>
-            <View style={{flexDirection: 'row'}}>
-              <View
-                style={{
-                  justifyContent: 'center',
-                  // borderWidth: wp('0.2%'),
-                  borderRadius: wp('3%'),
-                  // padding: 5,
-                  height: hp('5.2%'),
-                  // marginBottom: hp('3%'),
-                  borderColor: '#00afb5',
+                  fontSize: 14,
+                  fontFamily: 'Poppins-Medium',
+                  color: '#333',
                   marginTop: hp('2%'),
-                  backgroundColor: '#ffff',
-
-                  width: wp('85%'),
-                  alignSelf: 'center',
-                  flexDirection: 'row',
-                  marginBottom: hp('1%'),
-                  // paddingLeft: wp('12%'),a
-                  // alignItems: 'center',
-                  textAlignVertical: 'top',
-                  marginLeft: wp('7%'),
-                  borderWidth: 0.5,
                 }}>
-                {/* <Icon
-                                    name="camera-sharp"
-                                    color={'#00afb5'}
-                                    size={24}
-                                    style={{ marginLeft: wp('0%'), padding: hp('1%'), }}
-                                />
-                                <View style={{ height: hp('2%'), borderColor: "#00afb5", borderWidth: 0.5, alignSelf: "center", marginLeft: wp('1%') }}>
-
-                                </View> */}
-                <TextInput
-                  placeholder={'Search for products '}
-                  fontFamily={'Poppins-Light'}
-                  placeholderTextColor={'#00afb5'}
-                  color={'black'}
-                  fontSize={10}
-                  // maxLength={10}
-                  // keyboardType={'number-pad'}
-                  onChangeText={
-                    value => this.SearchFilterFunction(value)
-                    // this.handleInputChange('MobileNo', value)
-                  }
-                  style={{
-                    // borderWidth: 1,
-                    padding: hp('1%'),
-                    width: wp('65%'),
-                    // marginLeft: wp('1%'),
-                    // marginLeft: wp('1%'),
-                  }}
-                />
-                <Icon
-                  style={{marginLeft: wp('1%'), padding: hp('1%')}}
-                  onPress={() => {
-                    // this.setState({Filter:true})
-                    // this.RBSheet1.open();
-                  }}
-                  // activeOpacity={0.5}
-
-                  name="search"
-                  color={'gray'}
-                  size={20}
-                />
-              </View>
+                Loading products...
+              </Text>
             </View>
-          </ImageBackground>
-
-          <View
-            style={[
-              {
-                width: wp('93%'),
-                alignSelf: 'center',
-                //   elevation: 10,
-                //   shadowColor: '#000',
-                //   shadowOffset: {width: 0, height: 3},
-                //   shadowOpacity: 0.5,
-                //   shadowRadius: 5,
-
-                // backgroundColor: '#ffff',
-                // borderRadius: wp('3%'),
-                borderRadius: wp('3%'),
-                // borderTopRightRadius: wp('3%'),
-                //   borderBottomRightRadius: wp('3%'),
-                // marginLeft: wp('0.5%'),
-                // justifyContent: 'center',
-                // alignItems: 'center',
-                marginLeft: wp('1%'),
-                marginRight: wp('1%'),
-                marginTop: hp('2%'),
-                // marginBottom: hp('2%'),
-                borderColor: '#00afb5',
-                // height: hp('7%'),
-                // alignItems: 'center',
-                // justifyContent: 'center',
-                // flexDirection: 'row',
-                // borderWidth: 0.7,
-              },
-            ]}></View>
-
-          <View
-            style={{
-              marginLeft: wp('4%'),
-              marginRight: wp('4%'),
-              marginTop: hp('0%'),
-              marginBottom: hp('2%'),
-            }}>
-            <FlatList
-              data={this.state.categories1}
-              // horizontal={true}
-              renderItem={({item, index}) => {
-                return (
-                  <>
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        // textAlign: 'center',
-                        //   justifyContent: 'center',
-                        color: '#333',
-                        fontFamily: 'Poppins-SemiBold',
-                        // marginTop: hp('2%'),
-                        marginBottom: hp('-0.5%'),
-                        marginLeft: wp('7%'),
-                        marginRight: wp('1%'),
-                      }}>
+          ) : !this.state.categories1 || this.state.categories1.length === 0 ? (
+            <View style={{height: hp('100%')}}>
+              <CategoryProductsNotFound />
+            </View>
+          ) : (
+            <View
+              style={{
+                marginLeft: wp('4%'),
+                marginRight: wp('4%'),
+                marginTop: hp('0%'),
+                marginBottom: hp('2%'),
+              }}>
+              <FlatList
+                data={this.state.categories1}
+                // horizontal={true}
+                renderItem={({item, index}) => {
+                  return (
+                    <>
                       <Text
                         style={{
-                          fontSize: 14,
+                          fontSize: 15,
                           // textAlign: 'center',
                           //   justifyContent: 'center',
                           color: '#333',
@@ -373,191 +239,207 @@ class CategoryProduct extends React.Component {
                           marginLeft: wp('7%'),
                           marginRight: wp('1%'),
                         }}>
-                        {item.StoreName}
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            // textAlign: 'center',
+                            //   justifyContent: 'center',
+                            color: '#333',
+                            fontFamily: 'Poppins-SemiBold',
+                            // marginTop: hp('2%'),
+                            marginBottom: hp('-0.5%'),
+                            marginLeft: wp('7%'),
+                            marginRight: wp('1%'),
+                          }}>
+                          {item.StoreName}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            // textAlign: 'center',
+                            //   justifyContent: 'center',
+                            color: 'grey',
+                            fontFamily: 'Poppins-Light',
+                            marginTop: hp('2%'),
+                            marginBottom: hp('-0.5%'),
+                          }}>
+                          {'  '}
+                          {item.StoreLocation}
+                        </Text>
                       </Text>
-                      <Text
+                      <View
                         style={{
-                          fontSize: 12,
-                          // textAlign: 'center',
-                          //   justifyContent: 'center',
-                          color: 'grey',
-                          fontFamily: 'Poppins-Light',
+                          marginLeft: wp('4%'),
+                          marginRight: wp('4%'),
                           marginTop: hp('2%'),
-                          marginBottom: hp('-0.5%'),
+                          marginBottom: hp('2%'),
                         }}>
-                        {'  '}
-                        {item.StoreLocation}
-                      </Text>
-                    </Text>
-                    <View
-                      style={{
-                        marginLeft: wp('4%'),
-                        marginRight: wp('4%'),
-                        marginTop: hp('2%'),
-                        marginBottom: hp('2%'),
-                      }}>
-                      <FlatList
-                        data={item.Products}
-                        // horizontal={true}
-                        renderItem={({item, index}) => {
-                          return (
-                            <>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  this.props.navigation.push('ProductDetails', {
-                                    data: {
-                                      ProductID: item.ProductID,
-                                      Pagename: 'categoryproduct',
-                                    },
-                                  });
-                                }}>
-                                {/* {console.log(item)} */}
-                                <View
-                                  style={[
-                                    {
-                                      // width: wp('30%'),
-                                      alignSelf: 'center',
-                                      //   elevation: 10,
-                                      //   shadowColor: '#000',
-                                      //   shadowOffset: {width: 0, height: 3},
-                                      //   shadowOpacity: 0.5,
-                                      //   shadowRadius: 5,
+                        <FlatList
+                          data={item.Products}
+                          // horizontal={true}
+                          renderItem={({item, index}) => {
+                            return (
+                              <>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    this.props.navigation.push(
+                                      'ProductDetails',
+                                      {
+                                        data: {
+                                          ProductID: item.ProductID,
+                                          Pagename: 'categoryproduct',
+                                        },
+                                      },
+                                    );
+                                  }}>
+                                  {/* {console.log(item)} */}
+                                  <View
+                                    style={[
+                                      {
+                                        // width: wp('30%'),
+                                        alignSelf: 'center',
+                                        //   elevation: 10,
+                                        //   shadowColor: '#000',
+                                        //   shadowOffset: {width: 0, height: 3},
+                                        //   shadowOpacity: 0.5,
+                                        //   shadowRadius: 5,
 
-                                      // backgroundColor: '#ffff',
-                                      // borderRadius: wp('3%'),
-                                      borderRadius: wp('5%'),
-                                      // borderTopRightRadius: wp('3%'),
-                                      //   borderBottomRightRadius: wp('3%'),
-                                      // marginLeft: wp('0.5%'),
-                                      // justifyContent: 'center',
-                                      // alignItems: 'center',
-                                      marginLeft: wp('1%'),
-                                      marginRight: wp('1%'),
-                                      marginTop: hp('1%'),
-                                      // marginBottom: hp('2%'),
-                                      // borderColor: '#00afb5',
-                                      // height: hp('7%'),
-                                      // alignItems: 'center',
-                                      // justifyContent: 'center',
-                                      // flexDirection: 'row',
-                                      // borderWidth: 0.7,
-                                    },
-                                  ]}>
-                                  {item.ProductImage == null ||
-                                  item.ProductImage == undefined ||
-                                  item.ProductImage == '' ? (
-                                    <>
-                                      <Image
-                                        style={{
-                                          width: wp('39%'),
-                                          height: hp('15%'),
-                                          resizeMode: 'stretch',
-                                          // resizeMode: 'stretch',s
-                                          // borderTopRightRadius: hp('1%'),
-                                          // borderTopLeftRadius: hp('1%'),
-                                          // marginTop: hp('2%'),
-                                          // marginLeft: wp('3%'),
-                                          marginRight: wp('3%'),
-                                          // borderRadius: wp('5%'),
-                                          // marginBottom: hp('2%'),
-                                          // marginLeft: wp('1.5%'),
-                                        }}
-                                        // source={{ uri: item.ProductImage }}
-                                        // resizeMode="center"
-                                        source={require('../Images/tshirt.jpg')}
-                                      />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Image
-                                        style={{
-                                          width: wp('39%'),
-                                          height: hp('15%'),
-                                          resizeMode: 'stretch',
-                                          // resizeMode: 'stretch',s
-                                          // borderTopRightRadius: hp('1%'),
-                                          // borderTopLeftRadius: hp('1%'),
-                                          // marginTop: hp('2%'),
-                                          // marginLeft: wp('3%'),
-                                          marginRight: wp('3%'),
-                                          // borderRadius: wp('5%'),
-                                          // marginBottom: hp('2%'),
-                                          // marginLeft: wp('1.5%'),
-                                        }}
-                                        source={{uri: item.ProductImage}}
-                                        // resizeMode="center"
-                                        // source={require('../Images/tshirt.jpg')}
-                                      />
-                                    </>
-                                  )}
+                                        // backgroundColor: '#ffff',
+                                        // borderRadius: wp('3%'),
+                                        borderRadius: wp('5%'),
+                                        // borderTopRightRadius: wp('3%'),
+                                        //   borderBottomRightRadius: wp('3%'),
+                                        // marginLeft: wp('0.5%'),
+                                        // justifyContent: 'center',
+                                        // alignItems: 'center',
+                                        marginLeft: wp('1%'),
+                                        marginRight: wp('1%'),
+                                        marginTop: hp('1%'),
+                                        // marginBottom: hp('2%'),
+                                        // borderColor: '#00afb5',
+                                        // height: hp('7%'),
+                                        // alignItems: 'center',
+                                        // justifyContent: 'center',
+                                        // flexDirection: 'row',
+                                        // borderWidth: 0.7,
+                                      },
+                                    ]}>
+                                    {item.ProductImage == null ||
+                                    item.ProductImage == undefined ||
+                                    item.ProductImage == '' ? (
+                                      <>
+                                        <Image
+                                          style={{
+                                            width: wp('39%'),
+                                            height: hp('15%'),
+                                            resizeMode: 'stretch',
+                                            // resizeMode: 'stretch',s
+                                            // borderTopRightRadius: hp('1%'),
+                                            // borderTopLeftRadius: hp('1%'),
+                                            // marginTop: hp('2%'),
+                                            // marginLeft: wp('3%'),
+                                            marginRight: wp('3%'),
+                                            // borderRadius: wp('5%'),
+                                            // marginBottom: hp('2%'),
+                                            // marginLeft: wp('1.5%'),
+                                          }}
+                                          // source={{ uri: item.ProductImage }}
+                                          // resizeMode="center"
+                                          source={require('../Images/tshirt.jpg')}
+                                        />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Image
+                                          style={{
+                                            width: wp('39%'),
+                                            height: hp('15%'),
+                                            resizeMode: 'stretch',
+                                            // resizeMode: 'stretch',s
+                                            // borderTopRightRadius: hp('1%'),
+                                            // borderTopLeftRadius: hp('1%'),
+                                            // marginTop: hp('2%'),
+                                            // marginLeft: wp('3%'),
+                                            marginRight: wp('3%'),
+                                            // borderRadius: wp('5%'),
+                                            // marginBottom: hp('2%'),
+                                            // marginLeft: wp('1.5%'),
+                                          }}
+                                          source={{uri: item.ProductImage}}
+                                          // resizeMode="center"
+                                          // source={require('../Images/tshirt.jpg')}
+                                        />
+                                      </>
+                                    )}
 
-                                  <Text
-                                    // onPress={() => {
-                                    //   Linking.openURL(item.name);
-                                    // }}
-                                    style={{
-                                      fontSize: 12,
-                                      fontFamily: 'Poppins-SemiBold',
+                                    <Text
+                                      // onPress={() => {
+                                      //   Linking.openURL(item.name);
+                                      // }}
+                                      style={{
+                                        fontSize: 12,
+                                        fontFamily: 'Poppins-SemiBold',
 
-                                      color: '#333',
-                                      marginTop: hp('0.5%'),
-                                      // marginBottom: hp('1%'),
-                                      // marginLeft: wp('4%'),
-                                      width: wp('39%'),
-                                      // marginRight: wp('2%'),
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    {item.ProductName}
-                                  </Text>
-                                  <Text
-                                    // onPress={() => {
-                                    //   Linking.openURL(item.name);
-                                    // }}
-                                    style={{
-                                      fontSize: 8,
-                                      fontFamily: 'Poppins-Light',
+                                        color: '#333',
+                                        marginTop: hp('0.5%'),
+                                        // marginBottom: hp('1%'),
+                                        // marginLeft: wp('4%'),
+                                        width: wp('39%'),
+                                        // marginRight: wp('2%'),
+                                        // textDecorationLine: 'underline',
+                                      }}>
+                                      {item.ProductName}
+                                    </Text>
+                                    <Text
+                                      // onPress={() => {
+                                      //   Linking.openURL(item.name);
+                                      // }}
+                                      style={{
+                                        fontSize: 8,
+                                        fontFamily: 'Poppins-Light',
 
-                                      color: 'grey',
-                                      // marginTop: hp('0.5%'),
-                                      // marginBottom: hp('1%'),
-                                      // marginLeft: wp('4%'),
-                                      width: wp('39%'),
-                                      // marginRight: wp('2%'),
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    {item.ProductColor}
-                                  </Text>
-                                  <Text
-                                    // onPress={() => {
-                                    //   Linking.openURL(item.name);
-                                    // }}
-                                    style={{
-                                      fontSize: 8,
-                                      fontFamily: 'Poppins-Light',
+                                        color: 'grey',
+                                        // marginTop: hp('0.5%'),
+                                        // marginBottom: hp('1%'),
+                                        // marginLeft: wp('4%'),
+                                        width: wp('39%'),
+                                        // marginRight: wp('2%'),
+                                        // textDecorationLine: 'underline',
+                                      }}>
+                                      {item.ProductColor}
+                                    </Text>
+                                    <Text
+                                      // onPress={() => {
+                                      //   Linking.openURL(item.name);
+                                      // }}
+                                      style={{
+                                        fontSize: 8,
+                                        fontFamily: 'Poppins-Light',
 
-                                      color: '#333',
-                                      // marginTop: hp('0.5%'),
-                                      // marginBottom: hp('1%'),
-                                      // marginLeft: wp('4%'),
-                                      width: wp('39%'),
-                                      // marginRight: wp('2%'),
-                                      // textDecorationLine: 'underline',
-                                    }}>
-                                    ₹ {item.ProductPrice}
-                                  </Text>
-                                </View>
-                              </TouchableOpacity>
-                            </>
-                          );
-                        }}
-                        numColumns={2}
-                      />
-                    </View>
-                  </>
-                );
-              }}
-            />
-          </View>
+                                        color: '#333',
+                                        // marginTop: hp('0.5%'),
+                                        // marginBottom: hp('1%'),
+                                        // marginLeft: wp('4%'),
+                                        width: wp('39%'),
+                                        // marginRight: wp('2%'),
+                                        // textDecorationLine: 'underline',
+                                      }}>
+                                      ₹ {item.ProductPrice}
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
+                              </>
+                            );
+                          }}
+                          numColumns={2}
+                        />
+                      </View>
+                    </>
+                  );
+                }}
+              />
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     );

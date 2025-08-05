@@ -495,6 +495,7 @@ const ProductDetails = ({navigation, route}) => {
         <Text
           style={{
             fontSize: 14,
+            fontWeight: '700',
             fontFamily: 'Poppins-Bold',
             color: '#333',
             marginTop: hp('3%'),
@@ -629,8 +630,9 @@ const ProductDetails = ({navigation, route}) => {
         {/* Delivery Info */}
         <Text
           style={{
-            fontSize: 12,
+            fontSize: 14,
             fontFamily: 'Poppins-SemiBold',
+            fontWeight: '700',
             color: '#333',
             marginTop: hp('1.5%'),
             textAlign: 'center',
@@ -655,7 +657,8 @@ const ProductDetails = ({navigation, route}) => {
         {/* Product Details */}
         <Text
           style={{
-            fontSize: 12,
+            fontSize: 13,
+            fontWeight: '700',
             fontFamily: 'Poppins-SemiBold',
             color: '#333',
             marginTop: hp('2.5%'),
@@ -678,7 +681,8 @@ const ProductDetails = ({navigation, route}) => {
         {/* Ratings & Reviews */}
         <Text
           style={{
-            fontSize: 12,
+            fontSize: 13,
+            fontWeight: '700',
             fontFamily: 'Poppins-SemiBold',
             color: '#333',
             marginTop: hp('1.5%'),
@@ -794,7 +798,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#00afb5',
   },
   sizeButtonText: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: 'bold',
     fontFamily: 'Poppins-Bold',
     color: '#333',
   },

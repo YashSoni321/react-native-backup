@@ -244,7 +244,7 @@ class Profile extends React.Component {
             resizeMode="cover">
             <Text
               style={{
-                fontSize: 40,
+                fontSize: 48,
                 textAlign: 'center',
                 //   justifyContent: 'center',
                 color: '#00afb5',

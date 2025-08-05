@@ -27,9 +27,11 @@ import {getUserDeliveryTime} from '../Common/CalculateDistance';
 import CustomModal from '../../shared/CustomModal';
 import AddressSelector from '../Common/ShowUserLocation';
 import HeaderWithAddress from '../Common/HeaderWithCommon';
+import {useLoading} from '../../shared/LoadingContext';
 
 const StoreProducts = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
+  const {showLoading, hideLoading} = useLoading();
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -44,11 +46,17 @@ const StoreProducts = ({navigation, route}) => {
         name: 'Wallets',
         Icon: 'wallet',
         nav: 'Receivables',
+        CategoryImage:
+          'https://www.gstatic.com/marketing-cms/5e/ec/5b5baeb34571b791b2020d4cacad/meta-image.png',
+        CategoryID: 1,
       },
       {
         name: 'Grocery',
         Icon: 'color-filter',
         nav: 'Receivables',
+        CategoryImage:
+          'https://www.gstatic.com/marketing-cms/5e/ec/5b5baeb34571b791b2020d4cacad/meta-image.png',
+        CategoryID: 2,
       },
       {
         name: 'Wallets',
@@ -226,7 +234,7 @@ const StoreProducts = ({navigation, route}) => {
   };
 
   // Handle show all products (reset filter)
-  const handleShowAllProducts = () => {
+  const handleShowAllProducts = (item = false) => {
     try {
       setState(prevState => ({
         ...prevState,
@@ -266,9 +274,10 @@ const StoreProducts = ({navigation, route}) => {
   };
 
   // Fetch data function
-  const fetchData = async () => {
+  const fetchData = async (categoryId = false) => {
     try {
-      console.log('🔄 Starting fetchData with API service...');
+      showLoading('fetchStoresProducts', 'Fetching stores products...');
+      console.log('🔄 Starting fetchData with API service...', categoryId);
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
@@ -285,10 +294,10 @@ const StoreProducts = ({navigation, route}) => {
       }
 
       // Test API connection first
-      const isConnected = await testConnection();
-      if (!isConnected) {
-        console.warn('⚠️ API connection test failed, but continuing...');
-      }
+      // const isConnected = await testConnection();
+      // if (!isConnected) {
+      //   console.warn('⚠️ API connection test failed, but continuing...');
+      // }
 
       // Check if user has items in cart from a different store
       try {
@@ -319,10 +328,20 @@ const StoreProducts = ({navigation, route}) => {
       console.log('📂 Categories response:', categoriesResponse);
 
       // Fetch products by store
+      let productsResponse = [];
       console.log('🏪 StoreID for products API:', state.StoreID);
-      const productsResponse = await apiService.getProductListByStore(
-        state.StoreID || 1,
-      );
+      if (categoryId?.CategoryID) {
+        productsResponse = await apiService.getProductListByStoreAndCategoryId(
+          state.StoreID || 1,
+          categoryId?.CategoryID,
+        );
+        handleCategoryPress(categoryId);
+      } else {
+        productsResponse = await apiService.getProductListByStoreAndCategoryId(
+          state.StoreID || 1,
+          1,
+        );
+      }
       console.log('📦 Products response:', productsResponse);
 
       // Fetch address data
@@ -342,7 +361,7 @@ const StoreProducts = ({navigation, route}) => {
           data => data.StateID === addressResponse[0]?.StateID,
         ) || [];
 
-      console.log('✅ All data fetched successfully');
+      console.log('✅ categoriesResponse', categoriesResponse);
       console.log('📦 Final products count:', productsResponse?.length || 0);
 
       setState(prevState => ({
@@ -355,6 +374,7 @@ const StoreProducts = ({navigation, route}) => {
         isLoading: false,
         error: null,
       }));
+      hideLoading('fetchStoresProducts');
     } catch (error) {
       console.error('❌ fetchData error:', error);
       handleError(error, 'Fetching data');
@@ -483,11 +503,12 @@ const StoreProducts = ({navigation, route}) => {
 
         <Text
           style={{
-            fontSize: 13,
+            fontSize: 14,
             color: '#333',
             fontFamily: 'Poppins-SemiBold',
             marginTop: hp('2%'),
-            marginBottom: hp('-1%'),
+            fontWeight: 'bold',
+            marginBottom: hp('1%'),
             marginLeft: wp('7%'),
             marginRight: wp('1%'),
           }}>
@@ -514,9 +535,11 @@ const StoreProducts = ({navigation, route}) => {
                 <TouchableOpacity
                   onPress={() => {
                     if (item.CategoryID === 'all') {
-                      handleShowAllProducts();
+                      // handleShowAllProducts();
+                      fetchData(item);
                     } else {
-                      handleCategoryPress(item);
+                      // handleCategoryPress(item);
+                      fetchData(item);
                     }
                   }}>
                   <View style={{width: wp('16.5%')}}>
@@ -525,29 +548,48 @@ const StoreProducts = ({navigation, route}) => {
                         {
                           width: wp('13.5%'),
                           alignSelf: 'center',
-                          elevation: 10,
+                          // elevation: 10,
                           shadowColor: '#000',
                           shadowOffset: {width: 0, height: 3},
                           shadowOpacity: 0.5,
                           shadowRadius: 5,
-                          backgroundColor: isSelected ? '#00afb5' : '#f0f0f0',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          height: hp('6%'),
+                          alignContent: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isSelected ? '#f0f0f0' : '#00afb5',
                           borderRadius: wp('2%'),
+                          color: isSelected ? '#00afb5' : '#fff',
                           marginLeft: wp('1%'),
                           marginRight: wp('1%'),
                           marginTop: hp('2%'),
-                          borderColor: isSelected ? '#00afb5' : '#ddd',
+                          borderColor: isSelected ? '#ddd' : '#00afb5',
                           borderWidth: 1,
                           alignItems: 'center',
                           justifyContent: 'center',
                         },
                       ]}>
-                      <Icon
+                      {/* <Icon
                         name={item.CategoryID === 'all' ? 'apps' : 'man'}
                         color={isSelected ? '#ffff' : '#666'}
                         size={25}
                         style={{
                           marginTop: hp('1.3%'),
                           marginBottom: hp('1.3%'),
+                        }}
+                      /> */}
+                      <Image
+                        style={{
+                          height: hp('8%'), // No 'px'
+                          width: wp('8%'), // No 'px'
+                          // marginTop: hp('1.3%'),
+                          resizeMode: 'contain', // Optional, improves image fitting
+                        }}
+                        source={{
+                          uri:
+                            item.CategoryImage ||
+                            'https://cdn1.iconfinder.com/data/icons/heroicons-ui/24/menu-512.png',
                         }}
                       />
                     </View>

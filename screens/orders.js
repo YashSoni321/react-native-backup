@@ -133,7 +133,7 @@ class Orders extends React.Component {
             <Image
               style={{
                 //  borderWidth: 1,
-                height: hp('12%'),
+                height: hp('14%'),
                 width: wp('80%'),
                 // borderColor: 'forestgreen',
                 // borderRadius: hp('100%'),

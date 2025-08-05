@@ -363,22 +363,22 @@ const Store = ({navigation}) => {
       <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
         <HeaderWithAddress navigation={navigation} showBackButton={true} />
 
-        <View style={{flexDirection: 'row', justifyContent: 'center'}}>
+        <View style={{flexDirection: 'row', marginBottom: hp('5%')}}>
           <View
             style={{
-              borderWidth: 1,
-              borderRadius: wp('1%'),
-              height: hp('5%'),
+              justifyContent: 'center',
+              borderRadius: wp('3%'),
+              height: hp('5.2%'),
               borderColor: '#00afb5',
-              marginTop: hp('1%'),
+              marginTop: hp('2%'),
               backgroundColor: '#ffff',
               width: wp('85%'),
               alignSelf: 'center',
               flexDirection: 'row',
               marginBottom: hp('1%'),
-              alignItems: 'center',
               textAlignVertical: 'top',
-              marginLeft: wp('2%'),
+              marginLeft: wp('7%'),
+              borderWidth: 0.5,
             }}>
             <TextInput
               placeholder="Search for stores"
@@ -389,13 +389,11 @@ const Store = ({navigation}) => {
               value={state.search}
               onChangeText={SearchFilterFunction}
               style={{
-                padding: hp('1%'),
-                width: wp('70%'),
-                marginLeft: wp('3%'),
+                width: wp('65%'),
               }}
             />
             <Icon
-              style={{}}
+              style={{marginLeft: wp('1%'), padding: hp('1%')}}
               onPress={() => {}}
               name="search"
               color={'grey'}

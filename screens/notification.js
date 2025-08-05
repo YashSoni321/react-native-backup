@@ -10,42 +10,17 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Button,
-  Platform,
-  PermissionsAndroid,
-  ImageBackground,
-  BackHandler,
-  ActivityIndicator,
-  TouchableHighlight,
-  DeviceEventEmitter,
   FlatList,
 } from 'react-native';
-import { Dialog } from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
-import moment from 'moment';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import Normalize from './size';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { NavigationEvents } from 'react-navigation';
-import { SwiperFlatList } from 'react-native-swiper-flatlist';
-var date = moment().format('YYYY/MM/DD ');
-var time = moment().format('hh:mm A');
-import ImagePicker from 'react-native-image-crop-picker';
-import { CustomPicker } from 'react-native-custom-picker';
-import { API_KEY, URL_key } from './api';
-import axios from 'axios';
+
 var RNFS = require('react-native-fs');
-import XLSX from 'xlsx';
-import publicIP from 'react-native-public-ip';
-import RBSheet from 'react-native-raw-bottom-sheet';
-import LinearGradient from 'react-native-linear-gradient';
-import MenuDrawer from 'react-native-side-drawer';
-import RNFetchBlob from 'rn-fetch-blob';
-import { image } from './image';
-import { marginBottom } from 'styled-system';
 
 class Notification extends React.Component {
   constructor(props) {
@@ -93,7 +68,7 @@ class Notification extends React.Component {
               source={require('../assets/FYBR-Logo.jpg')}
             />
           </View>
-          <View style={{ backgroundColor: '#00afb5' }}>
+          <View style={{backgroundColor: '#00afb5'}}>
             <View
               style={{
                 backgroundColor: '#ffff',
@@ -144,7 +119,7 @@ class Notification extends React.Component {
               <FlatList
                 data={this.state.categories1}
                 // horizontal={true}
-                renderItem={({ item, index }) => {
+                renderItem={({item, index}) => {
                   return (
                     <>
                       <TouchableOpacity
@@ -200,7 +175,7 @@ class Notification extends React.Component {
                               }}
                             />
                             <Text
-                              onPress={() => { }}
+                              onPress={() => {}}
                               style={{
                                 fontSize: 13,
                                 fontFamily: 'Poppins-Light',
@@ -267,7 +242,7 @@ class Notification extends React.Component {
               <FlatList
                 data={this.state.categories1}
                 // horizontal={true}
-                renderItem={({ item, index }) => {
+                renderItem={({item, index}) => {
                   return (
                     <>
                       <TouchableOpacity
@@ -323,7 +298,7 @@ class Notification extends React.Component {
                               }}
                             />
                             <Text
-                              onPress={() => { }}
+                              onPress={() => {}}
                               style={{
                                 fontSize: 13,
                                 fontFamily: 'Poppins-Light',
@@ -390,7 +365,7 @@ class Notification extends React.Component {
               <FlatList
                 data={this.state.categories1}
                 // horizontal={true}
-                renderItem={({ item, index }) => {
+                renderItem={({item, index}) => {
                   return (
                     <>
                       <TouchableOpacity
@@ -446,7 +421,7 @@ class Notification extends React.Component {
                               }}
                             />
                             <Text
-                              onPress={() => { }}
+                              onPress={() => {}}
                               style={{
                                 fontSize: 13,
                                 fontFamily: 'Poppins-Light',

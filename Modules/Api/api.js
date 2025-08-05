@@ -102,6 +102,11 @@ class ApiService {
   async getProductListByStore(storeID) {
     return this.get(`api/ProductApi/gProductListByStore?StoreID=${storeID}`);
   }
+  async getProductListByStoreAndCategoryId(storeID, categoryId) {
+    return this.get(
+      `api/ProductApi/gProductListByStore?StoreID=${storeID}&CategoryID=${categoryId}`,
+    );
+  }
 
   async getProductCartList(userProfileID) {
     return this.get(

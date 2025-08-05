@@ -166,6 +166,7 @@ const Home = props => {
   const [childsubcategory, setChildsubcategory] = useState(null);
   const [Nearbystores, setNearbystores] = useState(null);
   const [Nearbystores1, setNearbystores1] = useState(null);
+  const [subCategoryName, setSubCategoryName] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -355,13 +356,18 @@ const Home = props => {
   };
 
   // Main function to fetch and process nearby stores
-  const fetchNearbyStores = async (userLocation, searchTerm = '') => {
+  const fetchNearbyStores = async (
+    userLocation,
+    searchTerm = '',
+    displayLoading = true,
+  ) => {
     try {
-      showLoading('fetchNearbyStores', 'Loading nearby stores...');
       console.log('🚀 Starting fetchNearbyStores...');
       console.log('📍 User Location:', userLocation);
-
-      setIsLoadingStores(true);
+      if (displayLoading) {
+        showLoading('fetchNearbyStores', 'Loading nearby stores...');
+        setIsLoadingStores(true);
+      }
       setLoadingProgress(0);
       setProcessedStores(0);
 
@@ -433,10 +439,10 @@ const Home = props => {
       setNearbystores1(groupedStores);
       setIsLoadingStores(false);
       setLoadingProgress(100);
-      hideLoading('fetchNearbyStores');
+      if (displayLoading) hideLoading('fetchNearbyStores');
       console.log('✅ fetchNearbyStores completed successfully');
     } catch (error) {
-      hideLoading('fetchNearbyStores');
+      if (displayLoading) hideLoading('fetchNearbyStores');
       console.error('💥 Error fetching nearby stores:', error);
       console.error('Error details:', {
         message: error.message,
@@ -458,7 +464,7 @@ const Home = props => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const triggerSearch = textData => {
-    fetchNearbyStores(currentLocation, textData);
+    fetchNearbyStores(currentLocation, textData, false);
     setSelectedIndex(11);
   };
 
@@ -485,6 +491,7 @@ const Home = props => {
   const [Pincode, setPincode] = useState('');
   const [userAddress, setUserAddress] = useState('');
   const [CategoryName, setCategoryName] = useState('');
+  const [CategoryID, setCategoryID] = useState(null);
 
   // Replace componentDidMount with useEffect
   useEffect(() => {
@@ -800,6 +807,7 @@ const Home = props => {
   return (
     <SafeAreaView>
       {/* Custom Modal */}
+
       <CustomModal
         visible={modalConfig.visible}
         onClose={hideModal}
@@ -812,29 +820,37 @@ const Home = props => {
       <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
         {showcategory ? (
           <>
+            {/* <HeaderWithAddress navigation={props.navigation} /> */}
+            {/* <View style={{display: 'flex', flexDirection: 'row'}}> */}
             <Text
               style={{
                 color: '#00afb5',
-                fontSize: 14,
+                fontSize: 18,
+                fontWeight: '700',
                 fontFamily: 'Poppins-Bold',
                 textAlign: 'center',
                 marginTop: hp('5%'),
               }}>
               {CategoryName}
             </Text>
-            <Icon
-              onPress={() => setShowcategory(false)}
-              name="chevron-back"
-              color={'#00afb5'}
-              size={40}
-              style={{
-                marginLeft: wp('1%'),
-                padding: hp('1%'),
-                marginTop: hp('5%'),
-              }}
-            />
+            <View>
+              <Icon
+                onPress={() => setShowcategory(false)}
+                name="chevron-back"
+                color={'#00afb5'}
+                size={30}
+                style={{
+                  marginLeft: wp('1%'),
+                  padding: hp('1%'),
+                  marginTop: hp('-4%'),
+                }}
+              />
+            </View>
+            {/* </View> */}
+
             <FlatList
               data={subcategory}
+              style={{marginTop: hp('2%')}}
               renderItem={({item, index}) => {
                 return (
                   <>
@@ -857,6 +873,7 @@ const Home = props => {
                             setShowsubcategory(true);
                             setShowcategory(false);
                             console.log(item.CategoryName);
+                            console.log(item.SubCategoryImage);
                           })
                           .catch(err => {
                             console.log(err);
@@ -907,32 +924,32 @@ const Home = props => {
                 <Text
                   style={{
                     color: '#00afb5',
-                    fontSize: 14,
+                    fontSize: 18,
+                    fontWeight: '700',
                     fontFamily: 'Poppins-Bold',
                     textAlign: 'center',
                     marginTop: hp('5%'),
                   }}>
-                  {this.state.SubCategoryName}
+                  {subCategoryName}
                 </Text>
-                <Icon
-                  onPress={() => {
-                    this.setState({
-                      showsubcategory: false,
-                      showcategory: true,
-                    });
-                  }}
-                  name="chevron-back"
-                  color={'#00afb5'}
-                  size={40}
-                  style={{
-                    marginLeft: wp('4%'),
-                    padding: hp('1%'),
-                    marginTop: hp('-5.3%'),
-                    marginBottom: hp('2%'),
-                  }}
-                />
+                <View>
+                  <Icon
+                    onPress={() => {
+                      setShowsubcategory(false);
+                      setShowcategory(true);
+                    }}
+                    name="chevron-back"
+                    color={'#00afb5'}
+                    size={30}
+                    style={{
+                      marginLeft: wp('1%'),
+                      padding: hp('1%'),
+                      marginTop: hp('-4%'),
+                    }}
+                  />
+                </View>
                 <FlatList
-                  data={this.state.childsubcategory}
+                  data={childsubcategory}
                   renderItem={({item, index}) => {
                     return (
                       <>
@@ -940,7 +957,7 @@ const Home = props => {
                           onPress={() => {
                             props.navigation.push('CategoryProduct', {
                               data: {
-                                CategoryID: this.state.CategoryID,
+                                CategoryID: item.CategoryID,
                                 SubCategoryID: item.SubCategoryID,
                                 ChildSubCategoryID: item.ChildSubCategoryID,
                               },
@@ -989,74 +1006,52 @@ const Home = props => {
               </>
             ) : (
               <>
-                {/* <ImageBackground
-                  style={{width: wp('100%')}}
-                  activeOpacity={0.5}
-                  source={require('../Images/output-onlinepngtools1.png')}
-                  resizeMode="cover">
-                  <AddressSelector navigation={props.navigation} />
-
-                  <Text
-                    style={{
-                      fontSize: 40,
-                      textAlign: 'right',
-                      color: '#00afb5',
-                      fontFamily: 'RedHatDisplay-SemiBold',
-                      marginTop: hp('-8%'),
-                      marginBottom: hp('1.5%'),
-                      marginRight: wp('7%'),
-                    }}>
-                    fybr
-                  </Text>
-
-                  <View style={{flexDirection: 'row', marginBottom: hp('5%')}}>
-                    <View
-                      style={{
-                        justifyContent: 'center',
-                        borderRadius: wp('3%'),
-                        height: hp('5.2%'),
-                        borderColor: '#00afb5',
-                        marginTop: hp('2%'),
-                        backgroundColor: '#ffff',
-                        width: wp('85%'),
-                        alignSelf: 'center',
-                        flexDirection: 'row',
-                        marginBottom: hp('1%'),
-                        textAlignVertical: 'top',
-                        marginLeft: wp('7%'),
-                        borderWidth: 0.5,
-                      }}>
-                      <TextInput
-                        placeholder="Search for products & stores"
-                        fontFamily={'Poppins-Medium'}
-                        placeholderTextColor={'#00afb5'}
-                        color={'black'}
-                        fontSize={11}
-                        onChangeText={value => SearchFilterFunction(value)}
-                        style={{
-                          width: wp('65%'),
-                        }}
-                      />
-                      <Icon
-                        style={{marginLeft: wp('1%'), padding: hp('1%')}}
-                        name="search"
-                        color={'gray'}
-                        size={20}
-                      />
-                    </View>
-                  </View>
-                </ImageBackground> */}
                 <HeaderWithAddress
                   showBackButton={false}
                   handleBackPress={() => {}}
                   navigation={props.navigation}
                 />
+                <View style={{flexDirection: 'row', marginBottom: hp('5%')}}>
+                  <View
+                    style={{
+                      justifyContent: 'center',
+                      borderRadius: wp('3%'),
+                      height: hp('5.2%'),
+                      borderColor: '#00afb5',
+                      marginTop: hp('2%'),
+                      backgroundColor: '#ffff',
+                      width: wp('85%'),
+                      alignSelf: 'center',
+                      flexDirection: 'row',
+                      marginBottom: hp('1%'),
+                      textAlignVertical: 'top',
+                      marginLeft: wp('7%'),
+                      borderWidth: 0.5,
+                    }}>
+                    <TextInput
+                      placeholder="Search for products & stores"
+                      fontFamily={'Poppins-Medium'}
+                      placeholderTextColor={'#00afb5'}
+                      color={'black'}
+                      fontSize={11}
+                      onChangeText={value => SearchFilterFunction(value)}
+                      style={{
+                        width: wp('65%'),
+                      }}
+                    />
+                    <Icon
+                      style={{marginLeft: wp('1%'), padding: hp('1%')}}
+                      name="search"
+                      color={'gray'}
+                      size={20}
+                    />
+                  </View>
+                </View>
 
                 {banner == 'true' ? (
                   <></>
                 ) : (
                   <>
-                    . 0
                     <TouchableOpacity
                       onPress={() => {
                         AsyncStorage.setItem('banner', 'true');
@@ -1144,12 +1139,13 @@ const Home = props => {
 
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     color: '#333',
+                    fontWeight: '600',
                     fontFamily: 'Poppins-SemiBold',
-                    marginTop: hp('2%'),
+                    // marginTop: hp('2%'),
                     marginBottom: hp('-1%'),
-                    marginLeft: wp('10%'),
+                    marginLeft: wp('8%'),
                     marginRight: wp('1%'),
                   }}>
                   Categories
@@ -1171,7 +1167,7 @@ const Home = props => {
                                 'item.CategoryID----',
                                 item.CategoryID,
                               );
-                              // setCategoryID(item.CategoryID);
+                              setCategoryID(item.CategoryID);
                               axios
                                 .get(
                                   URL_key +
@@ -1212,13 +1208,26 @@ const Home = props => {
                                     justifyContent: 'center',
                                   },
                                 ]}>
-                                <Icon
+                                {/* <Icon
                                   name={'man'}
                                   color="#ffff"
                                   size={25}
                                   style={{
                                     marginTop: hp('1.3%'),
                                     marginBottom: hp('1.3%'),
+                                  }}
+                                /> */}
+                                <Image
+                                  style={{
+                                    height: hp('7%'), // No 'px'
+                                    width: wp('8%'), // No 'px'
+                                    // marginTop: hp('1.3%'),
+                                    resizeMode: 'contain', // Optional, improves image fitting
+                                  }}
+                                  source={{
+                                    uri:
+                                      item.CategoryImage ||
+                                      'https://cdn1.iconfinder.com/data/icons/heroicons-ui/24/menu-512.png',
                                   }}
                                 />
                               </View>
@@ -1247,8 +1256,9 @@ const Home = props => {
                   style={{
                     fontSize: 12,
                     color: '#333',
+                    fontWeight: '600',
                     fontFamily: 'Poppins-SemiBold',
-                    marginBottom: hp('-0.5%'),
+                    marginBottom: hp('1%'),
                     marginLeft: wp('10%'),
                     marginRight: wp('1%'),
                   }}>

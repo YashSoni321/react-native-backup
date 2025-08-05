@@ -14,7 +14,8 @@ const HeaderWithAddress = ({
   showBackButton = true,
   showFybrText = true,
   fybrText = 'fybr',
-  isCheckoutPage = false
+  isCheckoutPage = false,
+  navigateToHome = false,
 }) => {
   return !showbackGroundImage ? (
     <></>
@@ -48,16 +49,23 @@ const HeaderWithAddress = ({
             alignItems: 'center',
           }}>
           {showBackButton ? (
-            <TouchableOpacity onPress={handleBackPress}>
-              <Icon name="chevron-back" size={32} color="#00afb5" />
-            </TouchableOpacity>
+            navigateToHome ? (
+              <TouchableOpacity onPress={() => navigation.push('Tab')}>
+                <Icon name="chevron-back" size={32} color="#00afb5" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleBackPress}>
+                <Icon name="chevron-back" size={32} color="#00afb5" />
+              </TouchableOpacity>
+            )
           ) : (
             <View style={{width: 32}} />
           )}
 
           {/* Address Selector */}
-          <AddressSelector navigation={navigation}
-          isCheckoutPage = {isCheckoutPage}
+          <AddressSelector
+            navigation={navigation}
+            isCheckoutPage={isCheckoutPage}
           />
         </View>
 
@@ -65,7 +73,7 @@ const HeaderWithAddress = ({
         {showFybrText && (
           <Text
             style={{
-              fontSize: 32,
+              fontSize: 48,
               fontWeight: '600',
               color: '#00afb5',
               marginLeft: wp('-22%'),

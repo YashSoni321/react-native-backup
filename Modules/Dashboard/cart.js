@@ -1094,24 +1094,17 @@ const Cart = ({navigation}) => {
                           padding: 15,
                           marginHorizontal: 10,
                           borderRadius: 8,
-                          marginBottom: 10,
+                          // marginBottom: 10,
                         }}>
                         <Text
                           style={{
                             fontSize: 16,
+                            fontWeight: '800',
                             color: '#333',
                             fontFamily: 'Poppins-Medium',
-                            marginBottom: 5,
+                            // marginBottom: 5,
                           }}>
-                          {item.StoreName}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: '#666',
-                            fontFamily: 'Poppins-Light',
-                          }}>
-                          {item.StoreLocation}
+                          Delivering From {item.StoreName}
                         </Text>
                       </View>
 
@@ -1121,7 +1114,7 @@ const Cart = ({navigation}) => {
                           color: '#666',
                           fontFamily: 'Poppins-Light',
                           fontStyle: 'italic',
-                          marginLeft: wp('8%'),
+                          marginLeft: wp('6%'),
                           marginBottom: hp('1%'),
                         }}>
                         Note: You can only order from one store at a time
@@ -1186,18 +1179,20 @@ const Cart = ({navigation}) => {
                                     {product.ProductName}
                                   </Text>
 
-                                  <View
-                                    style={{
-                                      height: hp('2%'),
-                                      width: hp('2%'),
-                                      borderRadius: wp('100%'),
-                                      borderWidth: 1,
-                                      borderColor: '#00afb5',
-                                      marginLeft: wp('3%'),
-                                      backgroundColor:
-                                        product.ProductColor.toLowerCase(),
-                                      marginTop: hp('1%'),
-                                    }}></View>
+                                  {product.ProductColor && (
+                                    <View
+                                      style={{
+                                        height: hp('2%'),
+                                        width: hp('2%'),
+                                        borderRadius: wp('100%'),
+                                        borderWidth: 1,
+                                        borderColor: '#00afb5',
+                                        marginLeft: wp('3%'),
+                                        backgroundColor:
+                                          product.ProductColor.toLowerCase(),
+                                        marginTop: hp('1%'),
+                                      }}></View>
+                                  )}
 
                                   <Text
                                     style={{
@@ -1261,7 +1256,8 @@ const Cart = ({navigation}) => {
 
             <Text
               style={{
-                fontSize: 12,
+                fontSize: 14,
+                fontWeight: 800,
                 color: '#333',
                 fontFamily: 'Poppins-Medium',
                 marginTop: hp('3%'),
@@ -1284,6 +1280,16 @@ const Cart = ({navigation}) => {
                     flexDirection: 'row',
                     alignItems: 'center',
                   }}>
+                  {/* <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: '#ccc',
+                      borderRadius: 8,
+                      paddingHorizontal: wp('2%'),
+                      marginVertical: hp('1%'),
+                    }}> */}
                   <TextInput
                     placeholder="Enter coupon code"
                     value={couponCode}
@@ -1293,22 +1299,52 @@ const Cart = ({navigation}) => {
                     }}
                     style={{
                       flex: 1,
-                      padding: hp('1%'),
+                      paddingVertical: hp('1%'),
                       fontFamily: 'Poppins-Light',
                       color: 'black',
                       fontSize: 12,
                     }}
                     autoCapitalize="characters"
                   />
+
+                  {couponCode.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setCouponCode('')}
+                      style={{
+                        padding: wp('1%'),
+                      }}>
+                      {/* <Text
+                        style={{
+                          fontSize: 14,
+                          color: 'black',
+                          fontWeight: 'bold',
+                          marginRight: wp('2%'),
+                        }}>
+                        ✕
+                      </Text> */}
+                      <Icon
+                        name="close-circle"
+                        size={16}
+                        style={{
+                          // fontSize: 14,
+                          color: 'black',
+                          fontWeight: 'bold',
+                          marginRight: wp('2%'),
+                        }}
+                      />
+                      {/* You can use an Icon from 'react-native-vector-icons' if preferred */}
+                    </TouchableOpacity>
+                  )}
+                  {/* </View> */}
                   {state.appliedCoupon && (
                     <TouchableOpacity
                       onPress={removeCoupon}
-                      style={{padding: 8}}>
+                      style={{padding: 8, marginRight: 3}}>
                       <Icon name="close-circle" size={16} color="#ff4444" />
                     </TouchableOpacity>
                   )}
                 </View>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   onPress={() => validateCoupon()}
                   style={{
                     backgroundColor: '#00afb5',
@@ -1318,6 +1354,28 @@ const Cart = ({navigation}) => {
                     marginLeft: 8,
                   }}>
                   <Text style={{color: 'white', fontSize: 12}}>Apply</Text>
+                </TouchableOpacity> */}
+                <TouchableOpacity
+                  onPress={() => setShowCouponModal(true)}
+                  style={{
+                    // backgroundColor: '#00afb5',
+                    paddingHorizontal: wp('4%'),
+                    paddingVertical: hp('1%'),
+                    borderRadius: 4,
+                    marginLeft: 8,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: '#000000',
+                      // fontWeight: 800,
+                      // color: '#00afb5',
+                      marginTop: 4,
+                      fontFamily: 'Poppins-Light',
+                      textDecorationLine: 'underline',
+                    }}>
+                    Browse coupons
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -1346,7 +1404,7 @@ const Cart = ({navigation}) => {
                   </Text> */}
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => setShowCouponModal(true)}>
+              {/* <TouchableOpacity onPress={() => setShowCouponModal(true)}>
                 <Text
                   style={{
                     fontSize: 11,
@@ -1357,7 +1415,7 @@ const Cart = ({navigation}) => {
                   }}>
                   View available coupons
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <Modal
@@ -1524,6 +1582,7 @@ const Cart = ({navigation}) => {
               <Text
                 style={{
                   fontSize: 14,
+                  fontWeight: 800,
                   color: '#222',
                   fontFamily: 'Poppins-SemiBold',
                   marginBottom: hp('2%'),

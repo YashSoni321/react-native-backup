@@ -887,15 +887,6 @@ const Checkout = ({navigation, route}) => {
         FinalTotal: finalPaymentAmount,
       };
 
-      console.log('💾 Backend payment data:', backendPaymentData);
-
-      BookingDebugger.trackApiCall(
-        '/api/ProductApi/sPayment (backend)',
-        backendPaymentData,
-        {},
-        true,
-      );
-
       const response = await axios.post(
         URL_key + 'api/ProductApi/sPayment',
         backendPaymentData,
@@ -991,11 +982,10 @@ const Checkout = ({navigation, route}) => {
           width: wp('8%'),
           height: wp('8%'),
           marginLeft: wp('1%'),
-          alignItems:"center",
-          marginRight:wp("2%"),
-          display:"flex",
-          justifyContent:"center"
-
+          alignItems: 'center',
+          marginRight: wp('2%'),
+          display: 'flex',
+          justifyContent: 'center',
         }}>
         <Text
           style={{
@@ -1013,7 +1003,7 @@ const Checkout = ({navigation, route}) => {
 
   const renderPaymentMethodItem = ({item}) => (
     <TouchableOpacity onPress={() => handlePaymentMethodSelection(item)}>
-      <View style={{ display:"flex",flexDirection: 'row', width: wp('25%')}}>
+      <View style={{display: 'flex', flexDirection: 'row', width: wp('25%')}}>
         <View
           style={{
             width: hp('2%'),
@@ -1338,8 +1328,8 @@ const Checkout = ({navigation, route}) => {
                 color={'#00afb5'}
                 size={20}
                 style={{
-                  // alignSelf: 'flex-end',
-                  marginRight: wp('10%'),
+                  alignSelf: 'flex-start',
+                  marginLeft: wp('-5%'),
                 }}
               />
             </View>
@@ -1422,10 +1412,10 @@ const Checkout = ({navigation, route}) => {
             numColumns={2} // 👈 Shows items in rows with 2 columns
             columnWrapperStyle={{
               justifyContent: 'space-between',
-              width:"80%",
-              padding:0,
-              margin:"auto",
-              marginLeft:wp("7%"),
+              width: '80%',
+              padding: 0,
+              margin: 'auto',
+              marginLeft: wp('7%'),
 
               // paddingHorizontal: wp('2%'), // Optional spacing between columns
             }}
@@ -1458,8 +1448,7 @@ const Checkout = ({navigation, route}) => {
                       }}>
                       Total Amount
                     </Text>
-                    <TouchableOpacity
-                      onPress={() => navigation.push("Cart")}>
+                    <TouchableOpacity onPress={() => navigation.push('Cart')}>
                       <Text
                         style={{
                           fontSize: 10,
@@ -1498,54 +1487,48 @@ const Checkout = ({navigation, route}) => {
             </Text>
           )}
 
-<View style={{ flex: 1 , height:"100%" }}>
-  {/* Your screen content goes here */}
+          <View style={{flex: 1, height: '100%'}}>
+            {/* Your screen content goes here */}
 
-  <View
-    style={{
-      position: 'absolute',
-      bottom: 0,
-      height:"100%",
-      top:"100%",
-      width: '100%',
-      // paddingBottom: hp('2%'),
-      backgroundColor: '#fff', // optional: to prevent overlap with transparent backgrounds
-    }}>
-    <TouchableOpacity
-      activeOpacity={0.5}
-      disabled={
-        state.loading || !state.TotalUnitPrice || state.paymentProcessing
-      }
-      onPress={processPayment}>
-      <View
-        style={{
-          backgroundColor:
-            state.loading || state.paymentProcessing ? '#cccccc' : '#00afb5',
-          width: wp('80%'),
-          height: hp('5%'),
-          alignSelf: 'center',
-          borderRadius: wp('2%'),
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
-        {state.loading || state.paymentProcessing ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <Text
-            style={{
-              color: '#ffff',
-              textAlign: 'center',
-              fontSize: 15,
-              fontFamily: 'Poppins-SemiBold',
-            }}>
-            Get it delivered
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  </View>
-</View>
-
+            <TouchableOpacity
+              activeOpacity={0.5}
+              disabled={
+                state.loading ||
+                !state.TotalUnitPrice ||
+                state.paymentProcessing
+              }
+              onPress={processPayment}>
+              <View
+                style={{
+                  backgroundColor:
+                    state.loading || state.paymentProcessing
+                      ? '#cccccc'
+                      : '#00afb5',
+                  width: wp('80%'),
+                  height: hp('5%'),
+                  alignSelf: 'center',
+                  marginTop: hp('5%'),
+                  marginBottom: hp('2%'),
+                  borderRadius: wp('2%'),
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                {state.loading || state.paymentProcessing ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text
+                    style={{
+                      color: '#ffff',
+                      textAlign: 'center',
+                      fontSize: 15,
+                      fontFamily: 'Poppins-SemiBold',
+                    }}>
+                    Get it delivered - ₹{calculateFinalAmount()}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </SafeAreaView>
     );
