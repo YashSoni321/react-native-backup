@@ -339,7 +339,7 @@ const StoreProducts = ({navigation, route}) => {
       } else {
         productsResponse = await apiService.getProductListByStoreAndCategoryId(
           state.StoreID || 1,
-          1,
+          0,
         );
       }
       console.log('📦 Products response:', productsResponse);
@@ -536,7 +536,7 @@ const StoreProducts = ({navigation, route}) => {
                   onPress={() => {
                     if (item.CategoryID === 'all') {
                       // handleShowAllProducts();
-                      fetchData(item);
+                      fetchData(0);
                     } else {
                       // handleCategoryPress(item);
                       fetchData(item);

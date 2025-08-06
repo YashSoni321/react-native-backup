@@ -75,7 +75,7 @@ const CustomModal = ({
       case 'success':
         return {
           name: 'checkmark-circle',
-          color: '#4CAF50',
+          color: '#00afb5',
           backgroundColor: '#E8F5E8',
         };
       case 'error':
@@ -103,7 +103,7 @@ const CustomModal = ({
     switch (type) {
       case 'success':
         return {
-          borderLeftColor: '#4CAF50',
+          borderLeftColor: '#00afb5',
           backgroundColor: '#FFFFFF',
         };
       case 'error':

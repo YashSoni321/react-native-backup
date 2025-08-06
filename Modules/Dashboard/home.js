@@ -25,8 +25,6 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-var date = moment().format('YYYY/MM/DD ');
-var time = moment().format('hh:mm A');
 import {API_KEY, URL_key} from '../Api/api';
 import axios from 'axios';
 var RNFS = require('react-native-fs');
