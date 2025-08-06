@@ -1153,11 +1153,12 @@ const Cart = ({navigation}) => {
                                     <Image
                                       style={{
                                         width: wp('30%'),
-                                        height: hp('14%'),
-                                        resizeMode: 'stretch',
+                                        height: hp('15%'),
+
+                                        borderRadius: 8,
                                         marginLeft: wp('5%'),
-                                        marginRight: wp('5%'),
                                       }}
+                                      resizeMode="contain" // <-- Important
                                       source={{uri: product.ProductImage}}
                                     />
                                   )}
@@ -1309,7 +1310,7 @@ const Cart = ({navigation}) => {
 
                   {couponCode.length > 0 && (
                     <TouchableOpacity
-                      onPress={() => setCouponCode('')}
+                      onPress={removeCoupon}
                       style={{
                         padding: wp('1%'),
                       }}>
@@ -1374,7 +1375,7 @@ const Cart = ({navigation}) => {
                       fontFamily: 'Poppins-Light',
                       textDecorationLine: 'underline',
                     }}>
-                    Browse coupons
+                    Browse Coupons
                   </Text>
                 </TouchableOpacity>
               </View>

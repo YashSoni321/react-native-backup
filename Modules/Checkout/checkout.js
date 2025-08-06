@@ -1355,8 +1355,27 @@ const Checkout = ({navigation, route}) => {
             placeholderTextColor="#999"
             keyboardType="numeric"
             fontSize={11}
-            maxLength={6}
-            onChangeText={value => handleInputChange('TipAmount', value)}
+            maxLength={3}
+            value={state.TipAmount}
+            onChangeText={value => {
+              if (value && value.trim() !== '') {
+                if (value > 0 && value < 300) {
+                  handleInputChange('TipAmount', value);
+                  setState(prevState => ({
+                    ...prevState,
+                    TipAmountErrior: false,
+                  }));
+                } else {
+                  setState(prevState => ({
+                    ...prevState,
+                    TipAmountErrior: true,
+                  }));
+                  handleInputChange('TipAmount', 0);
+                }
+              } else {
+                handleInputChange('TipAmount', 0);
+              }
+            }}
             style={{
               padding: hp('0.5%'),
               marginLeft: wp('9%'),
@@ -1467,7 +1486,7 @@ const Checkout = ({navigation, route}) => {
                       color: '#333',
                       fontFamily: 'Poppins-Medium',
                     }}>
-                    ₹ {state.TotalUnitPrice.toFixed(2)}
+                    ₹{calculateFinalAmount()}
                   </Text>
                 </View>
               </View>
@@ -1523,7 +1542,7 @@ const Checkout = ({navigation, route}) => {
                       fontSize: 15,
                       fontFamily: 'Poppins-SemiBold',
                     }}>
-                    Get it delivered - ₹{calculateFinalAmount()}
+                    Get it delivered
                   </Text>
                 )}
               </View>

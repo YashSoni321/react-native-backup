@@ -158,12 +158,24 @@ const StoreProducts = ({navigation, route}) => {
             ) || []
           : state.ProductList || [];
 
-        const newData = baseData.filter(function (data) {
-          const textData = text.toUpperCase();
-          return (
-            data.ProductName &&
-            data.ProductName.toUpperCase().indexOf(textData) >= 0
-          );
+        const searchTerms = text.toLowerCase().split(' ');
+
+        const newData = baseData.filter(product => {
+          if (!product) return false;
+
+          // Create a searchable string combining multiple product fields
+          const searchableText = [
+            product.ProductName || '',
+            product.ProductColor || '',
+            product.ProductDescription || '',
+            product.BrandName || '',
+            product.CategoryName || '',
+          ]
+            .join(' ')
+            .toLowerCase();
+
+          // Check if all search terms are found in the searchable text
+          return searchTerms.every(term => searchableText.includes(term));
         });
 
         console.log('Search results:', newData);
@@ -207,10 +219,24 @@ const StoreProducts = ({navigation, route}) => {
         selectedIndex: 0,
       }));
 
+      if (item.CategoryID === 0) {
+        // Handle "All" category
+        setState(prevState => ({
+          ...prevState,
+          subcategory: null,
+          CategoryName: 'All',
+          showcategory: false,
+          ProductList1: state.ProductList || [],
+          isLoading: false,
+          search: '', // Clear search when category is selected
+        }));
+        return;
+      }
+
       // Fetch subcategories for the selected category
       const response = await apiService.getSubCategoryList(item.CategoryID);
       console.log('Fetch subcategories for the selected category', response);
-      console.log('this.state.ProductList', state.ProductList);
+
       // Filter products by the selected category
       const filteredProducts =
         state.ProductList?.filter(
@@ -230,6 +256,12 @@ const StoreProducts = ({navigation, route}) => {
       }));
     } catch (error) {
       handleError(error, 'Fetching subcategories');
+      // Reset to a safe state on error
+      setState(prevState => ({
+        ...prevState,
+        isLoading: false,
+        error: 'Failed to load category. Please try again.',
+      }));
     }
   };
 
@@ -330,10 +362,13 @@ const StoreProducts = ({navigation, route}) => {
       // Fetch products by store
       let productsResponse = [];
       console.log('🏪 StoreID for products API:', state.StoreID);
-      if (categoryId?.CategoryID) {
+      if (
+        categoryId?.CategoryID !== null &&
+        categoryId?.CategoryID !== undefined
+      ) {
         productsResponse = await apiService.getProductListByStoreAndCategoryId(
           state.StoreID || 1,
-          categoryId?.CategoryID,
+          categoryId.CategoryID,
         );
         handleCategoryPress(categoryId);
       } else {
@@ -342,6 +377,7 @@ const StoreProducts = ({navigation, route}) => {
           0,
         );
       }
+      handleCategoryPress({CategoryID: 0, CategoryName: 'All'});
       console.log('📦 Products response:', productsResponse);
 
       // Fetch address data
@@ -401,6 +437,46 @@ const StoreProducts = ({navigation, route}) => {
           navigation={navigation}
           handleBackPress={() => navigation.push('Tabs')}
         />
+
+        {/* Search Bar */}
+        <View style={{flexDirection: 'row', marginBottom: hp('2%')}}>
+          <View
+            style={{
+              justifyContent: 'center',
+              borderRadius: wp('3%'),
+              height: hp('5.2%'),
+              borderColor: '#00afb5',
+              marginTop: hp('2%'),
+              backgroundColor: '#ffff',
+              width: wp('85%'),
+              alignSelf: 'center',
+              flexDirection: 'row',
+              marginBottom: hp('1%'),
+              textAlignVertical: 'top',
+              marginLeft: wp('7%'),
+              borderWidth: 0.5,
+            }}>
+            <TextInput
+              placeholder="Search for products"
+              fontFamily={'Poppins-Medium'}
+              placeholderTextColor={'#00afb5'}
+              color={'black'}
+              fontSize={11}
+              value={state.search}
+              onChangeText={text => SearchFilterFunction(text)}
+              style={{
+                width: wp('65%'),
+                paddingLeft: wp('4%'),
+              }}
+            />
+            <Icon
+              style={{marginLeft: wp('1%'), padding: hp('1%')}}
+              name="search"
+              color={'gray'}
+              size={20}
+            />
+          </View>
+        </View>
 
         <View
           style={[
@@ -522,23 +598,26 @@ const StoreProducts = ({navigation, route}) => {
           }}>
           <FlatList
             data={[
-              {CategoryName: 'All', CategoryID: 'all'},
+              {
+                CategoryName: 'All',
+                CategoryID: 0,
+                CategoryImage:
+                  'https://cdn1.iconfinder.com/data/icons/heroicons-ui/24/menu-512.png',
+              },
               ...state.categories1,
             ]}
             horizontal={true}
-            renderItem={({item, index}) => {
+            renderItem={({item}) => {
               const isSelected =
-                item.CategoryID === 'all'
-                  ? !state.showcategory
+                item.CategoryID === 0
+                  ? state.CategoryName === 'All'
                   : state.CategoryName === item.CategoryName;
               return (
                 <TouchableOpacity
                   onPress={() => {
-                    if (item.CategoryID === 'all') {
-                      // handleShowAllProducts();
-                      fetchData(0);
+                    if (item.CategoryID === 0) {
+                      fetchData({CategoryID: 0, CategoryName: 'All'});
                     } else {
-                      // handleCategoryPress(item);
                       fetchData(item);
                     }
                   }}>
