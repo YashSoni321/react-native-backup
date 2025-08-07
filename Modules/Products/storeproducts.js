@@ -356,7 +356,9 @@ const StoreProducts = ({navigation, route}) => {
 
       // Fetch categories
       console.log('📂 Fetching categories...');
-      const categoriesResponse = await apiService.getCategoryList();
+      const categoriesResponse = await apiService.getStoreCategoryList(
+        state.StoreID,
+      );
       console.log('📂 Categories response:', categoriesResponse);
 
       // Fetch products by store

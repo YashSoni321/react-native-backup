@@ -156,7 +156,7 @@ class OrderDetail extends React.Component {
                 color: 'black',
                 fontSize: 14,
                 marginLeft: wp('5%'),
-                marginTop: wp('13%'),
+                marginTop: wp('5%'),
               }}>
               From{' '}
               <Text
@@ -207,6 +207,7 @@ class OrderDetail extends React.Component {
                               pagingEnabled
                               renderItem={({item: image}) => (
                                 <Image
+                                  resizeMode="contain"
                                   style={styles.productImage}
                                   source={{uri: image.ProductImage}}
                                 />
@@ -237,7 +238,7 @@ class OrderDetail extends React.Component {
                                 style={{
                                   display: 'flex',
                                   flexDirection: 'row',
-                                  justifyContent: 'space-between',
+                                  justifyContent: 'space-evenly',
                                 }}>
                                 <View
                                   style={{
@@ -253,6 +254,7 @@ class OrderDetail extends React.Component {
                                       borderWidth: 1,
                                       borderColor: '#00afb5',
                                       marginRight: wp('2%'),
+                                      marginLeft: wp('-12%'),
                                       backgroundColor:
                                         item.ProductColor.toLowerCase(),
                                     }}
@@ -468,7 +470,9 @@ const styles = StyleSheet.create({
     display: 'flex',
   },
   productName: {
-    fontSize: 14,
+    fontSize: 12,
+    width: wp('50%'),
+    textAlign: 'justify',
     fontWeight: '600',
     color: '#000',
   },
@@ -484,6 +488,7 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 14,
+    marginLeft: wp('5%'),
     color: '#000',
   },
   storeContainer: {

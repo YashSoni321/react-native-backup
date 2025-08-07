@@ -627,33 +627,82 @@ const Cart = ({navigation}) => {
       setState(prevState => ({...prevState, isLoading: true, error: null}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
-      if (!UserProfileID) {
-        throw new Error('User not logged in');
-      }
+      if (!UserProfileID) throw new Error('User not logged in');
 
-      // Get user location first
       const location = await getUserLocation();
 
-      // Ensure we have delivery charges
       if (!state.deliveryCharges) {
         await fetchDeliveryCharges();
       }
 
-      // Fetch cart data
       const cartResponse = await axios.get(
         `${URL_key}api/ProductApi/gProductCartList?UserProfileID=${UserProfileID}`,
         {headers: {'content-type': 'application/json'}},
       );
 
       let cartItems = [];
+
       if (Array.isArray(cartResponse.data)) {
-        cartResponse.data.forEach(cart => {
+        for (const cart of cartResponse.data) {
           if (cart.CartItems && Array.isArray(cart.CartItems)) {
-            cartItems = cartItems.concat(cart.CartItems);
+            const enrichedItems = await Promise.all(
+              cart.CartItems.map(async item => {
+                try {
+                  const productResponse = await axios.get(
+                    `${URL_key}api/ProductApi/gProductDetails?ProductID=${item.ProductID}`,
+                    {headers: {'content-type': 'application/json'}},
+                  );
+
+                  let matchingProductItem = null;
+                  if (item.ProductItemID && productResponse.data.ProductItems) {
+                    matchingProductItem =
+                      productResponse.data.ProductItems.find(
+                        pItem => pItem.ProductItemID === item.ProductItemID,
+                      );
+                  }
+
+                  let finalUnitPrice = item.UnitPrice;
+                  let finalDiscountedPrice = item.DiscountedPrice;
+
+                  if (matchingProductItem) {
+                    finalUnitPrice = matchingProductItem.ItemPrice;
+                    finalDiscountedPrice = matchingProductItem.DiscountedPrice;
+                  } else {
+                    finalUnitPrice = productResponse.data.ProductPrice;
+                    finalDiscountedPrice = productResponse.data.DiscountedPrice;
+                  }
+
+                  const effectivePrice =
+                    finalDiscountedPrice &&
+                    finalDiscountedPrice < finalUnitPrice
+                      ? finalDiscountedPrice
+                      : finalUnitPrice;
+
+                  return {
+                    ...item,
+                    CartID: cart.CartID,
+                    UnitPrice: finalUnitPrice,
+                    DiscountedPrice: finalDiscountedPrice,
+                    EffectivePrice: effectivePrice,
+                    TotalPrice: effectivePrice * (item.Quantity || 1),
+                    ProductName:
+                      item.ProductName || productResponse.data.ProductName,
+                    ProductImage:
+                      item.ProductImage || productResponse.data.ProductImage,
+                    ProductColor:
+                      item.ProductColor || productResponse.data.ProductColor,
+                    StoreName: item.StoreName,
+                    StoreLocation: item.StoreLocation,
+                  };
+                } catch (error) {
+                  console.error('Error fetching product details:', error);
+                  return item;
+                }
+              }),
+            );
+            cartItems = cartItems.concat(enrichedItems);
           }
-        });
-      } else if (cartResponse.data && cartResponse.data.CartItems) {
-        cartItems = cartResponse.data.CartItems;
+        }
       }
 
       if (cartItems.length === 0) {
@@ -673,30 +722,8 @@ const Cart = ({navigation}) => {
         return;
       }
 
-      // Process cart items and calculate fees
-      const enrichedCartItems = cartItems.map(item => ({
-        CartID: item.CartID,
-        CartItemID: item.CartItemID,
-        ProductID: item.ProductID,
-        ProductItemID: item.ProductItemID,
-        StoreID: item.StoreID,
-        Quantity: item.Quantity || 0,
-        UnitPrice: item.UnitPrice || 0,
-        TotalPrice: item.TotalPrice || 0,
-        ProductName: item.ProductName || item.ItemName || 'Product',
-        ProductImage: item.ProductImage || item.ItemImage || '',
-        ProductColor: item.Color || '',
-        ProductSize: item.Size || '',
-        StoreName: item.StoreName || 'Store',
-        StoreLocation: item.StoreLocation || 'Location',
-        DiscountedPrice: item.DiscountedPrice || 0,
-        Color: item.Color || '',
-        SizeID: item.Size || '',
-      }));
-
-      // Group by store
       const storeMap = new Map();
-      enrichedCartItems.forEach(item => {
+      cartItems.forEach(item => {
         if (!storeMap.has(item.StoreID)) {
           storeMap.set(item.StoreID, {
             StoreName: item.StoreName,
@@ -710,36 +737,32 @@ const Cart = ({navigation}) => {
 
       const groupedArray = Array.from(storeMap.values());
 
-      // Calculate totals
       const totalUnitPrice = validateAmount(
-        enrichedCartItems.reduce(
+        cartItems.reduce(
           (sum, product) => sum + (parseFloat(product.TotalPrice) || 0),
           0,
         ),
       );
 
-      const rawDiscountPrice = enrichedCartItems.reduce(
-        (sum, product) =>
+      const rawDiscountPrice = cartItems.reduce((sum, product) => {
+        return (
           sum +
           (parseFloat(product.UnitPrice) -
             parseFloat(product.DiscountedPrice)) *
-            Number(product.Quantity),
-        0,
-      );
+            Number(product.Quantity)
+        );
+      }, 0);
 
       const totalDiscountPrice = Math.min(
         validateAmount(rawDiscountPrice),
         totalUnitPrice,
       );
 
-      // Calculate delivery fees with the confirmed location
       let deliveryFeeData = {
         totalDeliveryFee: state.deliveryCharges.BaseDeliveryFee || 0,
         totalConvenienceFee: state.deliveryCharges.ConvenienceFee || 0,
         totalPackagingFee: state.deliveryCharges.PackagingFee || 0,
-        grandTotalFees: 0,
       };
-      console.log('location>>', location, groupedArray.length);
 
       if (location && groupedArray.length > 0) {
         try {
@@ -753,7 +776,6 @@ const Cart = ({navigation}) => {
         }
       }
 
-      // Update state with all calculated data
       setState(prevState => ({
         ...prevState,
         userLocation: location,
@@ -1604,12 +1626,6 @@ const Cart = ({navigation}) => {
                 isFree={state.totalDeliveryFee === 0}
               />
 
-              {/* Item Discount */}
-              <SummaryRow
-                label="Item Discount"
-                value={-validateAmount(state.TotalDiscountPrice)}
-              />
-
               {/* Coupon Discount */}
               {state.appliedCoupon && (
                 <SummaryRow
@@ -1665,7 +1681,6 @@ const Cart = ({navigation}) => {
                   ₹{' '}
                   {roundToTwoDecimals(
                     validateAmount(state.TotalUnitPrice) -
-                      validateAmount(state.TotalDiscountPrice) -
                       validateAmount(state.appliedCouponDiscountAmount) +
                       validateAmount(state.totalDeliveryFee) +
                       validateAmount(state.totalConvenienceFee) +

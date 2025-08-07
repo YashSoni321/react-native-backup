@@ -44,7 +44,7 @@ const Orders = ({navigation}) => {
           padding: hp('1%'),
         },
         title: {
-          fontSize: 20,
+          fontSize: 18,
           color: '#00afb5',
           fontFamily: 'Poppins-SemiBold',
           // marginLeft: wp('15%'),

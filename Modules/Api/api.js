@@ -180,6 +180,9 @@ class ApiService {
   async getCategoryList() {
     return this.get(`api/CategoryApi/gCategoryList`);
   }
+  async getStoreCategoryList(StoreID) {
+    return this.get(`api/ProductApi/gStoreCategoryList?StoreID=${StoreID}`);
+  }
 
   async getSubCategoryList(categoryID) {
     return this.get(
