@@ -16,11 +16,13 @@ import {
   ActivityIndicator,
   FlatList,
   Linking,
+  Alert,
 } from 'react-native';
 import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RNAndroidLocationEnabler from 'react-native-android-location-enabler';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -580,56 +582,51 @@ const Home = props => {
                   }
                 },
                 error => {
-                  // clearTimeout(locationTimeout);
                   console.error('📍 Location error:', error);
 
                   // Provide user-friendly error message
                   let errorMessage = 'Unable to get your location.';
+                  let actionButtonText = 'Open Settings';
+
                   switch (error.code) {
                     case error.PERMISSION_DENIED:
                       errorMessage =
-                        'Location permission denied. Please enable location access in settings.';
+                        'To show you nearby stores and products, we need access to your location. Please enable location services in settings.';
                       break;
                     case error.POSITION_UNAVAILABLE:
-                      errorMessage = 'Location information unavailable.';
+                      errorMessage =
+                        "We're having trouble getting your location. Please check if location services are enabled on your device.";
                       break;
                     case error.TIMEOUT:
-                      errorMessage = 'Location request timed out.';
+                      errorMessage =
+                        'Location request took too long. Please check your connection and try again.';
+                      actionButtonText = 'Try Again';
                       break;
                   }
 
-                  // showModal(
-                  //   'Location Error',
-                  //   errorMessage,
-                  //   'error',
-                  //   'OK',
-                  //   () => {
-                  //     if (Platform.OS === 'android') {
-                  //       Linking.openSettings(); // Opens App Settings
-                  //     } else {
-                  //       Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
-                  //     }
-                  //   },
-                  // );
                   showModal(
-                    'Location Error',
+                    'Location Access Required',
                     errorMessage,
-                    'error',
-                    'OK',
+                    'info',
+                    actionButtonText,
                     () => {
-                      if (Platform.OS === 'android') {
-                        Linking.openSettings(); // Opens App Settings
+                      if (error.code === error.TIMEOUT) {
+                        refreshLocation();
                       } else {
-                        Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+                        if (Platform.OS === 'android') {
+                          Linking.openSettings();
+                        } else {
+                          Linking.openURL('app-settings:');
+                        }
                       }
                     },
                   );
                 },
                 {
-                  enableHighAccuracy: true,
-                  timeout: 15000,
-                  maximumAge: 300000, // 5 minutes
-                  distanceFilter: 10, // Update if moved 10 meters
+                  enableHighAccuracy: false, // Set to false for faster initial fix
+                  timeout: 20000, // Increased timeout
+                  maximumAge: 60000, // Reduced to 1 minute for more accuracy
+                  distanceFilter: 100, // Increased to reduce updates
                 },
               );
             } catch (geolocationError) {
@@ -712,9 +709,10 @@ const Home = props => {
             setIsLoadingStores(false);
           },
           {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0, // Force fresh location
+            enableHighAccuracy: false, // Set to false for faster initial fix
+            timeout: 20000, // Increased timeout
+            maximumAge: 60000, // 1 minute
+            distanceFilter: 100, // Increased to reduce updates
           },
         );
       } else {
@@ -781,25 +779,85 @@ const Home = props => {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
-            title: 'Location Permission',
+            title: 'Enable Location Services',
             message:
-              'This app needs access to your location to show nearby stores.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
+              'To show you nearby stores and products, we need access to your location. Please enable location services to continue.',
+            buttonNeutral: null, // Remove "Ask Me Later" option
+            buttonNegative: 'Not Now',
+            buttonPositive: 'Enable',
           },
         );
 
         const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
         console.log('📍 Location permission result:', isGranted);
+
+        if (!isGranted) {
+          showModal(
+            'Location Access Required',
+            'To find stores near you, please enable location access in your device settings.',
+            'info',
+            'Open Settings',
+            () => {
+              if (Platform.OS === 'android') {
+                Linking.openSettings();
+              } else {
+                Linking.openURL('app-settings:');
+              }
+            },
+          );
+        }
+
         return isGranted;
+      } else {
+        // For iOS
+        const status = await Geolocation.requestAuthorization('whenInUse');
+        const isAuthorized = status === 'granted';
+
+        if (!isAuthorized) {
+          showModal(
+            'Location Access Required',
+            'To find stores near you, please enable location access in your device settings.',
+            'info',
+            'Open Settings',
+            () => Linking.openURL('app-settings:'),
+          );
+        }
+
+        return isAuthorized;
       }
-      return true; // iOS handles permissions differently
     } catch (error) {
       console.error('📍 Location permission error:', error);
+      showModal(
+        'Location Error',
+        'Unable to access location services. Please try again.',
+        'error',
+        'Retry',
+        () => refreshLocation(),
+      );
       return false;
     }
   };
+
+  const checkAndEnableGPS = async () => {
+    try {
+      const status =
+        await RNAndroidLocationEnabler.promptForEnableLocationIfNeeded({
+          interval: 10000,
+          fastInterval: 5000,
+        });
+      // console.log('📍 GPS status:', status); // "already-enabled" or "enabled"
+
+      Alert.alert(`GPS Status : ${status}`);
+      return true;
+    } catch (err) {
+      console.warn('⚠️ GPS enable request denied:', err);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    checkAndEnableGPS();
+  }, []);
 
   // Replace render method with return statement
   return (

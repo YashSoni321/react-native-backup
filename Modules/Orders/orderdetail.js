@@ -130,7 +130,12 @@ class OrderDetail extends React.Component {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView
-          style={{width: '90%', margin: 'auto', shadowOpacity: 0}}
+          style={{
+            width: '100%',
+            margin: 'auto',
+            shadowOpacity: 0,
+            // paddingHorizontal: wp('5%'),
+          }}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}>
           <ImageBackground
@@ -149,154 +154,173 @@ class OrderDetail extends React.Component {
               style={styles.backButton}
             />
           </ImageBackground>
-
-          <View>
-            <Text
-              style={{
-                color: 'black',
-                fontSize: 14,
-                marginLeft: wp('5%'),
-                marginTop: wp('5%'),
-              }}>
-              From{' '}
+          <View style={{paddingHorizontal: wp('5%')}}>
+            <View>
               <Text
                 style={{
                   color: 'black',
-                  fontWeight: '600',
-                  fontSize: 17,
+                  fontSize: 14,
                   marginLeft: wp('5%'),
+                  marginTop: wp('5%'),
                 }}>
-                {/* Westside */}
-                {this.state.storeDetails?.storeName || 'Store Name'}{' '}
+                From{' '}
+                <Text
+                  style={{
+                    color: 'black',
+                    fontWeight: '600',
+                    fontSize: 17,
+                    marginLeft: wp('5%'),
+                  }}>
+                  {/* Westside */}
+                  {this.state.storeDetails?.storeName || 'Store Name'}{' '}
+                </Text>
+                <Text
+                  style={{
+                    color: 'black',
+                    fontSize: 12,
+                    marginLeft: wp('5%'),
+                  }}>
+                  {/* Westside */}
+                  {this.state.storeDetails?.storeLocation || 'Store Location'}
+                </Text>
               </Text>
-              <Text
-                style={{
-                  color: 'black',
-                  fontSize: 12,
-                  marginLeft: wp('5%'),
-                }}>
-                {/* Westside */}
-                {this.state.storeDetails?.storeLocation || 'Store Location'}
-              </Text>
-            </Text>
-          </View>
+            </View>
 
-          {/* Products List */}
-          <View style={styles.productsContainer}>
-            {/* <FlatList
+            {/* Products List */}
+            <View style={styles.productsContainer}>
+              {/* <FlatList
               data={this.state.orderslist}
               renderItem={({item: order}) => (
                
               )}
               keyExtractor={(item, index) => index.toString()}
             /> */}
-            <FlatList
-              data={this.state.orderslist}
-              renderItem={({item: order}) => (
-                <FlatList
-                  data={order.OrderItems}
-                  renderItem={({item}) => (
-                    <View style={styles.productCard}>
-                      <View style={styles.productRow}>
-                        <View style={styles.imageContainer}>
-                          {item.ProductImages && (
-                            <FlatList
-                              horizontal
-                              data={item.ProductImages}
-                              showsHorizontalScrollIndicator={false}
-                              pagingEnabled
-                              renderItem={({item: image}) => (
-                                <Image
-                                  resizeMode="contain"
-                                  style={styles.productImage}
-                                  source={{uri: image.ProductImage}}
-                                />
-                              )}
-                              keyExtractor={(_, index) => index.toString()}
-                            />
-                          )}
-                        </View>
-                        <View
-                          style={{
-                            display: 'flex',
-                            // flexDirection: 'row',
-                            // justifyContent: 'space-between',
-                            alignItems: 'center',
-                            // marginHorizontal: wp('5%'),
-                            // marginVertical: hp('2%'),
-                          }}>
-                          {/* Left Section - Product Details */}
-                          <View style={{flex: 1}}>
-                            <Text style={styles.productName}>
-                              {item.ProductName}
-                            </Text>
-                            <View>
-                              <Text style={styles.productColor}>
-                                {item.ProductColor}
+              <FlatList
+                data={this.state.orderslist}
+                renderItem={({item: order}) => (
+                  <FlatList
+                    data={order.OrderItems}
+                    renderItem={({item}) => (
+                      <View style={styles.productCard}>
+                        <View style={styles.productRow}>
+                          <View style={styles.imageContainer}>
+                            {item.ProductImages && (
+                              <FlatList
+                                horizontal
+                                data={item.ProductImages}
+                                showsHorizontalScrollIndicator={false}
+                                pagingEnabled
+                                renderItem={({item: image}) => (
+                                  <Image
+                                    resizeMode="contain"
+                                    style={styles.productImage}
+                                    source={{uri: image.ProductImage}}
+                                  />
+                                )}
+                                keyExtractor={(_, index) => index.toString()}
+                              />
+                            )}
+                          </View>
+                          <View
+                            style={{
+                              display: 'flex',
+                              // flexDirection: 'row',
+                              // justifyContent: 'space-between',
+                              alignItems: 'center',
+                              // marginHorizontal: wp('5%'),
+                              // marginVertical: hp('2%'),
+                            }}>
+                            {/* Left Section - Product Details */}
+                            <View style={{flex: 1}}>
+                              <Text style={styles.productName}>
+                                {item.ProductName}
                               </Text>
-                              <View
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'row',
-                                  justifyContent: 'space-evenly',
-                                }}>
+                              <View>
+                                <Text style={styles.productColor}>
+                                  {item.ProductColor}
+                                </Text>
                                 <View
                                   style={{
+                                    display: 'flex',
                                     flexDirection: 'row',
-                                    alignItems: 'center',
-                                    marginTop: hp('1%'),
+                                    justifyContent: 'space-evenly',
                                   }}>
                                   <View
                                     style={{
-                                      height: hp('2%'),
-                                      width: hp('2%'),
-                                      borderRadius: wp('100%'),
-                                      borderWidth: 1,
-                                      borderColor: '#00afb5',
-                                      marginRight: wp('2%'),
-                                      marginLeft: wp('-12%'),
-                                      backgroundColor:
-                                        item.ProductColor.toLowerCase(),
-                                    }}
-                                  />
-                                  <Text style={styles.productSize}>
-                                    {item.Size}
-                                  </Text>
-                                </View>
-                                <View>
-                                  <Text style={styles.productPrice}>
-                                    ₹ {item.TotalPrice}
-                                  </Text>
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      marginTop: hp('1%'),
+                                    }}>
+                                    <View
+                                      style={{
+                                        height: hp('2%'),
+                                        width: hp('2%'),
+                                        borderRadius: wp('100%'),
+                                        borderWidth: 1,
+                                        borderColor: '#00afb5',
+                                        marginRight: wp('2%'),
+                                        marginLeft: wp('-12%'),
+                                        backgroundColor:
+                                          item.ProductColor.toLowerCase(),
+                                      }}
+                                    />
+                                    <Text style={styles.productSize}>
+                                      {item.Size}
+                                    </Text>
+                                  </View>
+                                  <View>
+                                    <Text style={styles.productPrice}>
+                                      ₹{' '}
+                                      {this.safeNumber(
+                                        this.state.PaymentAmount,
+                                      ) -
+                                        (
+                                          this.safeNumber(
+                                            this.state.ConvenienceFee,
+                                          ) +
+                                          this.safeNumber(
+                                            this.state.PackagingFee,
+                                          ) +
+                                          this.safeNumber(
+                                            this.state.BaseDeliveryFee,
+                                          ) +
+                                          this.safeNumber(
+                                            this.state.AdditionDistanceFee > 10
+                                              ? this.state.AdditionDistanceFee
+                                              : 0,
+                                          )
+                                        ).toFixed(2)}
+                                    </Text>
+                                  </View>
                                 </View>
                               </View>
                             </View>
-                          </View>
 
-                          {/* Right Section - Total Price */}
+                            {/* Right Section - Total Price */}
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  )}
-                  keyExtractor={(item, index) => index.toString()}
-                />
-              )}
-              keyExtractor={(item, index) => index.toString()}
-            />
-          </View>
-          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
-            <Text style={{fontWeight: '600', fontSize: 14}}>
-              Mode of Payment
-            </Text>
-            <Text style={{marginTop: hp('0.5%'), fontSize: 13}}>
-              {/* Cash on Delivery */} {this.state.PaymentMode}
-            </Text>
-          </View>
-          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
-            <Text style={{fontWeight: '600', fontSize: 14}}>
-              Payment Summary
-            </Text>
+                    )}
+                    keyExtractor={(item, index) => index.toString()}
+                  />
+                )}
+                keyExtractor={(item, index) => index.toString()}
+              />
+            </View>
+            <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+              <Text style={{fontWeight: '600', fontSize: 14}}>
+                Mode of Payment
+              </Text>
+              <Text style={{marginTop: hp('0.5%'), fontSize: 13}}>
+                {/* Cash on Delivery */} {this.state.PaymentMode}
+              </Text>
+            </View>
+            <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+              <Text style={{fontWeight: '600', fontSize: 14}}>
+                Payment Summary
+              </Text>
 
-            {/* <View
+              {/* <View
               style={{
                 flexDirection: 'row',
                 justifyContent: 'space-between',
@@ -312,92 +336,112 @@ class OrderDetail extends React.Component {
                   Number(this.state.AdditionDistanceFee)}
               </Text>
             </View> */}
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: hp('1%'),
-              }}>
-              <Text>Subtotal</Text>
-              <Text>
-                ₹{' '}
-                {(
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: hp('1%'),
+                }}>
+                <Text>Subtotal</Text>
+                <Text>
+                  ₹{' '}
+                  {/* {(
                   this.safeNumber(this.state.PaymentAmount) -
                   this.safeNumber(this.state.ConvenienceFee) +
                   this.safeNumber(this.state.PackagingFee) +
                   this.safeNumber(this.state.BaseDeliveryFee) +
                   this.safeNumber(this.state.AdditionDistanceFee)
-                ).toFixed(2)}{' '}
-                {/* Rounds to 2 decimal places */}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: hp('1%'),
-              }}>
-              <Text>Charges & Fees</Text>
-              <Text>
-                ₹{' '}
-                {Number(this.state.ConvenienceFee) +
-                  Number(this.state.PackagingFee) +
-                  Number(this.state.BaseDeliveryFee) +
-                  Number(this.state.AdditionDistanceFee)}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                marginTop: hp('2%'),
-              }}>
-              <Text style={{fontWeight: '600'}}>Total Amount</Text>
-              <Text style={{fontWeight: '600'}}>
-                ₹ {this.state.PaymentAmount}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
-            <Text style={{fontWeight: '600', fontSize: 14}}>Order Details</Text>
-            <Text style={{marginTop: hp('1%'), fontSize: 13}}>
-              {/* Monday, October 14, 2024, 07:04 PM */}
-              {this.state.OrderDate}
-            </Text>
-            <Text style={{fontSize: 14}}>
-              {/* Delivered to 8-1-363/50 Aditya Nagar Colony, Tolichowki */}
-              {this.state.StreetNumber}, {this.state.StreetName},{'\n'}
-              {this.state.CityName}, {this.state.StateName} -{' '}
-              {this.state.Pincode}
-            </Text>
-          </View>
-
-          <View style={{marginHorizontal: wp('5%'), marginTop: hp('3%')}}>
-            <Text style={{fontWeight: '600', fontSize: 14}}>
-              Need help with this order?
-            </Text>
-
-            <TouchableOpacity
-              style={{
-                marginTop: hp('2%'),
-                borderWidth: 1,
-                borderColor: '#ccc',
-                borderRadius: 8,
-                padding: hp('2%'),
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-              onPress={() => this.props.navigation.push('Contactsupport')}>
-              <View>
-                <Text style={{fontWeight: '600'}}>Contact Support</Text>
-                <Text style={{color: 'grey'}}>Chat with our support team</Text>
+                ).toFixed(2)}{' '} */}
+                  {this.safeNumber(this.state.PaymentAmount) -
+                    (
+                      this.safeNumber(this.state.ConvenienceFee) +
+                      this.safeNumber(this.state.PackagingFee) +
+                      this.safeNumber(this.state.BaseDeliveryFee) +
+                      this.safeNumber(
+                        this.state.AdditionDistanceFee > 10
+                          ? this.state.AdditionDistanceFee
+                          : 0,
+                      )
+                    ).toFixed(2)}
+                  {/* Rounds to 2 decimal places */}
+                </Text>
               </View>
-              <Icon name="chatbox-ellipses-outline" size={30} color="#00afb5" />
-            </TouchableOpacity>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: hp('1%'),
+                }}>
+                <Text>Charges & Fees</Text>
+                <Text>
+                  ₹{' '}
+                  {Number(this.state.ConvenienceFee) +
+                    Number(this.state.PackagingFee) +
+                    Number(this.state.BaseDeliveryFee) +
+                    Number(this.state.AdditionDistanceFee)}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  marginTop: hp('2%'),
+                }}>
+                <Text style={{fontWeight: '600'}}>Total Amount</Text>
+                <Text style={{fontWeight: '600'}}>
+                  ₹ {this.state.PaymentAmount}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{marginHorizontal: wp('5%'), marginTop: hp('2%')}}>
+              <Text style={{fontWeight: '600', fontSize: 14}}>
+                Order Details
+              </Text>
+              <Text style={{marginTop: hp('1%'), fontSize: 13}}>
+                {/* Monday, October 14, 2024, 07:04 PM */}
+                {this.state.OrderDate}
+              </Text>
+              <Text style={{fontSize: 14}}>
+                {/* Delivered to 8-1-363/50 Aditya Nagar Colony, Tolichowki */}
+                {this.state.StreetNumber}, {this.state.StreetName},{'\n'}
+                {this.state.CityName}, {this.state.StateName} -{' '}
+                {this.state.Pincode}
+              </Text>
+            </View>
+
+            <View style={{marginHorizontal: wp('5%'), marginTop: hp('3%')}}>
+              <Text style={{fontWeight: '600', fontSize: 14}}>
+                Need help with this order?
+              </Text>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: hp('2%'),
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  borderRadius: 8,
+                  padding: hp('2%'),
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onPress={() => this.props.navigation.push('Contactsupport')}>
+                <View>
+                  <Text style={{fontWeight: '600'}}>Contact Support</Text>
+                  <Text style={{color: 'grey'}}>
+                    Chat with our support team
+                  </Text>
+                </View>
+                <Icon
+                  name="chatbox-ellipses-outline"
+                  size={30}
+                  color="#00afb5"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -418,9 +462,9 @@ const styles = StyleSheet.create({
     marginTop: hp('3%'),
   },
   backButton: {
-    marginLeft: wp('1%'),
+    marginLeft: wp('2%'),
     padding: hp('1%'),
-    marginTop: hp('-9.0%'),
+    marginTop: hp('-6.0%'),
     marginBottom: hp('2%'),
   },
   statusContainer: {
