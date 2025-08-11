@@ -22,7 +22,10 @@ import {Dialog} from 'react-native-simple-dialogs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RNAndroidLocationEnabler from 'react-native-android-location-enabler';
+import {
+  isLocationEnabled,
+  promptForEnableLocationIfNeeded,
+} from 'react-native-android-location-enabler';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -686,52 +689,83 @@ const Home = props => {
   const refreshLocation = async () => {
     try {
       setIsLoadingStores(true);
-      const hasPermission = await requestLocationPermission();
 
-      if (hasPermission) {
-        Geolocation.getCurrentPosition(
-          async position => {
-            const newLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            };
-            setCurrentLocation(newLocation);
-            console.log('📍 Refreshed location:', newLocation);
-            await fetchNearbyStores(newLocation);
-          },
-          error => {
-            console.error('📍 Refresh location error:', error);
-            showModal(
-              'Error',
-              'Failed to refresh location. Please try again.',
-              'error',
-            );
-            setIsLoadingStores(false);
-          },
-          {
-            enableHighAccuracy: false, // Set to false for faster initial fix
-            timeout: 20000, // Increased timeout
-            maximumAge: 60000, // 1 minute
-            distanceFilter: 100, // Increased to reduce updates
-          },
-        );
-      } else {
-        showModal(
-          'Permission Denied',
-          'Location permission is required for the app to function properly!',
-          'error',
-          () => {
-            if (Platform.OS === 'android') {
-              Linking.openSettings(); // Opens App Settings
-            } else {
-              Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
-            }
-          },
-        );
+      // First check location services
+      const servicesEnabled = await checkLocationServices();
+      if (!servicesEnabled) {
         setIsLoadingStores(false);
+        return; // Wait for user to enable services
       }
+
+      // Then check/request permission
+      const hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        setIsLoadingStores(false);
+        return; // Permission handling is done in requestLocationPermission
+      }
+
+      // Get location if we have both services and permission
+      Geolocation.getCurrentPosition(
+        async position => {
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setCurrentLocation(newLocation);
+          console.log('📍 Refreshed location:', newLocation);
+          await fetchNearbyStores(newLocation);
+        },
+        error => {
+          console.error('📍 Refresh location error:', error);
+          let errorMessage = 'Unable to get your location.';
+          let actionButtonText = 'Try Again';
+
+          switch (error.code) {
+            case error.POSITION_UNAVAILABLE:
+              errorMessage =
+                'Location services seem to be disabled. Please enable them and try again.';
+              actionButtonText = 'Enable Location';
+              break;
+            case error.TIMEOUT:
+              errorMessage =
+                'Location request took too long. Please check your connection and try again.';
+              break;
+            default:
+              errorMessage = 'Failed to get your location. Please try again.';
+          }
+
+          showModal(
+            'Location Error',
+            errorMessage,
+            'error',
+            actionButtonText,
+            async () => {
+              if (error.code === error.POSITION_UNAVAILABLE) {
+                // Re-check location services
+                checkLocationServices();
+              } else {
+                refreshLocation();
+              }
+            },
+          );
+          setIsLoadingStores(false);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 60000,
+          distanceFilter: 100,
+        },
+      );
     } catch (error) {
       console.error('📍 Refresh location error:', error);
+      showModal(
+        'Location Error',
+        'Something went wrong while getting your location. Please try again.',
+        'error',
+        'Retry',
+        () => refreshLocation(),
+      );
       setIsLoadingStores(false);
     }
   };
@@ -838,25 +872,73 @@ const Home = props => {
     }
   };
 
-  const checkAndEnableGPS = async () => {
+  // Check and handle location services
+  const checkLocationServices = async () => {
     try {
-      const status =
-        await RNAndroidLocationEnabler.promptForEnableLocationIfNeeded({
-          interval: 10000,
-          fastInterval: 5000,
-        });
-      // console.log('📍 GPS status:', status); // "already-enabled" or "enabled"
+      if (Platform.OS === 'android') {
+        const isEnabled = await isLocationEnabled();
+        console.log('📍 Location services enabled:', isEnabled);
 
-      Alert.alert(`GPS Status : ${status}`);
+        if (!isEnabled) {
+          showModal(
+            'Enable Location Services',
+            'Please enable location services to find stores near you.',
+            'info',
+            'Enable',
+            async () => {
+              try {
+                await promptForEnableLocationIfNeeded();
+                // After enabling location services, request permission
+                const hasPermission = await requestLocationPermission();
+                if (hasPermission) {
+                  refreshLocation(); // Get location after permission granted
+                }
+              } catch (error) {
+                console.log('Error enabling location:', error);
+                showModal(
+                  'Location Error',
+                  'Unable to enable location services. Please try again.',
+                  'error',
+                  'Retry',
+                  () => checkLocationServices(),
+                );
+              }
+            },
+          );
+          return false;
+        }
+        return true;
+      }
+      // For iOS, we'll handle it in the permission request
       return true;
-    } catch (err) {
-      console.warn('⚠️ GPS enable request denied:', err);
+    } catch (error) {
+      console.error('Location services check error:', error);
       return false;
     }
   };
 
+  // Initialize location handling
+  const initializeLocation = async () => {
+    try {
+      // First check if location services are enabled
+      const servicesEnabled = await checkLocationServices();
+      if (!servicesEnabled) {
+        return; // Wait for user to enable services
+      }
+
+      // Then request permission
+      const hasPermission = await requestLocationPermission();
+      if (hasPermission) {
+        // Get location only if we have both services and permission
+        refreshLocation();
+      }
+    } catch (error) {
+      console.error('Location initialization error:', error);
+    }
+  };
+
   useEffect(() => {
-    checkAndEnableGPS();
+    initializeLocation();
   }, []);
 
   // Replace render method with return statement
