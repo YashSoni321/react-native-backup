@@ -895,7 +895,7 @@ const Home = props => {
                 const hasPermission = await requestLocationPermission();
                 if (hasPermission) {
                   refreshLocation();
-                  hideModal(); // Get location after permission granted
+                  show; // Get location after permission granted
                 }
               } catch (error) {
                 console.log('Error enabling location:', error);
