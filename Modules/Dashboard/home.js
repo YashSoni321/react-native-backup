@@ -606,6 +606,9 @@ const Home = props => {
                       actionButtonText = 'Try Again';
                       break;
                   }
+                  if (error.POSITION_UNAVAILABLE) {
+                    return;
+                  }
 
                   showModal(
                     'Location Access Required',
@@ -891,7 +894,8 @@ const Home = props => {
                 // After enabling location services, request permission
                 const hasPermission = await requestLocationPermission();
                 if (hasPermission) {
-                  refreshLocation(); // Get location after permission granted
+                  refreshLocation();
+                  hideModal(); // Get location after permission granted
                 }
               } catch (error) {
                 console.log('Error enabling location:', error);

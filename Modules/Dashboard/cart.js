@@ -447,25 +447,46 @@ const Cart = ({navigation}) => {
   };
 
   const calculateDeliveryFee = (distance, charges, isRaining = false) => {
+    // Use dynamic base fee from charges
     let baseFee = isRaining
-      ? charges.RainyWeatherBaseFee
-      : charges.BaseDeliveryFee;
-    let additionalFee = 0;
+      ? validateAmount(charges.RainyWeatherBaseFee)
+      : validateAmount(charges.BaseDeliveryFee);
 
-    if (distance > charges.AdditionalDistanceKM) {
-      const extraDistance = distance - charges.AdditionalDistanceKM;
-      additionalFee = Math.ceil(extraDistance) * charges.AdditionDistanceFee;
+    let additionalFee = 0;
+    let extraDistance = 0;
+
+    // Calculate additional distance fee if applicable
+    if (distance > validateAmount(charges.AdditionalDistanceKM)) {
+      extraDistance = distance - validateAmount(charges.AdditionalDistanceKM);
+      additionalFee =
+        Math.ceil(extraDistance) * validateAmount(charges.AdditionDistanceFee);
     }
 
-    const totalDeliveryFee = Math.max(baseFee + additionalFee, 20); // Minimum delivery fee
-    const convenienceFee = Math.max(charges.ConvenienceFee || 0, 5); // Minimum convenience fee
-    const packagingFee = Math.max(charges.PackagingFee || 0, 3); // Minimum packaging fee
+    // Use dynamic minimum fees from charges
+    const totalDeliveryFee = Math.max(
+      baseFee + additionalFee,
+      validateAmount(charges.MinimumDeliveryFee, 20),
+    );
+    const convenienceFee = Math.max(
+      validateAmount(charges.ConvenienceFee),
+      validateAmount(charges.MinimumConvenienceFee, 5),
+    );
+    const packagingFee = Math.max(
+      validateAmount(charges.PackagingFee),
+      validateAmount(charges.MinimumPackagingFee, 3),
+    );
 
     return {
-      deliveryFee: totalDeliveryFee,
-      convenienceFee: convenienceFee,
-      packagingFee: packagingFee,
-      totalFees: totalDeliveryFee + convenienceFee + packagingFee,
+      deliveryFee: roundToTwoDecimals(totalDeliveryFee),
+      convenienceFee: roundToTwoDecimals(convenienceFee),
+      packagingFee: roundToTwoDecimals(packagingFee),
+      totalFees: roundToTwoDecimals(
+        totalDeliveryFee + convenienceFee + packagingFee,
+      ),
+      extraDistance: roundToTwoDecimals(extraDistance),
+      baseDeliveryFee: roundToTwoDecimals(baseFee),
+      additionalDistanceFee: roundToTwoDecimals(additionalFee),
+      isRainyWeather: isRaining,
     };
   };
 
@@ -475,13 +496,18 @@ const Cart = ({navigation}) => {
       let totalDeliveryFee = 0;
       let totalConvenienceFee = 0;
       let totalPackagingFee = 0;
+      let totalExtraDistance = 0;
+      let totalAdditionalFee = 0;
+      let storeDeliveryDetails = [];
 
       for (const store of stores) {
-        // const storeLocation = await fetchStoreLocation(store.StoreID);
-        console.log('store.StoreID', store.StoreID, storeList);
+        console.log('Processing store:', store.StoreID);
 
         const storeLocation = await getStoreLocation(store.StoreID);
-        console.log('storeLocation', storeLocation);
+        if (!storeLocation) {
+          console.error('Failed to get location for store:', store.StoreID);
+          continue;
+        }
 
         const distance = calculateDistance(
           userLocation.latitude,
@@ -492,19 +518,50 @@ const Cart = ({navigation}) => {
 
         const fees = calculateDeliveryFee(distance, charges, state.isRaining);
 
+        // Accumulate totals
         totalDeliveryFee += validateAmount(fees.deliveryFee);
         totalConvenienceFee += validateAmount(fees.convenienceFee);
         totalPackagingFee += validateAmount(fees.packagingFee);
+        totalExtraDistance += validateAmount(fees.extraDistance);
+        totalAdditionalFee += validateAmount(fees.additionalDistanceFee);
+
+        // Store individual store details
+        storeDeliveryDetails.push({
+          storeId: store.StoreID,
+          storeName: store.StoreName,
+          distance: roundToTwoDecimals(distance),
+          baseDeliveryFee: fees.baseDeliveryFee,
+          additionalDistanceFee: fees.additionalDistanceFee,
+          extraDistance: fees.extraDistance,
+          convenienceFee: fees.convenienceFee,
+          packagingFee: fees.packagingFee,
+          totalFees: fees.totalFees,
+          coordinates: {
+            store: storeLocation,
+            user: userLocation,
+          },
+        });
       }
-      console.log('totalDeliveryFee>>>', totalDeliveryFee);
+
+      console.log('Delivery fee calculation complete:', {
+        totalDeliveryFee,
+        totalExtraDistance,
+        totalAdditionalFee,
+      });
 
       return {
         totalDeliveryFee: roundToTwoDecimals(totalDeliveryFee),
         totalConvenienceFee: roundToTwoDecimals(totalConvenienceFee),
         totalPackagingFee: roundToTwoDecimals(totalPackagingFee),
+        totalExtraDistance: roundToTwoDecimals(totalExtraDistance),
+        totalAdditionalFee: roundToTwoDecimals(totalAdditionalFee),
         grandTotalFees: roundToTwoDecimals(
           totalDeliveryFee + totalConvenienceFee + totalPackagingFee,
         ),
+        isRainyWeather: state.isRaining,
+        storeDeliveryDetails,
+        deliveryCharges: charges, // Include the original charges for reference
+        userLocation, // Include user location for reference
       };
     } catch (error) {
       console.error('Error calculating delivery fees:', error);
@@ -783,11 +840,21 @@ const Cart = ({navigation}) => {
         Nearbystores1: groupedArray,
         TotalUnitPrice: totalUnitPrice,
         TotalDiscountPrice: totalDiscountPrice,
+        // Delivery fee details
         totalDeliveryFee: validateAmount(deliveryFeeData.totalDeliveryFee),
         totalConvenienceFee: validateAmount(
           deliveryFeeData.totalConvenienceFee,
         ),
         totalPackagingFee: validateAmount(deliveryFeeData.totalPackagingFee),
+        totalExtraDistance: validateAmount(deliveryFeeData.totalExtraDistance),
+        totalAdditionalFee: validateAmount(deliveryFeeData.totalAdditionalFee),
+        // Store all delivery details for backend
+        deliveryDetails: {
+          ...deliveryFeeData,
+          calculatedAt: new Date().toISOString(),
+          cartTotal: totalUnitPrice,
+          storeCount: groupedArray.length,
+        },
         isLoading: false,
         error: null,
       }));
@@ -958,27 +1025,53 @@ const Cart = ({navigation}) => {
       }
 
       const checkoutData = {
+        // Basic amounts
         TotalUnitPrice: totalAmount,
         TotalAmount: totalAmount,
         Subtotal: subtotal,
         DiscountedPrice: itemDiscount,
+        OriginalTotal: subtotal,
+        FinalTotal: totalAmount,
+
+        // Detailed delivery fees
         DeliveryFee: deliveryFee,
-        DeliveryFeeDetails: state.deliveryCharges,
         ConvenienceFee: convenienceFee,
         PackagingFee: packagingFee,
+
+        // Additional delivery details
+        DeliveryFeeDetails: {
+          ...state.deliveryCharges,
+          totalExtraDistance: validateAmount(state.totalExtraDistance),
+          totalAdditionalFee: validateAmount(state.totalAdditionalFee),
+          isRainyWeather: state.isRaining,
+          calculatedAt:
+            state.deliveryDetails?.calculatedAt || new Date().toISOString(),
+        },
+
+        // Store and item details
         CartItems: state.Nearbystores1,
         ItemCount: state.Nearbystores1.reduce(
           (count, store) => count + (store.Products?.length || 0),
           0,
         ),
         StoreCount: state.Nearbystores1.length,
-        OriginalTotal: subtotal,
-        FinalTotal: totalAmount,
+
+        // Store delivery calculations
+        StoreDeliveryDetails: state.deliveryDetails?.storeDeliveryDetails || [],
+
+        // Location details
+        UserLocation: state.userLocation,
+
+        // Coupon details
         AppliedCoupon: state.appliedCoupon,
         CouponDiscount: couponDiscount,
         CouponID: state.appliedCouponID,
         DiscountTypeID: state.appliedDiscountTypeID,
         CouponDiscountAmount: state.appliedCouponDiscountAmount,
+
+        // Additional metadata
+        CalculationTimestamp: new Date().toISOString(),
+        DeliveryCalculationVersion: '2.0', // Add version tracking for future reference
       };
 
       navigation.push('Checkout', {data: checkoutData});
