@@ -205,86 +205,234 @@ const Store = ({navigation}) => {
       showLoading('fetching_data', 'Fetching store list.');
       setState(prev => ({...prev, isLoading: true, error: null}));
 
+      // Get UserProfileID
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
+      if (!UserProfileID) {
+        throw new Error('User not logged in. Please login to continue.');
+      }
       console.log('UserProfileID ----> ', UserProfileID);
-      // Get user location
-      const userLocation = await getUserLocation();
-      if (!userLocation) throw new Error('User location not available');
 
-      // Fetch all required data in parallel
-      const [addressRes, storeRes] = await Promise.all([
-        axios.get(
-          `${URL_key}api/AddressApi/gCustomerAddress?UserProfileID=${UserProfileID}`,
+      // Get user location with timeout
+      const userLocation = await Promise.race([
+        getUserLocation(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Location fetch timeout')), 10000),
         ),
-        axios.get(`${URL_key}api/ProductApi/gStoreList`),
+      ]).catch(error => {
+        console.warn('Location fetch error:', error);
+        // Return default location if unable to get user location
+        return {
+          latitude: 17.385044,
+          longitude: 78.486671,
+        };
+      });
+
+      // Fetch all required data in parallel with proper error handling
+      const [addressRes, storeRes] = await Promise.all([
+        axios
+          .get(
+            `${URL_key}api/AddressApi/gCustomerAddress?UserProfileID=${UserProfileID}`,
+            {
+              headers: {
+                'content-type': 'application/json',
+              },
+              timeout: 15000, // 15 second timeout
+            },
+          )
+          .catch(error => {
+            console.error('Address API error:', error);
+            return {data: []}; // Return empty data on error
+          }),
+
+        axios
+          .get(`${URL_key}api/ProductApi/gStoreList`, {
+            headers: {
+              'content-type': 'application/json',
+            },
+            timeout: 15000, // 15 second timeout
+          })
+          .catch(error => {
+            console.error('Store list API error:', error);
+            throw new Error('Failed to fetch store list. Please try again.');
+          }),
       ]);
+
+      // Validate store response
+      if (!storeRes || !storeRes.data) {
+        throw new Error('Invalid store data received from server');
+      }
 
       const stores = storeRes.data || [];
 
       console.log('storeRes info ----> ', storeRes);
 
-      const transformedStores = stores.map(store => {
-        const {
-          Latitude,
-          Longitude,
-          StoreName,
-          StoreID,
-          StoreLocation,
-          StartTiming,
-          EndTiming,
-          DeliveryCharges,
-          IsDeliveryCharges,
-          StoreImage,
-          IsStoreClosed,
-        } = store;
+      // Transform and validate store data
+      const transformedStores = stores
+        .map((store, index) => {
+          try {
+            // Destructure with default values to prevent undefined errors
+            const {
+              Latitude = '0',
+              Longitude = '0',
+              StoreName = '',
+              StoreID = '',
+              StoreLocation = '',
+              StartTiming = '00:00:00',
+              EndTiming = '23:59:59',
+              DeliveryCharges = 0,
+              IsDeliveryCharges = false,
+              StoreImage = '',
+              IsStoreClosed = false,
+            } = store;
 
-        const storeLat = parseFloat(Latitude);
-        const storeLon = parseFloat(Longitude);
+            // Validate required fields
+            if (!StoreID || !StoreName) {
+              console.warn(`Invalid store data at index ${index}:`, store);
+              return null;
+            }
 
-        let distance = 0;
-        let deliveryTime = '30 mins';
+            // Parse coordinates with validation
+            const storeLat = parseFloat(Latitude);
+            const storeLon = parseFloat(Longitude);
+            const isValidLocation =
+              !isNaN(storeLat) &&
+              !isNaN(storeLon) &&
+              storeLat >= -90 &&
+              storeLat <= 90 &&
+              storeLon >= -180 &&
+              storeLon <= 180;
 
-        if (!isNaN(storeLat) && !isNaN(storeLon)) {
-          distance = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            storeLat,
-            storeLon,
-          );
-          deliveryTime = estimateDeliveryTime(distance);
-        }
+            // Calculate distance and delivery time
+            let distance = 0;
+            let deliveryTime = '30 mins';
 
-        return {
-          StoreID,
-          StoreName,
-          StoreLocation,
-          Timing: calculateTimeDiff(StartTiming, EndTiming),
-          DeliveryCharges,
-          IsDeliveryCharges,
-          StoreImage,
-          IsStoreClosed,
-          Latitude,
-          Longitude,
-          DeliveryTime: deliveryTime,
-          Distance: distance.toFixed(1),
-        };
+            if (isValidLocation && userLocation) {
+              try {
+                distance = calculateDistance(
+                  userLocation.latitude,
+                  userLocation.longitude,
+                  storeLat,
+                  storeLon,
+                );
+                deliveryTime = estimateDeliveryTime(distance);
+              } catch (error) {
+                console.warn(
+                  'Distance calculation error for store:',
+                  StoreID,
+                  error,
+                );
+              }
+            }
+
+            // Validate timing format
+            const timing = (() => {
+              try {
+                return calculateTimeDiff(StartTiming, EndTiming);
+              } catch (error) {
+                console.warn(
+                  'Time calculation error for store:',
+                  StoreID,
+                  error,
+                );
+                return 'Store hours not available';
+              }
+            })();
+
+            return {
+              StoreID,
+              StoreName: StoreName.trim(),
+              StoreLocation: StoreLocation.trim(),
+              Timing: timing,
+              DeliveryCharges: parseFloat(DeliveryCharges) || 0,
+              IsDeliveryCharges,
+              StoreImage: StoreImage?.trim() || '',
+              IsStoreClosed,
+              Latitude: isValidLocation ? storeLat : null,
+              Longitude: isValidLocation ? storeLon : null,
+              DeliveryTime: deliveryTime,
+              Distance: distance.toFixed(1),
+              HasValidLocation: isValidLocation,
+            };
+          } catch (err) {
+            console.error(
+              `Unexpected error processing store at index ${index}:`,
+              err,
+            );
+            return null;
+          }
+        })
+        .filter(store => store !== null);
+
+      // Filter out null values and sort by distance
+      const validStores = transformedStores
+        .filter(store => store !== null)
+        .sort((a, b) => parseFloat(a.Distance) - parseFloat(b.Distance));
+
+      if (validStores.length === 0) {
+        console.warn('No valid stores found after transformation');
+      }
+
+      // Process address data
+      const address = addressRes.data?.[0] || {};
+
+      // Log the final data for debugging
+      console.log('Final processed data:', {
+        storeCount: validStores.length,
+        hasAddress: !!address,
+        userLocation: userLocation,
       });
+
+      // Update state with processed data
+      setState(prev => ({
+        ...prev,
+        StreetName: address.StreetName?.trim() || '',
+        Pincode: address.AddressCategory?.trim() || '',
+        Storelist: validStores,
+        Storelist1: validStores,
+        userLocation: userLocation,
+        isLoading: false,
+        error:
+          validStores.length === 0
+            ? 'No stores available at the moment.'
+            : null,
+        lastUpdated: new Date().toISOString(),
+      }));
+
+      hideLoading('fetching_data');
+    } catch (error) {
+      console.error('Store fetch error:', error);
 
       hideLoading('fetching_data');
 
-      const address = addressRes.data?.[0] || {};
+      // Provide user-friendly error message
+      const errorMessage = (() => {
+        if (error.message.includes('Network Error')) {
+          return 'Unable to connect to server. Please check your internet connection.';
+        }
+        if (error.message.includes('timeout')) {
+          return 'Request timed out. Please try again.';
+        }
+        if (error.message.includes('User not logged in')) {
+          return 'Please login to view stores.';
+        }
+        return 'Unable to load stores. Please try again.';
+      })();
 
       setState(prev => ({
         ...prev,
-        StreetName: address.StreetName || '',
-        Pincode: address.AddressCategory || '',
-        Storelist: transformedStores,
-        Storelist1: transformedStores,
         isLoading: false,
+        error: errorMessage,
+        Storelist: [],
+        Storelist1: [],
       }));
-    } catch (error) {
-      hideLoading('fetching_data');
-      handleError(error, 'Fetching data');
+
+      // Show error modal to user
+      showModal('Error', errorMessage, 'error', () => {
+        // Retry loading if it was a network error
+        if (error.message.includes('Network Error')) {
+          fetchData();
+        }
+      });
     }
   };
 
