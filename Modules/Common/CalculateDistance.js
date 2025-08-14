@@ -1,10 +1,27 @@
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
+import {PermissionsAndroid, Platform} from 'react-native';
 
 // Constants
 const EARTH_RADIUS_KM = 6371;
 const AVERAGE_SPEED_KMPH = 25;
 const BASE_PREP_TIME_MIN = 15;
+
+// Request permission before using Geolocation
+const requestLocationPermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn('Permission request error:', err);
+      return false;
+    }
+  }
+  return true; // iOS handles via Info.plist
+};
 
 // Utility: Haversine Distance Calculation
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -48,11 +65,12 @@ export const estimateDeliveryTime = distanceKm => {
   }
 };
 
-// API: Fetch Store Location
+// API: Fetch Store Location (force JSON)
 export const fetchStoreDetailsLocation = async storeId => {
   try {
     const response = await axios.get(
       `https://fybrappapi.benchstep.com/api/ProductApi/gStoreDetails?StoreID=${storeId}`,
+      {headers: {Accept: 'application/json'}},
     );
     const store = response.data[0];
     return {latitude: store.Latitude, longitude: store.Longitude};
@@ -62,9 +80,30 @@ export const fetchStoreDetailsLocation = async storeId => {
   }
 };
 
-// Geolocation: Get User's Current Location
+// Geolocation: Get User's Current Location with fallback
 export const getUserLocation = (showModalCallback = null) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      const msg = 'Location permission denied. Enable location access.';
+      if (showModalCallback) showModalCallback('Location Error', msg, 'error');
+      return reject(new Error(msg));
+    }
+
+    const optionsHighAccuracy = {
+      enableHighAccuracy: true,
+      timeout: 30000, // longer timeout
+      maximumAge: 0,
+      distanceFilter: 0,
+    };
+
+    const optionsLowAccuracy = {
+      enableHighAccuracy: false,
+      timeout: 10000,
+      maximumAge: 60000,
+      distanceFilter: 0,
+    };
+
     Geolocation.getCurrentPosition(
       position => {
         resolve({
@@ -73,28 +112,37 @@ export const getUserLocation = (showModalCallback = null) => {
         });
       },
       error => {
-        console.error('Location Error:', error);
+        console.warn('High accuracy location failed:', error);
+        // Try again with low accuracy
+        Geolocation.getCurrentPosition(
+          position => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          err => {
+            console.error('Low accuracy location failed:', err);
 
-        let errorMessage = 'Unable to get your location.';
-        if (error.PERMISSION_DENIED) {
-          errorMessage = 'Location permission denied. Enable location access.';
-        } else if (error.POSITION_UNAVAILABLE) {
-          errorMessage = 'Location information unavailable.';
-        } else if (error.TIMEOUT) {
-          errorMessage = 'Location request timed out.';
-        }
+            let errorMessage = 'Unable to get your location.';
+            if (err.code === 1) {
+              errorMessage =
+                'Location permission denied. Enable location access.';
+            } else if (err.code === 2) {
+              errorMessage = 'Location information unavailable.';
+            } else if (err.code === 3) {
+              errorMessage = 'Location request timed out.';
+            }
 
-        if (showModalCallback) {
-          showModalCallback('Location Error', errorMessage, 'error');
-        }
-        reject(error);
+            if (showModalCallback) {
+              showModalCallback('Location Error', errorMessage, 'error');
+            }
+            reject(err);
+          },
+          optionsLowAccuracy,
+        );
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 300000,
-        distanceFilter: 10,
-      },
+      optionsHighAccuracy,
     );
   });
 };
