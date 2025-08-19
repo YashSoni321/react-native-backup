@@ -1,4 +1,4 @@
-package com.mynewfybrapp
+package com.fybr
 
 import android.app.Application
 import com.facebook.react.PackageList

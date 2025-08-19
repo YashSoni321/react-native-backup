@@ -18,7 +18,7 @@ const Contactsupport = ({navigation}) => {
     {
       QuestionText: 'How do I contact Fybr support?',
       AnswerText:
-        'You can reach Fybr’s customer support through the app, website, or by emailing us directly at  support@fybr.com',
+        'You can reach Fybr’s customer support through the app, website, or by emailing us directly at  support@fybrnow.com',
     },
   ]);
 
@@ -113,6 +113,19 @@ const Contactsupport = ({navigation}) => {
           numColumns={1}
           keyExtractor={(item, index) => index.toString()}
         />
+
+        <Text
+          style={{
+            textAlign: 'center',
+            color: '#333',
+            fontSize: 14,
+            fontWeight: '800',
+            fontFamily: 'Poppins-SemiBold',
+            marginTop: hp('5%'),
+            marginBottom: hp('3%'),
+          }}>
+          FYBR RETAIL PRIVATE LIMITED
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
