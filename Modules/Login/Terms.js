@@ -588,8 +588,8 @@ class Terms extends React.Component {
               // marginRight: wp('5%'),
             }}>
             {' '}
-            Fybr aims to deliver orders within the specified time. However,
-            delays due to unforeseen circumstances are not our responsibility.
+            Fybr provides one day delivery for all orders. However, delays due
+            to unforeseen circumstances are not our responsibility.
           </Text>
           <Text
             style={{
@@ -804,7 +804,7 @@ class Terms extends React.Component {
               marginRight: wp('5%'),
               // marginRight: wp('5%'),
             }}>
-            Requests made within the store’s stated return window.
+            Requests made within the store’s 3 days after delivery.
           </Text>
           <Text
             style={{
