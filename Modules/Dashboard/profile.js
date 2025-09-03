@@ -54,6 +54,8 @@ class Profile extends React.Component {
       MobileNumber: null,
       EmailID: null,
       FullName: null,
+      showDeleteModal: false,
+      LoginUserProfileID: null,
     };
     this.handleBackButtonClick = this.handleBackButtonClick.bind(this);
   }
@@ -61,10 +63,12 @@ class Profile extends React.Component {
     var EmailID = await AsyncStorage.getItem('EmailID');
     var FullName = await AsyncStorage.getItem('FullName');
     var MobileNumber = await AsyncStorage.getItem('MobileNumber');
+    var LoginUserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
     this.setState({
       EmailID: EmailID,
       FullName: FullName,
       MobileNumber: MobileNumber,
+      LoginUserProfileID: LoginUserProfileID,
     });
   }
   renderOption(settings) {
@@ -232,11 +236,43 @@ class Profile extends React.Component {
     this.props.navigation.push('Tab');
     return true;
   }
+
+  deleteAccount = async () => {
+    try {
+      const response = await axios.post(
+        `${URL_key}api/LoginApi/DeleteAccount`,
+        {
+          LoginUserProfileID: parseInt(this.state.LoginUserProfileID),
+          SystemUser: this.state.FullName || 'User',
+        },
+      );
+
+      if (response.status === 200) {
+        await AsyncStorage.clear();
+        Alert.alert('Success', 'Account deleted successfully', [
+          {text: 'OK', onPress: () => this.props.navigation.push('Login')},
+        ]);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
+    }
+  };
+
+  showDeleteConfirmation = () => {
+    this.setState({showDeleteModal: true});
+  };
+
+  hideDeleteModal = () => {
+    this.setState({showDeleteModal: false});
+  };
   render() {
     return (
-      <SafeAreaView>
+      <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
         {/* NavigationEvents removed - not used in this component */}
-        <ScrollView style={{backgroundColor: 'white', height: hp('100%')}}>
+        <ScrollView
+          style={{backgroundColor: 'white', flex: 1}}
+          contentContainerStyle={{paddingBottom: hp('1%')}}
+          showsVerticalScrollIndicator={true}>
           <ImageBackground
             style={{width: wp('100%')}}
             activeOpacity={0.5}
@@ -717,6 +753,42 @@ class Profile extends React.Component {
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.5}
+              onPress={this.showDeleteConfirmation}>
+              <View
+                style={{
+                  backgroundColor: 'white',
+                  width: wp('80%'),
+                  height: hp('5%'),
+                  alignSelf: 'center',
+                  marginTop: hp('2%'),
+                  borderRadius: wp('2%'),
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#00afb5',
+                }}>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    // color: '#ff4444',
+
+                    marginTop: hp('0.2%'),
+                    marginLeft: wp('5%'),
+                    fontFamily: 'Poppins-Medium',
+                    width: wp('55%'),
+                  }}>
+                  Delete Account
+                </Text>
+                <Icon
+                  name="trash"
+                  size={22}
+                  color="#00afb5"
+                  style={{alignSelf: 'center', marginLeft: wp('7%')}}
+                />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.5}
               onPress={async () => {
                 await AsyncStorage.removeItem('LoginUserProfileID');
                 await AsyncStorage.removeItem('isLogin1');
@@ -767,6 +839,96 @@ class Profile extends React.Component {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        <Dialog
+          visible={this.state.showDeleteModal}
+          title="Delete Account"
+          onTouchOutside={this.hideDeleteModal}
+          dialogStyle={{
+            borderRadius: 20,
+            backgroundColor: '#fff',
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 4},
+            shadowOpacity: 0.2,
+            shadowRadius: 6,
+            elevation: 8,
+            paddingVertical: 10,
+          }}>
+          <View style={{padding: 25}}>
+            <Text
+              style={{
+                fontSize: 16,
+                color: '#444',
+                fontFamily: 'Poppins-SemiBold',
+                textAlign: 'center',
+                marginBottom: 15,
+              }}>
+              ⚠️ Are you sure you want to delete your account?
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: '#777',
+                fontFamily: 'Poppins-Regular',
+                textAlign: 'center',
+                marginBottom: 25,
+                lineHeight: 18,
+              }}>
+              This action is permanent and cannot be undone.
+            </Text>
+
+            <View
+              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <TouchableOpacity
+                onPress={this.hideDeleteModal}
+                style={{
+                  flex: 1,
+                  marginRight: 10,
+                  backgroundColor: '#f0f0f0',
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                }}>
+                <Text
+                  style={{
+                    color: '#444',
+                    fontFamily: 'Poppins-Medium',
+                    fontSize: 14,
+                  }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  this.hideDeleteModal();
+                  this.deleteAccount();
+                }}
+                style={{
+                  flex: 1,
+                  marginLeft: 10,
+                  backgroundColor: '#ff3b30',
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  shadowColor: '#ff3b30',
+                  shadowOffset: {width: 0, height: 2},
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 5,
+                }}>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontFamily: 'Poppins-SemiBold',
+                    fontSize: 14,
+                  }}>
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Dialog>
       </SafeAreaView>
     );
   }

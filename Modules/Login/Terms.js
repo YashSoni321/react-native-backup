@@ -836,9 +836,11 @@ class Terms extends React.Component {
               // marginRight: wp('5%'),
             }}>
             {' '}
-            Refunds will be processed by the store in compliance with their
-            policy. Fybr acts as a facilitator and is not responsible for delays
-            or discrepancies caused by the store.
+            Refunds will be initiated within 3–4 business days. Processing of
+            the refund is handled directly by the respective store, in
+            accordance with their policies. Fybr acts solely as a facilitator
+            and is not responsible for any delays or discrepancies caused by the
+            store.
           </Text>
           <Text
             style={{

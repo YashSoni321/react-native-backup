@@ -1,17 +1,10 @@
 export const PAYMENT_MOCK_DATA = {
   PaymentMethodList: [
     {
-      PaymentMethod: 'UPI',
-      PaymentMethodID: 3,
-      Description: 'PhonePe, Google Pay, etc.',
-    },
-    {
       PaymentMethod: 'Cash on Delivery',
       PaymentMethodID: 4,
       Description: 'Pay in cash when order is delivered',
     },
-    
-    
   ],
   TipAmountList: [
     {
