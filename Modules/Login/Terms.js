@@ -177,52 +177,11 @@ class Terms extends React.Component {
             not agree, please refrain from using our services.
           </Text>
           <Separator />
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-SemiBold',
-              marginTop: hp('2%'),
-              marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('5%'),
-              // marginRight: wp('20%'),
-              // marginRight: wp('5%'),
-            }}>
+          <Text style={styles.sectionTitle}>
             1. Registration and Account Responsibilities
           </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-Medium',
-              // marginTop: hp('1%'),
-              marginBottom: hp('0%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('5%'),
-              // marginRight: wp('20%'),
-              // marginRight: wp('5%'),
-            }}>
-            Eligibility
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              // textAlign: "center",
-              //   justifyContent: 'center',
-              color: '#333',
-              fontFamily: 'Poppins-Light',
-              // marginTop: hp('1%'),
-              marginBottom: hp('2%'),
-              marginLeft: wp('10%'),
-              marginRight: wp('5%'),
-              // marginRight: wp('5%'),
-            }}>
-            {' '}
+          <Text style={styles.subTitle}>Eligibility</Text>
+          <Text style={styles.bodyText}>
             You must be at least 18 years old to register and use Fybr. By
             creating an account, you confirm that you meet this age requirement.
           </Text>
@@ -1202,8 +1161,36 @@ const styles = StyleSheet.create({
     width: wp('25%'),
     alignSelf: 'center',
     marginTop: hp('2%'),
-    // marginLeft: wp('3%'),
     marginBottom: hp('3%'),
+  },
+  sectionTitle: {
+    // fontSize: 16,
+    // color: '#00afb5',
+    // fontFamily: 'Poppins-Bold',
+    marginTop: hp('2%'),
+    marginBottom: hp('1%'),
+    // fontWeight: 'bold',
+    marginLeft: wp('10%'),
+    marginRight: wp('5%'),
+  },
+  subTitle: {
+    // fontSize: 14,
+    color: '#333',
+    fontFamily: 'Poppins-SemiBold',
+    marginBottom: hp('0.5%'),
+    // fontWeight: 'bold',
+    marginLeft: wp('10%'),
+    marginRight: wp('5%'),
+  },
+  bodyText: {
+    fontSize: 13,
+    color: '#555',
+    fontFamily: 'Poppins-Regular',
+    lineHeight: 20,
+    marginBottom: hp('1.5%'),
+    textAlign: 'justify',
+    marginLeft: wp('10%'),
+    marginRight: wp('5%'),
   },
 });
 

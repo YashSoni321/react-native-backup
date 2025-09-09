@@ -258,7 +258,7 @@ const Landing = ({navigation}) => {
             }}>
             <Text
               style={{
-                fontSize: 8,
+                fontSize: 10,
                 textAlign: 'center',
                 color: '#333',
                 fontFamily: 'Poppins-Light',
@@ -276,13 +276,14 @@ const Landing = ({navigation}) => {
                 style={{
                   textDecorationLine: 'underline',
                   color: '#333',
+                  fontWeight: 'bold',
                 }}>
                 Terms
               </Text>{' '}
               and{' '}
               <Text
                 onPress={() => {
-                  navigation.push('Terms', {
+                  navigation.push('Privacy', {
                     data: {
                       Data: 'Landing',
                       otp: '102111',
@@ -292,6 +293,7 @@ const Landing = ({navigation}) => {
                 style={{
                   textDecorationLine: 'underline',
                   color: '#333',
+                  fontWeight: 'bold',
                 }}>
                 Privacy Policy
               </Text>

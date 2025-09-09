@@ -2,6 +2,7 @@ import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Login from '../Modules/Login/login';
 import Terms from '../Modules/Login/Terms';
+import Privacy from '../Modules/Login/Privacy';
 import Signup from '../Modules/Login/signup';
 import Tab from '../Modules/Dashboard/Tab';
 import Home from '../Modules/Dashboard/home';
@@ -50,6 +51,7 @@ const AuthNavigation = () => {
       }}>
       <Stack.Screen name="Contactsupport" component={Contactsupport} />
       <Stack.Screen name="Terms" component={Terms} />
+      <Stack.Screen name="Privacy" component={Privacy} />
       <Stack.Screen name="ProductDetails" component={ProductDetails} />
       <Stack.Screen name="CategoryProduct" component={CategoryProduct} />
       <Stack.Screen name="StoreProducts" component={StoreProducts} />

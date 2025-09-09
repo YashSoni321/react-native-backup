@@ -677,7 +677,7 @@ const Login = ({navigation}) => {
                 }}>
                 <Text
                   style={{
-                    fontSize: 6,
+                    fontSize: 10,
                     textAlign: 'center',
                     color: '#333',
                     fontFamily: 'Poppins-Light',
@@ -701,9 +701,9 @@ const Login = ({navigation}) => {
                   and{' '}
                   <Text
                     onPress={() => {
-                      navigation.push('Terms', {
+                      navigation.push('Privacy', {
                         data: {
-                          Data: 'Login',
+                          Data: 'Landing',
                           otp: '102111',
                         },
                       });
