@@ -154,7 +154,9 @@ export const getUserDeliveryTime = async storeId => {
       fetchStoreDetailsLocation(storeId),
       getUserLocation(),
     ]);
-
+    if (!storeLocation || !userLocation) {
+      return '';
+    }
     const distance = calculateDistance(
       userLocation.latitude,
       userLocation.longitude,

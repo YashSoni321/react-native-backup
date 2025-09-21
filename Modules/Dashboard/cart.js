@@ -421,31 +421,6 @@ const Cart = ({navigation}) => {
     });
   };
 
-  const fetchStoreLocation = async storeId => {
-    try {
-      const response = await axios.get(
-        `${URL_key}api/ProductApi/gStoreDetails?StoreID=${storeId}`,
-        {
-          headers: {
-            'content-type': 'application/json',
-          },
-        },
-      );
-      console.log('fetchStoreLocation', response.data);
-
-      return {
-        latitude: response.data.Latitude || 28.7041,
-        longitude: response.data.Longitude || 77.1025,
-      };
-    } catch (error) {
-      console.error('Error fetching store location:', error);
-      return {
-        latitude: 28.7041,
-        longitude: 77.1025,
-      };
-    }
-  };
-
   const calculateDeliveryFee = (distance, charges, isRaining = false) => {
     // Use dynamic base fee from charges
     let baseFee = isRaining
@@ -989,6 +964,14 @@ const Cart = ({navigation}) => {
   // Update handleCheckout function
   const handleCheckout = () => {
     try {
+      // if (!state.userLocation) {
+      //   showModal(
+      //     'Location Required',
+      //     'Please set your delivery location before proceeding to checkout.',
+      //     'warning',
+      //   );
+      //   return;
+      // }
       // Validate cart items
       if (!state.Nearbystores1?.length) {
         showModal(

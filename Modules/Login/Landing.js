@@ -185,7 +185,7 @@ const Landing = ({navigation}) => {
                         'info',
                         async () => {
                           await enavlr();
-                          navigation.push('Login');
+
                           hideModal();
                         },
                         () => {
@@ -208,6 +208,10 @@ const Landing = ({navigation}) => {
                       } else {
                         Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
                       }
+                    },
+                    () => {
+                      navigation.push('Login');
+                      hideModal();
                     },
                   );
                 }

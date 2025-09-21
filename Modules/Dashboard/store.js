@@ -18,27 +18,13 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {Switch} from 'react-native-switch';
 import axios from 'axios';
-import {useFocusEffect} from '@react-navigation/native';
-import ToggleSwitch from 'toggle-switch-react-native';
-import {Dialog} from 'react-native-simple-dialogs';
-import {CustomPicker} from 'react-native-custom-picker';
-import {API_KEY, URL_key} from '../Api/api';
-import ImagePicker from 'react-native-image-crop-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
+
+import {URL_key} from '../Api/api';
 var RNFS = require('react-native-fs');
-import {
-  notifications,
-  messages,
-  NotificationMessage,
-  Android,
-} from 'react-native-firebase-push-notifications';
-import Normalize from '../Size/size';
+
 import NoResults from './NoResults';
 import ErrorMessage from '../../shared/ErrorMessage';
 import {useLoading} from '../../shared/LoadingContext';
@@ -47,7 +33,7 @@ import CustomModal from '../../shared/CustomModal';
 import HeaderWithAddress from '../Common/HeaderWithCommon';
 
 const Store = ({navigation}) => {
-  const {showLoading, hideLoading, isLoading} = useLoading();
+  const {showLoading, hideLoading} = useLoading();
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -207,9 +193,8 @@ const Store = ({navigation}) => {
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
 
-      // Get user location
-      const userLocation = await getUserLocation();
-      if (!userLocation) throw new Error('User location not available');
+      // Get user location (don't throw error if not available)
+      const userLocation = await getUserLocation().catch(() => null);
 
       // Fetch all required data in parallel
       const [addressRes, storeRes] = await Promise.all([
@@ -223,6 +208,7 @@ const Store = ({navigation}) => {
       ]);
 
       const stores = storeRes.data || [];
+      console.log('stores,stores.length', stores, stores.length);
 
       const transformedStores = stores.map(store => {
         const {
@@ -245,10 +231,10 @@ const Store = ({navigation}) => {
         let distance = 0;
         let deliveryTime = '30 mins';
 
-        if (!isNaN(storeLat) && !isNaN(storeLon)) {
+        if (!isNaN(storeLat) && !isNaN(storeLon) && userLocation?.latitude) {
           distance = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
+            userLocation?.latitude,
+            userLocation?.longitude,
             storeLat,
             storeLon,
           );
@@ -267,7 +253,7 @@ const Store = ({navigation}) => {
           Latitude,
           Longitude,
           DeliveryTime: deliveryTime,
-          Distance: distance.toFixed(1),
+          Distance: distance ? distance.toFixed(1) : 0,
         };
       });
 
@@ -282,6 +268,7 @@ const Store = ({navigation}) => {
         Storelist: transformedStores,
         Storelist1: transformedStores,
         isLoading: false,
+        userLocation,
       }));
     } catch (error) {
       hideLoading('fetching_data');
@@ -417,6 +404,22 @@ const Store = ({navigation}) => {
           All Stores
         </Text>
 
+        {!state.userLocation && (
+          <Text
+            style={{
+              fontSize: 10,
+              color: '#ff6b35',
+              fontFamily: 'Poppins-Light',
+              marginTop: hp('1%'),
+              marginBottom: hp('1%'),
+              marginLeft: wp('8%'),
+              marginRight: wp('9%'),
+            }}>
+            Location not available. Distances and delivery times are not
+            estimated.
+          </Text>
+        )}
+
         <View
           style={{
             marginLeft: wp('2%'),
@@ -536,24 +539,26 @@ const Store = ({navigation}) => {
                             {item.DeliveryCharges || '0'} 
                           </Text> */}
 
-                          <Text
-                            style={{
-                              fontSize: 8,
-                              fontFamily: 'Poppins-Light',
-                              alignContent: 'center',
-                              textAlign: 'left',
-                              justifyContent: 'center',
-                              color: '#232423',
-                              fontWeight: 'bold',
-                              marginTop: hp('0.5%'),
-                              marginLeft: wp('1%'),
-                              marginRight: wp('2%'),
-                              width: wp('74%'),
-                              opacity: item.IsStoreClosed == true ? 0.3 : 1,
-                            }}>
-                            🚚 Delivery in {item.DeliveryTime || '30 mins'} •{' '}
-                            {item.Distance || '0.0'} km away
-                          </Text>
+                          {state.userLocation && (
+                            <Text
+                              style={{
+                                fontSize: 8,
+                                fontFamily: 'Poppins-Light',
+                                alignContent: 'center',
+                                textAlign: 'left',
+                                justifyContent: 'center',
+                                color: '#232423',
+                                fontWeight: 'bold',
+                                marginTop: hp('0.5%'),
+                                marginLeft: wp('1%'),
+                                marginRight: wp('2%'),
+                                width: wp('74%'),
+                                opacity: item.IsStoreClosed == true ? 0.3 : 1,
+                              }}>
+                              🚚 Delivery in {item.DeliveryTime || '30 mins'} •{' '}
+                              {item.Distance || '0.0'} km away
+                            </Text>
+                          )}
                         </View>
                       </View>
                       {item.IsStoreClosed == true ? (

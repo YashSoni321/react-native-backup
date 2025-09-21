@@ -472,7 +472,7 @@ const Home = props => {
   };
 
   const SearchFilterFunction = text => {
-    setSearch(text);
+    setSearch(text.toLowerCase().trim());
 
     // if (!text) {
     //   setSelectedIndex(0);
@@ -480,11 +480,11 @@ const Home = props => {
     //   return;
     // }
 
-    const textData = text.toLowerCase();
+    const textData = text.toLowerCase().trim();
 
     clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
-      triggerSearch(textData);
+      textData && triggerSearch(textData);
     }, 1500); // 1.5 seconds debounce
   };
 
@@ -799,7 +799,7 @@ const Home = props => {
   }, []);
 
   // Request location permission
-  const requestLocationPermission = async () => {
+  export const requestLocationPermission = async () => {
     try {
       if (Platform.OS === 'android') {
         // Check if permission is already granted
@@ -1636,7 +1636,9 @@ const Home = props => {
                             textAlign: 'center',
                             marginHorizontal: wp('10%'),
                           }}>
-                          No Stores/Products found within 3km of your location
+                          {search
+                            ? `No results found for "${search}" within your nearby location`
+                            : 'No Stores/Products found in your nearby location'}
                         </Text>
                         <Text
                           style={{

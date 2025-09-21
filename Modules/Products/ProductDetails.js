@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
-  ImageBackground,
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -16,28 +15,18 @@ import {
 } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {CustomPicker} from 'react-native-custom-picker';
-import {API_KEY, URL_key} from '../Api/api';
-import apiService, {
-  getProductDetails,
-  getProductCartList,
-  getCustomerAddress,
-  getStateDDL,
-  getLatestCartID,
-  addToCart,
-  updateCartItem,
-  removeFromCart,
-  addToWishlist,
-} from '../Api/api';
+import apiService from '../Api/api';
 import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
 import {getUserDeliveryTime} from '../Common/CalculateDistance';
 import CustomModal from '../../shared/CustomModal';
 import HeaderWithAddress from '../Common/HeaderWithCommon';
+import {Linking} from 'react-native';
 
 const ProductDetails = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -112,6 +101,54 @@ const ProductDetails = ({navigation, route}) => {
       // Don't show error to user for address fetch failure
     }
   };
+  const getUserLocation = () => {
+    return new Promise(async resolve => {
+      try {
+        const hasPermission = await requestLocationPermission();
+        if (!hasPermission) {
+          console.warn('Location permission denied');
+          resolve({
+            latitude: null,
+            longitude: null,
+          });
+          return;
+        }
+        console.log('GetLocation method called ');
+
+        Geolocation.getCurrentPosition(
+          position => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            // setState(prev => ({...prev, userLocation: location}));
+            setUserLocation(location);
+            console.log('Location set to details page', location);
+
+            resolve(location);
+          },
+          error => {
+            console.warn('Error getting location:', error);
+            resolve({
+              latitude: null,
+              longitude: null,
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 10000,
+          },
+        );
+      } catch (error) {
+        console.error('Error in getUserLocation:', error);
+        resolve({
+          latitude: null,
+          longitude: null,
+        });
+      }
+    });
+  };
 
   const fetchProductDetails = async () => {
     try {
@@ -156,6 +193,9 @@ const ProductDetails = ({navigation, route}) => {
       quantity: num,
     }));
   };
+  useEffect(() => {
+    getUserLocation();
+  }, []);
 
   const handleSizeSelect = size => {
     setState(prev => ({
@@ -179,10 +219,10 @@ const ProductDetails = ({navigation, route}) => {
   };
 
   useEffect(() => {
-    if (state.StoreID) {
+    if (state.StoreID && userLocation) {
       fetchDeliveryLocationTime();
     }
-  }, [state.StoreID]);
+  }, [state.StoreID, userLocation]);
 
   // Update the getPricingDetails function to handle products without variants
   const getPricingDetails = () => {
@@ -244,6 +284,26 @@ const ProductDetails = ({navigation, route}) => {
   const addToCart = async () => {
     try {
       console.log('🛒 Starting add to cart process...');
+      // if()
+      console.log('userLocation', userLocation);
+
+      if (!userLocation) {
+        console.error('❌ User location not enabled');
+        showModal(
+          'Location Required',
+          'Please enable your location to add items to your cart. This helps us show availability, delivery options, and accurate service times.',
+          'warning',
+          'Enable Location',
+          () => {
+            if (Platform.OS === 'android') {
+              Linking.openSettings(); // Opens App Settings
+            } else {
+              Linking.openURL('App-Prefs:root=Privacy&path=LOCATION'); // iOS (but limited)
+            }
+          },
+        );
+        return;
+      }
 
       // Validate required data
       if (!state.ProductID) {
@@ -530,13 +590,20 @@ const ProductDetails = ({navigation, route}) => {
             Number(discountedPrice) <= Number(itemPrice) && (
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontFamily: 'Poppins-SemiBold',
-                  color: '#d32f2f',
+                  color: 'green',
                   marginTop: hp('0.5%'),
                   marginLeft: wp('12%'),
                 }}>
-                Discounted Price: ₹{discountedPrice}
+                Discounted Price:{' '}
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '700',
+                  }}>
+                  ₹{discountedPrice}
+                </Text>
               </Text>
             )}
         </View>
@@ -628,21 +695,35 @@ const ProductDetails = ({navigation, route}) => {
           )}
 
         {/* Delivery Info */}
+        {userLocation ? (
+          <Text
+            style={{
+              fontSize: 14,
+              fontFamily: 'Poppins-SemiBold',
+              fontWeight: '700',
+              color: '#333',
+              marginTop: hp('1.5%'),
+              textAlign: 'center',
+            }}>
+            Delivering in{' '}
+            {deliveryTime === null ? 'Calculating...' : deliveryTime}
+          </Text>
+        ) : (
+          <Text
+            style={{
+              fontSize: 14,
+              fontFamily: 'Poppins-SemiBold',
+              fontWeight: '700',
+              color: '#333',
+              marginTop: hp('1.5%'),
+              textAlign: 'center',
+            }}>
+            <Text>Please enable your location to see delivery time.</Text>
+          </Text>
+        )}
         <Text
           style={{
-            fontSize: 14,
-            fontFamily: 'Poppins-SemiBold',
-            fontWeight: '700',
-            color: '#333',
-            marginTop: hp('1.5%'),
-            textAlign: 'center',
-          }}>
-          Delivering in{' '}
-          {deliveryTime === null ? 'Calculating...' : deliveryTime}
-        </Text>
-        <Text
-          style={{
-            fontSize: 8,
+            fontSize: 10,
             fontFamily: 'Poppins-Light',
             color: '#333',
             marginTop: hp('1.5%'),
@@ -692,7 +773,7 @@ const ProductDetails = ({navigation, route}) => {
         </Text>
         <Text
           style={{
-            fontSize: 9,
+            fontSize: 10,
             fontFamily: 'Poppins-Light',
             color: '#333',
             marginTop: hp('1.5%'),
