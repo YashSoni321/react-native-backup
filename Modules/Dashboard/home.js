@@ -799,7 +799,7 @@ const Home = props => {
   }, []);
 
   // Request location permission
-  export const requestLocationPermission = async () => {
+  const requestLocationPermission = async () => {
     try {
       if (Platform.OS === 'android') {
         // Check if permission is already granted

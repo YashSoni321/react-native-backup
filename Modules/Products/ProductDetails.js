@@ -8,6 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
+  Platform,
+  PermissionsAndroid,
+  Linking,
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -19,13 +22,15 @@ import apiService from '../Api/api';
 import moment from 'moment';
 import CartValidation from '../../shared/CartValidation';
 import {getColorHex} from '../../shared/ColorUtils';
-import {getUserDeliveryTime} from '../Common/CalculateDistance';
 import CustomModal from '../../shared/CustomModal';
 import HeaderWithAddress from '../Common/HeaderWithCommon';
-import {Linking} from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
+import axios from 'axios';
+import {URL_key} from '../Api/api';
 
 const ProductDetails = ({navigation, route}) => {
   const [deliveryTime, setDeliveryTime] = useState(null);
+  const [isLocationFetched, setisLocationFetched] = useState('default');
   const [userLocation, setUserLocation] = useState(null);
   const [modalConfig, setModalConfig] = useState({
     visible: false,
@@ -111,10 +116,11 @@ const ProductDetails = ({navigation, route}) => {
             latitude: null,
             longitude: null,
           });
+          setisLocationFetched('error');
           return;
         }
         console.log('GetLocation method called ');
-
+        setisLocationFetched('fetching');
         Geolocation.getCurrentPosition(
           position => {
             const location = {
@@ -122,6 +128,7 @@ const ProductDetails = ({navigation, route}) => {
               longitude: position.coords.longitude,
             };
             // setState(prev => ({...prev, userLocation: location}));
+            setisLocationFetched('fetched');
             setUserLocation(location);
             console.log('Location set to details page', location);
 
@@ -129,6 +136,7 @@ const ProductDetails = ({navigation, route}) => {
           },
           error => {
             console.warn('Error getting location:', error);
+            setisLocationFetched('fetched');
             resolve({
               latitude: null,
               longitude: null,
@@ -141,6 +149,7 @@ const ProductDetails = ({navigation, route}) => {
           },
         );
       } catch (error) {
+        setisLocationFetched('fetched');
         console.error('Error in getUserLocation:', error);
         resolve({
           latitude: null,
@@ -213,13 +222,90 @@ const ProductDetails = ({navigation, route}) => {
     }));
   };
 
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const hasPermission = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        if (hasPermission) return true;
+
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+      return true;
+    } catch (error) {
+      console.error('Location permission error:', error);
+      return false;
+    }
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const estimateDeliveryTime = distanceKm => {
+    try {
+      let baseTime = 15;
+      const travelTimeMinutes = (distanceKm / 25) * 60;
+      const totalMinutes = Math.ceil(baseTime + travelTimeMinutes);
+
+      if (totalMinutes < 60) {
+        return `${totalMinutes} mins`;
+      } else {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return minutes === 0
+          ? `${hours} hour${hours > 1 ? 's' : ''}`
+          : `${hours}h ${minutes}m`;
+      }
+    } catch (error) {
+      return '30 mins';
+    }
+  };
+
   const fetchDeliveryLocationTime = async () => {
-    const time = await getUserDeliveryTime(state.StoreID);
-    setDeliveryTime(time);
+    try {
+      if (!state.StoreID || !userLocation?.latitude) {
+        setDeliveryTime('30 mins');
+        return;
+      }
+
+      const storeResponse = await axios.get(
+        `${URL_key}api/ProductApi/gStoreList`,
+      );
+      const store = storeResponse.data?.find(s => s.StoreID === state.StoreID);
+
+      if (store?.Latitude && store?.Longitude) {
+        const distance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          parseFloat(store.Latitude),
+          parseFloat(store.Longitude),
+        );
+        const time = estimateDeliveryTime(distance);
+        setDeliveryTime(time);
+      } else {
+        setDeliveryTime('30 mins');
+      }
+    } catch (error) {
+      console.error('Error calculating delivery time:', error);
+      setDeliveryTime('30 mins');
+    }
   };
 
   useEffect(() => {
-    if (state.StoreID && userLocation) {
+    if (state.StoreID && userLocation?.latitude) {
       fetchDeliveryLocationTime();
     }
   }, [state.StoreID, userLocation]);
@@ -695,32 +781,48 @@ const ProductDetails = ({navigation, route}) => {
           )}
 
         {/* Delivery Info */}
-        {userLocation ? (
-          <Text
-            style={{
-              fontSize: 14,
-              fontFamily: 'Poppins-SemiBold',
-              fontWeight: '700',
-              color: '#333',
-              marginTop: hp('1.5%'),
-              textAlign: 'center',
-            }}>
-            Delivering in{' '}
-            {deliveryTime === null ? 'Calculating...' : deliveryTime}
-          </Text>
-        ) : (
-          <Text
-            style={{
-              fontSize: 14,
-              fontFamily: 'Poppins-SemiBold',
-              fontWeight: '700',
-              color: '#333',
-              marginTop: hp('1.5%'),
-              textAlign: 'center',
-            }}>
-            <Text>Please enable your location to see delivery time.</Text>
-          </Text>
-        )}
+        <View style={{alignItems: 'center', marginTop: hp('2%')}}>
+          {userLocation?.latitude ? (
+            <Text
+              style={{
+                fontSize: 14,
+                fontFamily: 'Poppins-SemiBold',
+                fontWeight: '700',
+                color: '#00afb5',
+                textAlign: 'center',
+              }}>
+              🚚 Delivering in {deliveryTime || 'Calculating...'}
+            </Text>
+          ) : isLocationFetched === 'fetching' ||
+            isLocationFetched === 'default' ? (
+            <Text>Fetching your location...</Text>
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                if (Platform.OS === 'android') {
+                  Linking.openSettings();
+                } else {
+                  Linking.openURL('App-Prefs:root=Privacy&path=LOCATION');
+                }
+              }}
+              style={{
+                backgroundColor: '#ff6b35',
+                paddingHorizontal: wp('4%'),
+                paddingVertical: hp('1%'),
+                borderRadius: wp('2%'),
+              }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: 'Poppins-Medium',
+                  color: '#fff',
+                  textAlign: 'center',
+                }}>
+                Enable Location for Delivery Time
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <Text
           style={{
             fontSize: 10,
@@ -787,8 +889,13 @@ const ProductDetails = ({navigation, route}) => {
         </Text>
 
         {/* Action Buttons */}
-        <View style={{flexDirection: 'row'}}>
-          <TouchableOpacity activeOpacity={0.5} onPress={addToCart}>
+        <View style={{flexDirection: 'row', marginBottom: hp('10%')}}>
+          {/* <TouchableOpacity 
+            activeOpacity={0.5} 
+            onPress={addToCart}
+            disabled={!userLocation?.latitude}
+            style={{opacity: !userLocation?.latitude ? 0.5 : 1}}
+          >
             <View style={styles.cartButton}>
               <Icon
                 name="cart-outline"
@@ -798,9 +905,9 @@ const ProductDetails = ({navigation, route}) => {
               />
               <Text style={styles.cartButtonText}>Add to Cart</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity activeOpacity={0.5} onPress={addToWishlist}>
-            <View style={styles.wishlistButton}>
+            {/* <View style={styles.wishlistButton}>
               <Icon
                 name="heart-sharp"
                 color={'#ffff'}
@@ -808,7 +915,7 @@ const ProductDetails = ({navigation, route}) => {
                 style={{marginLeft: wp('1%'), padding: hp('1%')}}
               />
               <Text style={styles.wishlistButtonText}>Wishlist</Text>
-            </View>
+            </View> */}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -825,7 +932,11 @@ const ProductDetails = ({navigation, route}) => {
           // borderTopWidth: 1,
           // borderColor: '#ddd',
         }}>
-        <TouchableOpacity activeOpacity={0.5} onPress={addToCart}>
+        <TouchableOpacity
+          activeOpacity={0.5}
+          onPress={addToCart}
+          disabled={!userLocation?.latitude}
+          style={{opacity: !userLocation?.latitude ? 0.5 : 1}}>
           <View style={styles.cartButton}>
             <Icon
               name="cart-outline"
