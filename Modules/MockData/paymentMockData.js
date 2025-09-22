@@ -2,7 +2,7 @@ export const PAYMENT_MOCK_DATA = {
   PaymentMethodList: [
     {
       PaymentMethod: 'Cash on Delivery',
-      PaymentMethodID: 4,
+      PaymentMethodID: 6,
       Description: 'Pay in cash when order is delivered',
     },
   ],
