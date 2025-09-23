@@ -849,8 +849,20 @@ const Cart = ({navigation}) => {
         return;
       }
 
+      // Update UI immediately for better UX
+      setState(prevState => ({
+        ...prevState,
+        Nearbystores1: prevState.Nearbystores1?.map(store => ({
+          ...store,
+          Products: store.Products.map(product =>
+            product.CartItemID === item.CartItemID
+              ? {...product, Quantity: num}
+              : product,
+          ),
+        })),
+      }));
+
       showLoading();
-      setState(prevState => ({...prevState, isLoading: true}));
 
       const UserProfileID = await AsyncStorage.getItem('LoginUserProfileID');
       const SystemUser = await AsyncStorage.getItem('FullName');
@@ -918,13 +930,14 @@ const Cart = ({navigation}) => {
 
         if (res.data === 'DELETED') {
           await AsyncStorage.removeItem('CartID');
-          // Refresh cart data to recalculate totals
           await fetchCartData(false);
         } else {
           throw new Error('Failed to delete cart item');
         }
       }
     } catch (error) {
+      // Revert UI changes on error
+      await fetchCartData(false);
       handleError(error, 'Updating cart quantity');
     }
   };

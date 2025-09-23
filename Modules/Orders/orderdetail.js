@@ -114,6 +114,7 @@ class OrderDetail extends React.Component {
         ConvenienceFee: orders[0]?.ConvenienceFee || 0,
         PackagingFee: orders[0]?.PackagingFee || 0,
         RainyWeatherBaseFee: orders[0]?.RainyWeatherBaseFee || 0,
+        TipAmount: orders[0]?.TipAmount || 0,
       });
     } catch (error) {
       console.error('Error fetching orders or product details:', error);
@@ -376,10 +377,17 @@ class OrderDetail extends React.Component {
                 <Text>Charges & Fees</Text>
                 <Text>
                   ₹{' '}
-                  {Number(this.state.ConvenienceFee) +
-                    Number(this.state.PackagingFee) +
-                    Number(this.state.BaseDeliveryFee) +
-                    Number(this.state.AdditionDistanceFee)}
+                  {(
+                    this.safeNumber(this.state.ConvenienceFee) +
+                    this.safeNumber(this.state.PackagingFee) +
+                    this.safeNumber(this.state.BaseDeliveryFee) +
+                    this.safeNumber(
+                      this.state.AdditionDistanceFee > 10
+                        ? this.state.AdditionDistanceFee
+                        : 0,
+                    ) +
+                    this.safeNumber(this.state.TipAmount)
+                  ).toFixed(2)}
                 </Text>
               </View>
 
