@@ -4,6 +4,30 @@
 
 @implementation AppDelegate
 
+- (NSURL *)bundleURL
+{
+#if DEBUG
+  RCTBundleURLProvider *provider = [RCTBundleURLProvider sharedSettings];
+  if (provider == nil) {
+    // Fallback if provider is not available
+    return [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=true"];
+  }
+  NSURL *url = [provider jsBundleURLForBundleRoot:@"index"];
+  if (url == nil) {
+    // Fallback to localhost if Metro bundler URL is not available
+    url = [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=true"];
+  }
+  return url;
+#else
+  NSURL *url = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+  if (url == nil) {
+    // Fallback for release builds
+    url = [[NSBundle mainBundle] URLForResource:@"index" withExtension:@"jsbundle"];
+  }
+  return url;
+#endif
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   self.moduleName = @"Fybr";
@@ -12,20 +36,6 @@
   self.initialProps = @{};
 
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
-}
-
-- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
-{
-  return [self bundleURL];
-}
-
-- (NSURL *)bundleURL
-{
-#if DEBUG
-  return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
-#else
-  return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
-#endif
 }
 
 @end

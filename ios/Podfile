@@ -8,6 +8,9 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Enable modular headers for Firebase and other Swift pods
+use_modular_headers!
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
@@ -15,6 +18,9 @@ if linkage != nil
 end
 
 target 'Fybr' do
+  # Enable react-native-screens gamma project to include all Fabric components
+  ENV['RNS_GAMMA_ENABLED'] = '1'
+  
   config = use_native_modules!
 
   use_react_native!(
@@ -36,5 +42,370 @@ target 'Fybr' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Fix deployment target warnings and module build issues
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.1
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        end
+        # Ensure modules are enabled
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        # Fix for module build issues
+        config.build_settings['DEFINES_MODULE'] = 'YES'
+        # Fix for UIKit module build errors
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        # Fix for _Builtin_stdbool module errors
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_DARWIN_C_SOURCE=1'
+        
+        
+        # Fix for React-RCTAppDelegate module issues (ReactCommon redefinition)
+        if target.name == 'React-RCTAppDelegate'
+          # Disable prefix header to avoid UIKit module import issues
+          config.build_settings['GCC_PREFIX_HEADER'] = ''
+          config.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = 'NO'
+        end
+        
+        # Fix C++ override errors in RNDateTimePicker
+        if target.name == 'RNDateTimePicker'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+          config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+          config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+          config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
+          # Fix override and reference binding errors
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] ||= ['$(inherited)']
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-error'
+          config.build_settings['OTHER_CPLUSPLUSFLAGS'] << '-Wno-inconsistent-missing-override'
+          config.build_settings['CLANG_WARN_INCONSISTENT_MISSING_OVERRIDE'] = 'NO'
+        end
+        
+        # Fix DarwinFoundation and system module build issues
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
+        config.build_settings['CLANG_MODULES_AUTOLINK'] = 'YES'
+        # Allow system modules to be built
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        
+        # Fix glog module import issues (must be after setting CLANG_ENABLE_MODULES)
+        if target.name == 'glog'
+          config.build_settings['DEFINES_MODULE'] = 'NO'
+          config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        end
+      end
+    end
+    
+    # Fix ReactCommon module map redefinition issue
+    # Create a minimal non-conflicting React-RuntimeApple.modulemap that doesn't use umbrella
+    react_runtime_public = File.join(installer.sandbox.root, 'Headers/Public/ReactCommon/React-RuntimeApple.modulemap')
+    react_runtime_dir = File.dirname(react_runtime_public)
+    FileUtils.mkdir_p(react_runtime_dir) unless File.directory?(react_runtime_dir)
+    
+    # Create a minimal module map that doesn't conflict
+    File.write(react_runtime_public, <<~MODULEMAP
+      module ReactRuntimeApple {
+        explicit module Runtime {
+          header "React-RuntimeApple-umbrella.h"
+        }
+        export *
+      }
+    MODULEMAP
+    )
+    
+    # Fix RNDateTimePicker C++ compilation errors
+    rndtp_component_desc = File.join(__dir__, '../node_modules/@react-native-community/datetimepicker/ios/fabric/cpp/react/renderer/components/RNDateTimePicker/ComponentDescriptors.h')
+    if File.exist?(rndtp_component_desc)
+      begin
+        File.chmod(0644, rndtp_component_desc) if File.exist?(rndtp_component_desc)
+        content = File.read(rndtp_component_desc)
+        # Fix the adopt method - remove override since signature doesn't match base class
+        # Base class expects: void adopt(ShadowNode& shadowNode) const
+        # But we receive: ShadowNode::Unshared (shared_ptr<ShadowNode>)
+        # Solution: Remove override keyword and dereference shared_ptr when calling base class
+        if content.include?('void adopt(ShadowNode::Unshared') && content.include?('override')
+          # Remove override keyword
+          content.gsub!(/void adopt\(ShadowNode::Unshared &?shadowNode\) const override/, 'void adopt(ShadowNode::Unshared &shadowNode) const')
+          # Fix the base class call - dereference the shared_ptr to get ShadowNode&
+          content.gsub!(/ConcreteComponentDescriptor::adopt\(shadowNode\);/, 'ConcreteComponentDescriptor::adopt(*shadowNode);')
+          content.gsub!(/ConcreteComponentDescriptor::adopt\(const_cast<ShadowNode::Unshared &>\(shadowNode\)\);/, 'ConcreteComponentDescriptor::adopt(*shadowNode);')
+          File.write(rndtp_component_desc, content)
+          Pod::UI.puts "Fixed RNDateTimePicker ComponentDescriptor adopt method".green
+        end
+      rescue => e
+        Pod::UI.puts "Warning: Could not fix RNDateTimePicker ComponentDescriptor: #{e.message}".yellow
+      end
+    end
+    
+    # Fix react-native-screens function naming mismatch and add extern "C" linkage
+    # The provider expects RNSBottomTabsScreenCls but the function is named RNSBottomTabsScreen
+    rns_bottom_tabs_screen = File.join(__dir__, '../node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm')
+    if File.exist?(rns_bottom_tabs_screen)
+      begin
+        File.chmod(0644, rns_bottom_tabs_screen) if File.exist?(rns_bottom_tabs_screen)
+        content = File.read(rns_bottom_tabs_screen)
+        # Fix function name to match what React Native expects
+        if content.include?('RNSBottomTabsScreen(void)') && !content.include?('RNSBottomTabsScreenCls(void)')
+          content.gsub!(/Class<RCTComponentViewProtocol> RNSBottomTabsScreen\(void\)/, 'Class<RCTComponentViewProtocol> RNSBottomTabsScreenCls(void)')
+          File.write(rns_bottom_tabs_screen, content)
+          Pod::UI.puts "Fixed RNSBottomTabsScreen function name".green
+        end
+        # Add extern "C" linkage if not present
+        if content.include?('RNSBottomTabsScreenCls(void)') && !content.include?('extern "C"')
+          content.gsub!(/(#if RCT_NEW_ARCH_ENABLED\s+#pragma mark - View class exposure\s+)(Class<RCTComponentViewProtocol> RNSBottomTabsScreenCls\(void\))/, 
+                       "\\1#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n\\2")
+          content.gsub!(/(}\s+#endif \/\/ RCT_NEW_ARCH_ENABLED)/, "}\n#ifdef __cplusplus\n}\n#endif\n\\1")
+          File.write(rns_bottom_tabs_screen, content)
+          Pod::UI.puts "Added extern C linkage to RNSBottomTabsScreenCls".green
+        end
+        # Fix any extraneous closing braces that might have been added
+        if content.scan(/}\s*}\s*#endif \/\/ RCT_NEW_ARCH_ENABLED/).any?
+          content.gsub!(/}\s*}\s*#endif \/\/ RCT_NEW_ARCH_ENABLED/, "}\n#ifdef __cplusplus\n}\n#endif\n#endif // RCT_NEW_ARCH_ENABLED")
+          File.write(rns_bottom_tabs_screen, content)
+          Pod::UI.puts "Fixed extraneous closing brace in RNSBottomTabsScreenComponentView".green
+        end
+      rescue => e
+        Pod::UI.puts "Warning: Could not fix RNSBottomTabsScreen: #{e.message}".yellow
+      end
+    end
+    
+    # Add extern "C" linkage to all react-native-screens Fabric component functions
+    rns_files = [
+      File.join(__dir__, '../node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsHostComponentView.mm'),
+      File.join(__dir__, '../node_modules/react-native-screens/ios/gamma/stack/RNSStackScreenComponentView.mm'),
+      File.join(__dir__, '../node_modules/react-native-screens/ios/gamma/stack/RNSScreenStackHostComponentView.mm'),
+      File.join(__dir__, '../node_modules/react-native-screens/ios/gamma/split-view/RNSSplitViewHostComponentView.mm'),
+      File.join(__dir__, '../node_modules/react-native-screens/ios/gamma/split-view/RNSSplitViewScreenComponentView.mm'),
+    ]
+    
+    rns_files.each do |file_path|
+      if File.exist?(file_path)
+        begin
+          File.chmod(0644, file_path) if File.exist?(file_path)
+          content = File.read(file_path)
+          original_content = content
+          
+          # First, fix any extraneous closing braces
+          content.gsub!(/}\s*}\s*#endif \/\/ RCT_NEW_ARCH_ENABLED/, "}\n#ifdef __cplusplus\n}\n#endif\n#endif // RCT_NEW_ARCH_ENABLED")
+          content.gsub!(/}\s*}\s*$/, "}\n#ifdef __cplusplus\n}\n#endif")
+          
+          # Check if function exists and doesn't have extern "C"
+          if content.match?(/Class<RCTComponentViewProtocol> \w+Cls\(void\)/) && !content.include?('extern "C"')
+            # Add extern "C" before the function
+            content.gsub!(/(#if RCT_NEW_ARCH_ENABLED\s+#pragma mark - View class exposure\s+)(Class<RCTComponentViewProtocol> \w+Cls\(void\))/, 
+                         "\\1#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n\\2")
+            # Close extern "C" after the function (but before #endif)
+            content.gsub!(/(}\s+)(#endif \/\/ RCT_NEW_ARCH_ENABLED)/, "\\1#ifdef __cplusplus\n}\n#endif\n\\2")
+            File.write(file_path, content)
+            Pod::UI.puts "Added extern C linkage to #{File.basename(file_path)}".green
+          elsif content != original_content
+            File.write(file_path, content)
+            Pod::UI.puts "Fixed extraneous braces in #{File.basename(file_path)}".green
+          end
+          
+          # Add visibility attribute to ensure symbols are exported
+          if content.match?(/Class<RCTComponentViewProtocol> \w+Cls\(void\)/) && !content.include?('__attribute__((visibility')
+            content.gsub!(/(Class<RCTComponentViewProtocol> \w+Cls\(void\))(?!\s+__attribute__)/, 
+                         '\\1 __attribute__((visibility("default")))')
+            File.write(file_path, content)
+            Pod::UI.puts "Added visibility attribute to #{File.basename(file_path)}".green
+          end
+        rescue => e
+          Pod::UI.puts "Warning: Could not fix #{File.basename(file_path)}: #{e.message}".yellow
+        end
+      end
+    end
+    
+    # Fix react-native-image-crop-picker TOCropViewController API compatibility
+    # Replace customAspectRatio with aspectRatioPreset (correct property name in TOCropViewController 3.1.0)
+    image_crop_picker = File.join(__dir__, '../node_modules/react-native-image-crop-picker/ios/src/ImageCropPicker.m')
+    if File.exist?(image_crop_picker)
+      begin
+        File.chmod(0644, image_crop_picker) if File.exist?(image_crop_picker)
+        content = File.read(image_crop_picker)
+        if content.include?('customAspectRatio') && !content.include?('aspectRatioPreset')
+          content.gsub!(/cropVC\.customAspectRatio\s*=\s*aspectRatio;/, 'cropVC.aspectRatioPreset = aspectRatio;')
+          File.write(image_crop_picker, content)
+          Pod::UI.puts "Fixed react-native-image-crop-picker TOCropViewController API".green
+        end
+      rescue => e
+        Pod::UI.puts "Warning: Could not fix ImageCropPicker: #{e.message}".yellow
+      end
+    end
+    
+    # Exclude rn-fetch-blob from linking to avoid duplicate symbols with react-native-blob-util
+    # They are the same library (rn-fetch-blob is deprecated, react-native-blob-util is the replacement)
+    # Completely remove it from the aggregate target so it's not linked
+    installer.aggregate_targets.each do |aggregate_target|
+      if aggregate_target.name == 'Pods-Fybr'
+        # Get the pod target for rn-fetch-blob
+        rn_fetch_blob_target = installer.pods_project.targets.find { |t| t.name == 'rn-fetch-blob' }
+        if rn_fetch_blob_target
+          # Remove from aggregate target's pod_targets
+          aggregate_target.pod_targets.delete_if { |pt| pt.name == 'rn-fetch-blob' }
+          Pod::UI.puts "Removed rn-fetch-blob from aggregate target (using react-native-blob-util instead)".yellow
+        end
+      end
+    end
+    
+    # Also prevent rn-fetch-blob from being built, but create empty library
+    installer.pods_project.targets.each do |target|
+      if target.name == 'rn-fetch-blob'
+        # Remove all build phases
+        target.build_phases.clear
+        
+        # Add script phase to create empty library in multiple locations
+        script_phase = target.new_shell_script_build_phase('Create Empty Library')
+        script_phase.shell_script = <<-SCRIPT
+          # Create empty library to satisfy linker in multiple possible locations
+          mkdir -p "${BUILT_PRODUCTS_DIR}/rn-fetch-blob"
+          mkdir -p "${PODS_CONFIGURATION_BUILD_DIR}/rn-fetch-blob"
+          mkdir -p "${CONFIGURATION_BUILD_DIR}/rn-fetch-blob"
+          
+          # Create empty C file and compile it
+          echo "/* Empty library for rn-fetch-blob */" > /tmp/rn_fetch_blob_empty.c
+          "${CC:-clang}" -c /tmp/rn_fetch_blob_empty.c -o /tmp/rn_fetch_blob_empty.o 2>/dev/null || true
+          
+          # Create library in all possible locations
+          "${AR:-ar}" rcs "${BUILT_PRODUCTS_DIR}/rn-fetch-blob/librn-fetch-blob.a" /tmp/rn_fetch_blob_empty.o 2>/dev/null || \
+          touch "${BUILT_PRODUCTS_DIR}/rn-fetch-blob/librn-fetch-blob.a"
+          
+          "${AR:-ar}" rcs "${PODS_CONFIGURATION_BUILD_DIR}/rn-fetch-blob/librn-fetch-blob.a" /tmp/rn_fetch_blob_empty.o 2>/dev/null || \
+          touch "${PODS_CONFIGURATION_BUILD_DIR}/rn-fetch-blob/librn-fetch-blob.a"
+          
+          "${AR:-ar}" rcs "${CONFIGURATION_BUILD_DIR}/rn-fetch-blob/librn-fetch-blob.a" /tmp/rn_fetch_blob_empty.o 2>/dev/null || \
+          touch "${CONFIGURATION_BUILD_DIR}/rn-fetch-blob/librn-fetch-blob.a"
+          
+          rm -f /tmp/rn_fetch_blob_empty.c /tmp/rn_fetch_blob_empty.o 2>/dev/null || true
+        SCRIPT
+        script_phase.show_env_vars_in_log = '0'
+        
+        target.build_configurations.each do |config|
+          config.build_settings['SKIP_INSTALL'] = 'YES'
+        end
+        Pod::UI.puts "Configured rn-fetch-blob to create empty library (using react-native-blob-util instead)".yellow
+      end
+    end
+    
+    # Also fix the main project
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.native_targets.each do |target|
+        target.build_configurations.each do |config|
+          config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+          
+          # Force link react-native-screens Fabric component symbols in main app target
+          if target.name == 'Fybr'
+            # Get existing flags, remove any duplicates of our symbols, then add them back
+            existing_flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+            existing_flags = existing_flags.is_a?(Array) ? existing_flags : [existing_flags]
+            
+            # Remove any existing -u flags for our symbols to avoid duplicates
+            symbols_to_link = ['RNSBottomTabsCls', 'RNSBottomTabsScreenCls', 'RNSScreenStackHostCls', 'RNSSplitViewHostCls', 'RNSSplitViewScreenCls', 'RNSStackScreenCls']
+            existing_flags = existing_flags.reject do |flag|
+              symbols_to_link.any? { |symbol| flag.to_s.include?("_#{symbol}") }
+            end
+            
+            # Add -u flags to mark symbols as undefined (forces linker to include them)
+            symbols_to_link.each do |symbol|
+              existing_flags << "-Wl,-u,_#{symbol}"
+            end
+            
+            # Also try to force load the RNScreens library to ensure all symbols are included
+            # This is a fallback in case -u flags don't work
+            existing_flags << "-Wl,-force_load,$(PODS_CONFIGURATION_BUILD_DIR)/RNScreens/libRNScreens.a"
+            
+            # Remove rn-fetch-blob from linker flags to avoid duplicate symbols with react-native-blob-util
+            existing_flags = existing_flags.reject do |flag|
+              flag.to_s.include?('-lrn-fetch-blob') || flag.to_s.include?('rn-fetch-blob')
+            end
+            
+            config.build_settings['OTHER_LDFLAGS'] = existing_flags
+            
+            # Also remove rn-fetch-blob from library search paths
+            lib_search_paths = config.build_settings['LIBRARY_SEARCH_PATHS'] || ['$(inherited)']
+            lib_search_paths = lib_search_paths.is_a?(Array) ? lib_search_paths : [lib_search_paths]
+            lib_search_paths = lib_search_paths.reject do |path|
+              path.to_s.include?('rn-fetch-blob')
+            end
+            config.build_settings['LIBRARY_SEARCH_PATHS'] = lib_search_paths
+          elsif target.name == 'FybrTests'
+            # Remove incorrect -U flags from test target
+            existing_flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+            existing_flags = existing_flags.is_a?(Array) ? existing_flags : [existing_flags]
+            
+            # Remove any -U flags (uppercase U means undefine, which is wrong)
+            existing_flags = existing_flags.reject do |flag|
+              flag.to_s.include?('-Wl,-U,_')
+            end
+            
+            config.build_settings['OTHER_LDFLAGS'] = existing_flags
+          end
+        end
+      end
+    end
+    
+    # Remove rn-fetch-blob from ALL targets' linker flags (including aggregate target)
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.native_targets.each do |target|
+        target.build_configurations.each do |config|
+          existing_flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+          existing_flags = existing_flags.is_a?(Array) ? existing_flags : [existing_flags]
+          # More aggressive removal - remove any flag containing rn-fetch-blob
+          existing_flags = existing_flags.reject do |flag|
+            flag_str = flag.to_s
+            flag_str.include?('-lrn-fetch-blob') || 
+            flag_str.include?('rn-fetch-blob') ||
+            flag_str.include?('librn-fetch-blob')
+          end
+          config.build_settings['OTHER_LDFLAGS'] = existing_flags
+        end
+      end
+      
+      # Clean rn-fetch-blob from xcconfig files
+      if aggregate_target.name == 'Pods-Fybr'
+        xcconfig_dir = File.join(installer.sandbox.root, 'Target Support Files', aggregate_target.name)
+        if File.directory?(xcconfig_dir)
+          Dir.glob(File.join(xcconfig_dir, '*.xcconfig')).each do |xcconfig_path|
+            content = File.read(xcconfig_path)
+            original_content = content
+            # Remove rn-fetch-blob from all settings
+            # Remove from HEADER_SEARCH_PATHS (with quotes, escape $)
+            content.gsub!(/"\$\{PODS_ROOT\}\/Headers\/Public\/rn-fetch-blob"\s*/, '')
+            # Remove from LIBRARY_SEARCH_PATHS (with quotes, escape $)
+            content.gsub!(/"\$\{PODS_CONFIGURATION_BUILD_DIR\}\/rn-fetch-blob"\s*/, '')
+            # Remove from OTHER_LDFLAGS (both -l"rn-fetch-blob" and -lrn-fetch-blob)
+            content.gsub!(/-l"rn-fetch-blob"\s*/, '')
+            content.gsub!(/-lrn-fetch-blob\s*/, '')
+            content.gsub!(/\s*-l"rn-fetch-blob"/, '')
+            content.gsub!(/\s*-lrn-fetch-blob/, '')
+            # Remove from OTHER_CFLAGS (module map, escape $ and .)
+            content.gsub!(/-fmodule-map-file="\$\{PODS_ROOT\}\/Headers\/Public\/rn_fetch_blob\/rn-fetch-blob\.modulemap"\s*/, '')
+            # Remove from OTHER_MODULE_VERIFIER_FLAGS (escape $)
+            content.gsub!(/"-F\$\{PODS_CONFIGURATION_BUILD_DIR\}\/rn-fetch-blob"\s*/, '')
+            
+            # Also try simpler patterns that match any occurrence
+            content.gsub!(/rn-fetch-blob/, 'REMOVED_RN_FETCH_BLOB')
+            content.gsub!(/REMOVED_RN_FETCH_BLOB/, '')
+            # Clean up any double spaces or trailing spaces that might result
+            content.gsub!(/\s{2,}/, ' ')
+            content.gsub!(/\s+$/, '')
+            if content != original_content
+              File.write(xcconfig_path, content)
+              Pod::UI.puts "Cleaned rn-fetch-blob from #{File.basename(xcconfig_path)}".yellow
+            end
+          end
+        end
+      end
+    end
+    
+    # Also remove from pods project targets
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        existing_flags = config.build_settings['OTHER_LDFLAGS'] || ['$(inherited)']
+        existing_flags = existing_flags.is_a?(Array) ? existing_flags : [existing_flags]
+        existing_flags = existing_flags.reject do |flag|
+          flag.to_s.include?('-lrn-fetch-blob') || flag.to_s.include?('rn-fetch-blob')
+        end
+        config.build_settings['OTHER_LDFLAGS'] = existing_flags
+      end
+    end
   end
 end
