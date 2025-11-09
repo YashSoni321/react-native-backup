@@ -25,8 +25,14 @@ export const useLoading = () => {
 
 // Loading Provider Component
 export const LoadingProvider = ({children}) => {
+  console.log('[LoadingProvider] ========================================');
+  console.log('[LoadingProvider] Component rendering START');
+  console.log('[LoadingProvider] ========================================');
+  
   const [loadingStates, setLoadingStates] = useState({});
   const [globalLoading, setGlobalLoading] = useState(false);
+  
+  console.log('[LoadingProvider] State initialized - globalLoading:', globalLoading, 'loadingStates:', Object.keys(loadingStates).length);
 
   // Show loading for a specific key
   const showLoading = useCallback((key = 'global', message = '') => {
@@ -109,14 +115,20 @@ export const LoadingProvider = ({children}) => {
 
   // Setup axios interceptors when provider mounts
   useEffect(() => {
+    console.log('[LoadingProvider] ========================================');
+    console.log('[LoadingProvider] useEffect - Setting up axios interceptors');
+    console.log('[LoadingProvider] ========================================');
     setLoadingContext(contextValue);
     setupAxiosInterceptors();
 
     return () => {
+      console.log('[LoadingProvider] Cleanup - Removing axios interceptors');
       removeAxiosInterceptors();
     };
-  }, [contextValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount to avoid infinite loops
 
+  console.log('[LoadingProvider] About to render LoadingContext.Provider');
   return (
     <LoadingContext.Provider value={contextValue}>
       {children}

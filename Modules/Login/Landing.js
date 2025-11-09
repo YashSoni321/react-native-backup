@@ -19,6 +19,19 @@ import {request, PERMISSIONS, check, RESULTS} from 'react-native-permissions';
 import Geolocation from '@react-native-community/geolocation';
 import CustomModal from '../../shared/CustomModal';
 const Landing = ({navigation}) => {
+  console.log('[Landing] ========================================');
+  console.log('[Landing] Component rendering START');
+  console.log('[Landing] Navigation prop:', !!navigation);
+  console.log('[Landing] ========================================');
+
+  // Early return test - uncomment to test if component renders at all
+  // return (
+  //   <SafeAreaView style={{flex: 1, backgroundColor: '#ff0000', justifyContent: 'center', alignItems: 'center'}}>
+  //     <Text style={{color: '#fff', fontSize: 24}}>Landing Component Test</Text>
+  //   </SafeAreaView>
+  // );
+
+  console.log('[Landing] Initializing state...');
   const [modalConfig, setModalConfig] = useState({
     visible: false,
     title: '',
@@ -50,11 +63,21 @@ const Landing = ({navigation}) => {
   };
 
   useEffect(() => {
+    console.log('[Landing] useEffect - checkLoginStatus running');
     const checkLoginStatus = async () => {
-      const value = await AsyncStorage.getItem('isLogin');
-      console.log(value);
-      if (value !== null && value == 'true') {
-        navigation.push('Tab');
+      try {
+        const value = await AsyncStorage.getItem('isLogin');
+        console.log('[Landing] Login status from AsyncStorage:', value);
+        if (value !== null && value == 'true') {
+          console.log('[Landing] User is logged in, navigating to Tab');
+          navigation.push('Tab');
+        } else {
+          console.log(
+            '[Landing] User is not logged in, staying on Landing page',
+          );
+        }
+      } catch (error) {
+        console.error('[Landing] Error checking login status:', error);
       }
     };
     checkLoginStatus();
@@ -80,9 +103,10 @@ const Landing = ({navigation}) => {
       console.error('Error saving notification permission:', error);
     }
   };
+  console.log('[Landing] About to render JSX - SafeAreaView > ScrollView');
   return (
-    <SafeAreaView>
-      <ScrollView style={{backgroundColor: 'white', height: '100%'}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
+      <ScrollView style={{backgroundColor: 'white', flex: 1}}>
         <View style={{backgroundColor: '#ffffff'}}>
           <Text
             style={{

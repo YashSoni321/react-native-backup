@@ -45,7 +45,7 @@ import {Marker} from 'react-native-maps';
 import axios from 'axios';
 import GetLocation from 'react-native-get-location';
 import publicIP from 'react-native-public-ip';
-import RNLocation from 'react-native-location';
+// import RNLocation from 'react-native-location'; // Removed - package not installed
 import * as geolib from 'geolib';
 import LinearGradient from 'react-native-linear-gradient';
 navigator.geolocation = require('@react-native-community/geolocation');

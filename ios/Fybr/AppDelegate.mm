@@ -4,28 +4,55 @@
 
 @implementation AppDelegate
 
-- (NSURL *)bundleURL
+- (NSURL *__nullable)bundleURL
 {
+  // Always return a valid URL to prevent base class from throwing exception
+  NSURL *url = nil;
+  
 #if DEBUG
-  RCTBundleURLProvider *provider = [RCTBundleURLProvider sharedSettings];
-  if (provider == nil) {
-    // Fallback if provider is not available
-    return [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=true"];
+  @try {
+    RCTBundleURLProvider *provider = [RCTBundleURLProvider sharedSettings];
+    if (provider != nil) {
+      // Use jsBundleURLForBundleRoot which automatically handles localhost vs IP address
+      url = [provider jsBundleURLForBundleRoot:@"index"];
+      NSLog(@"Bundle URL from provider: %@", url);
+    }
+  } @catch (NSException *exception) {
+    // If provider throws, fall back to default
+    NSLog(@"Warning: RCTBundleURLProvider threw exception: %@", exception);
   }
-  NSURL *url = [provider jsBundleURLForBundleRoot:@"index"];
+  
+  // Fallback: Use RCTBundleURLProvider's default behavior which handles IP address correctly
   if (url == nil) {
-    // Fallback to localhost if Metro bundler URL is not available
+    RCTBundleURLProvider *provider = [RCTBundleURLProvider sharedSettings];
+    url = [provider jsBundleURLForBundleRoot:@"index"];
+    NSLog(@"Bundle URL from fallback provider: %@", url);
+  }
+  
+  // Final fallback to localhost (will work on device, but simulator may need IP)
+  if (url == nil) {
     url = [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=true"];
+    NSLog(@"Using localhost fallback: %@", url);
   }
-  return url;
 #else
-  NSURL *url = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+  url = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
   if (url == nil) {
-    // Fallback for release builds
     url = [[NSBundle mainBundle] URLForResource:@"index" withExtension:@"jsbundle"];
   }
-  return url;
+  // Final fallback - return localhost even in release if bundle not found
+  if (url == nil) {
+    url = [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=false"];
+  }
 #endif
+  
+  // Ensure we never return nil - this is critical to prevent base class exception
+  if (url == nil) {
+    NSLog(@"Error: bundleURL is nil, using fallback");
+    url = [NSURL URLWithString:@"http://localhost:8081/index.bundle?platform=ios&dev=true"];
+  }
+  
+  NSLog(@"Final bundle URL: %@", url);
+  return url;
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions

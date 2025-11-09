@@ -7,8 +7,22 @@ import AppNavigation from './AppNavigation';
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
+  console.log('[RootNavigator] ========================================');
+  console.log('[RootNavigator] Component rendering START');
+  console.log('[RootNavigator] ========================================');
+
+  console.log('[RootNavigator] About to render NavigationContainer');
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onReady={() => {
+        console.log('[RootNavigator] ========================================');
+        console.log('[RootNavigator] NavigationContainer READY');
+        console.log('[RootNavigator] ========================================');
+      }}
+      onStateChange={state => {
+        const currentRoute = state?.routes?.[state?.index]?.name;
+        console.log('[RootNavigator] Navigation state changed:', currentRoute);
+      }}>
       <Stack.Navigator
         initialRouteName="Auth"
         screenOptions={{

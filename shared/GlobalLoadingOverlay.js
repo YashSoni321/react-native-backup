@@ -6,19 +6,35 @@ import {useLoading} from './LoadingContext';
 const {width, height} = Dimensions.get('window');
 
 const GlobalLoadingOverlay = () => {
+  console.log('[GlobalLoadingOverlay] Component rendering');
   const {globalLoading, loadingStates, getLoadingMessage} = useLoading();
 
   // Check if any loading state is active (global or specific keys)
   const hasAnyLoading = globalLoading || Object.keys(loadingStates).length > 0;
+  
+  // Debug logging
+  console.log('[GlobalLoadingOverlay] State:', {
+    globalLoading,
+    loadingStatesCount: Object.keys(loadingStates).length,
+    hasAnyLoading
+  });
+  
+  // Temporarily disable overlay to see if it's blocking
+  // if (hasAnyLoading) {
+  //   console.log('[GlobalLoadingOverlay] Would show overlay', {globalLoading, loadingStates});
+  // }
 
   // Get the first loading message if available
   const loadingMessage = globalLoading
     ? 'Loading...'
     : Object.values(loadingStates)[0]?.message || 'Loading...';
 
+  // Re-enable overlay now that we confirmed rendering works
+  const shouldShow = hasAnyLoading;
+  
   return (
     <Modal
-      visible={hasAnyLoading}
+      visible={shouldShow}
       transparent={true}
       animationType="fade"
       statusBarTranslucent={true}>

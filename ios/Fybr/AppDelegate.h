@@ -3,6 +3,6 @@
 
 @interface AppDelegate : RCTAppDelegate
 
-- (NSURL *)bundleURL;
+- (NSURL *__nullable)bundleURL;
 
 @end

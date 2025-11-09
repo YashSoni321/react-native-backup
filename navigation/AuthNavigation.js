@@ -42,6 +42,14 @@ import Contactsupport from '../Modules/Contact/Contactsupport';
 const Stack = createNativeStackNavigator();
 
 const AuthNavigation = () => {
+  console.log('[AuthNavigation] ========================================');
+  console.log('[AuthNavigation] Component rendering START');
+  console.log('[AuthNavigation] Initial route: Landing');
+  console.log('[AuthNavigation] ========================================');
+
+  console.log(
+    '[AuthNavigation] About to render Stack.Navigator with Landing as initial route',
+  );
   return (
     <Stack.Navigator
       initialRouteName="Landing"
